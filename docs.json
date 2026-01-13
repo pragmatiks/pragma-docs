@@ -23,10 +23,10 @@
           {
             "group": "Concepts",
             "pages": [
-              "concepts/overview",
+              "concepts/how-it-works",
               "concepts/resources",
               "concepts/providers",
-              "concepts/dependencies"
+              "concepts/reactive-dependencies"
             ]
           },
           {

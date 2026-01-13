@@ -1,0 +1,134 @@
+---
+title: "Reactive Dependencies"
+description: "Automatic change propagation through your infrastructure dependency graph"
+---
+
+When your data source schema changes, everything breaks. The embedding pipeline fails. The vector database has stale indexes. The retrieval API returns garbage. You spend days manually updating each component, hoping you didn't miss one.
+
+**Reactive dependencies solve this.** Changes propagate automatically through your dependency graph. Update one resource, and pragma-os cascades that change to every dependent resource—automatically.
+
+## The Problem: Infrastructure Drift
+
+Consider a RAG pipeline with five components:
+
+1. **Data source** - A BigQuery dataset with customer documents
+2. **Embedding pipeline** - Transforms documents into vectors
+3. **Vector database** - Stores and indexes embeddings
+4. **Retrieval service** - Queries the vector database
+5. **API endpoint** - Serves retrieval results
+
+When the data source schema changes—a new column, a renamed field, a type change—every downstream component needs to know. Without automation:
+
+- You manually update the embedding pipeline configuration
+- You trigger a re-index of the vector database
+- You adjust the retrieval service queries
+- You hope you remembered everything
+
+**This is brittle. This is slow. This is how outages happen.**
+
+## The Solution: Automatic Propagation
+
+pragma-os tracks the full dependency graph. When you update a resource, dependent resources automatically receive that change and update themselves:
+
+```yaml
+# Data source - the foundation
+provider: gcp
+resource: bigquery-dataset
+name: documents
+config:
+  location: EU
+---
+# Embedding pipeline depends on the data source
+provider: gcp
+resource: bigquery-dataset
+name: embeddings
+depends_on:
+  - gcp/bigquery-dataset/documents
+config:
+  source: "${gcp/bigquery-dataset/documents.outputs.dataset_id}"
+---
+# Vector index depends on embeddings
+provider: gcp
+resource: bigquery-dataset
+name: vector-index
+depends_on:
+  - gcp/bigquery-dataset/embeddings
+config:
+  source: "${gcp/bigquery-dataset/embeddings.outputs.dataset_id}"
+```
+
+When `documents` changes, pragma-os automatically:
+
+1. Detects the change
+2. Identifies all dependent resources
+3. Propagates updates through the graph
+4. Ensures everything stays in sync
+
+**You update one resource. pragma-os updates the rest.**
+
+## Terraform Provisions. pragma-os Maintains.
+
+Terraform is designed for Day 1: provision infrastructure and walk away. That works for static resources like VPCs and IAM policies.
+
+Data infrastructure isn't static. Schemas evolve. Pipelines change. Sources get updated.
+
+| | Terraform | pragma-os |
+|---|---|---|
+| **Philosophy** | Provision once | Maintain continuously |
+| **Changes** | Manual cascade | Automatic propagation |
+| **Dependencies** | Build-time only | Runtime reactive |
+| **Drift** | You detect it | We prevent it |
+
+pragma-os doesn't just create your infrastructure—it keeps it running correctly as your data evolves.
+
+## Declaring Dependencies
+
+Use `depends_on` to establish relationships:
+
+```yaml
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/storage/data-lake
+config:
+  location: EU
+```
+
+The format is `provider/resource/name`, matching how resources are identified in pragma-os.
+
+## Referencing Dependency Outputs
+
+Access values from dependencies using field references:
+
+```yaml
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/storage/data-lake
+config:
+  source_bucket: "${gcp/storage/data-lake.outputs.bucket_url}"
+  source_path: "${gcp/storage/data-lake.outputs.name}/data"
+```
+
+When `data-lake` updates, `analytics` receives the new output values automatically.
+
+## Dependency Rules
+
+**Dependencies must exist and be ready.** pragma-os won't process a resource until all dependencies are in READY state.
+
+**Circular dependencies are not allowed.** If A depends on B, B cannot depend on A—this prevents infinite update loops.
+
+**Changes cascade downward.** When a resource updates, all resources that depend on it are notified and can react to the change.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Resources" icon="cube" href="/concepts/resources">
+    Understand resource lifecycle and states.
+  </Card>
+  <Card title="Providers" icon="plug" href="/concepts/providers">
+    Learn how providers manage resources.
+  </Card>
+</CardGroup>

@@ -1,0 +1,117 @@
+---
+title: "How pragma-os Works"
+description: "Understanding the operating system for AI infrastructure"
+---
+
+Think of pragma-os like the operating system on your phone. You don't build apps from scratch—you install them from a marketplace, configure them to your needs, and they just work. When one app updates, others that depend on it adapt automatically.
+
+pragma-os brings this same experience to infrastructure.
+
+## The OS Metaphor
+
+| Your Phone | pragma-os |
+|------------|-----------|
+| Apps you install | **Resources** - infrastructure components |
+| App developers | **Providers** - teams that build and maintain resources |
+| Auto-updates | **Reactive dependencies** - changes propagate automatically |
+
+Instead of writing Terraform modules, managing state files, and debugging deployment scripts, you declare what you need and pragma-os handles the rest.
+
+## Resources: Infrastructure as Apps
+
+A resource is an infrastructure component you want to use—a storage bucket, a BigQuery dataset, a service account. You "install" resources by declaring them:
+
+```yaml
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+config:
+  location: EU
+```
+
+That's it. No provider blocks, no state management, no `terraform apply`. pragma-os creates the dataset, tracks its state, and manages its entire lifecycle.
+
+Resources come pre-built and tested. You configure them for your needs, just like adjusting app settings.
+
+## Providers: The Experts Behind the Scenes
+
+Providers are the teams (or tools) that know how to manage specific resource types. Think of them as app developers who handle all the complexity so you don't have to.
+
+The **GCP provider** knows how to create and manage:
+- Storage buckets with proper IAM
+- BigQuery datasets and tables
+- Service accounts and permissions
+
+The **Pragma provider** manages platform-level resources like secrets and configurations.
+
+You never interact with providers directly. You declare resources, and pragma-os routes them to the right provider automatically.
+
+## Reactive Dependencies: Everything Stays in Sync
+
+Here's where pragma-os really shines. Infrastructure components depend on each other—a data pipeline needs a storage bucket, which needs a service account. Managing these dependencies manually is error-prone and tedious.
+
+pragma-os tracks dependencies automatically:
+
+```yaml
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/storage/data-lake
+```
+
+When the `data-lake` bucket changes, pragma-os knows to re-evaluate the `analytics` dataset. When a service account's permissions update, everything that depends on it responds accordingly.
+
+This isn't just about creation order. It's a reactive system—changes propagate through your infrastructure graph automatically, keeping everything consistent.
+
+## The Mental Model
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      pragma-os                          │
+│                                                         │
+│   ┌─────────┐    ┌─────────┐    ┌─────────┐            │
+│   │ Storage │───▶│ Dataset │───▶│ Pipeline│            │
+│   │ Bucket  │    │         │    │         │            │
+│   └─────────┘    └─────────┘    └─────────┘            │
+│        │              │              │                  │
+│        ▼              ▼              ▼                  │
+│   ┌─────────────────────────────────────────┐          │
+│   │           Dependency Graph              │          │
+│   │   (pragma-os tracks what depends on what) │          │
+│   └─────────────────────────────────────────┘          │
+│                       │                                 │
+│        ┌──────────────┼──────────────┐                 │
+│        ▼              ▼              ▼                 │
+│   ┌─────────┐    ┌─────────┐    ┌─────────┐          │
+│   │   GCP   │    │  Pragma │    │  Future │          │
+│   │Provider │    │Provider │    │Providers│          │
+│   └─────────┘    └─────────┘    └─────────┘          │
+└─────────────────────────────────────────────────────────┘
+```
+
+You work at the top—declaring resources and their relationships. pragma-os manages the middle—tracking dependencies and orchestrating changes. Providers do the heavy lifting at the bottom—actually creating and modifying infrastructure.
+
+## Why This Matters
+
+Traditional infrastructure-as-code tools make you think like a computer: define every resource, manage state, handle ordering, debug conflicts. pragma-os inverts this. You describe what you want, and the system figures out how to make it happen.
+
+This means:
+- **Faster setup**: Install resources, don't build them
+- **Fewer errors**: Dependencies are tracked, not manually managed
+- **Less maintenance**: Changes propagate automatically
+- **Better visibility**: See your entire infrastructure as a connected graph
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Resources" icon="cube" href="/concepts/resources">
+    Learn how to declare and configure infrastructure components.
+  </Card>
+  <Card title="Providers" icon="plug" href="/concepts/providers">
+    Understand who builds and maintains resources.
+  </Card>
+  <Card title="Reactive Dependencies" icon="diagram-project" href="/concepts/reactive-dependencies">
+    See how changes propagate through your infrastructure.
+  </Card>
+</CardGroup>

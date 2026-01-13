@@ -1,40 +1,76 @@
 ---
-title: "Introduction"
-description: "Declarative resource management for data infrastructure"
+title: "What is pragma-os"
+description: "The operating system for AI infrastructure - install pre-built resources in minutes, not weeks"
 ---
 
-Pragmatiks is an orchestration layer for data tools. Define your infrastructure as YAML, and let providers manage the lifecycle.
+Think of pragma-os like iOS for your data infrastructure. Instead of manually wiring together storage, compute, and AI services, you browse a marketplace of pre-built resources and install what you need. Dependencies resolve automatically. When upstream data changes, downstream resources update themselves.
 
-## What Pragmatiks Does
+## How It Works
 
-- **Declarative configuration**: Define resources in YAML files
-- **Lifecycle management**: Create, update, and delete resources automatically
-- **Dependency tracking**: Resources wait for their dependencies before processing
-- **Provider ecosystem**: Extensible architecture for any data tool
+<Steps>
+  <Step title="Browse">
+    Explore the marketplace for the resources you need - storage buckets, datasets, vector databases, RAG pipelines, and more.
+  </Step>
+  <Step title="Configure">
+    Set your parameters: project, region, naming. Each resource knows what it needs.
+  </Step>
+  <Step title="Auto-sync">
+    pragma-os provisions everything and keeps it in sync. When sources change, dependent resources automatically update.
+  </Step>
+</Steps>
 
-## Quick Example
+## Why pragma-os
+
+<CardGroup cols={3}>
+  <Card title="Install in minutes, not weeks" icon="clock">
+    Skip the 2-3 weeks of manual setup. Get production-ready infrastructure in 15 minutes.
+  </Card>
+  <Card title="Changes propagate automatically" icon="arrows-rotate">
+    Update a source schema and watch dependent resources adapt. No manual intervention.
+  </Card>
+  <Card title="No platform team required" icon="users">
+    Stop waiting on infrastructure tickets. Install what you need, when you need it.
+  </Card>
+</CardGroup>
+
+## Example: RAG Pipeline
+
+Building a RAG pipeline traditionally means weeks of work - setting up storage, configuring vector databases, wiring embedding services, managing sync jobs. With pragma-os, you describe what you want:
+
+```yaml
+provider: gcp
+resource: storage
+name: documents
+config:
+  location: EU
+  lifecycle:
+    delete_after_days: 365
+```
 
 ```yaml
 provider: gcp
 resource: bigquery-dataset
-name: analytics
+name: embeddings
 config:
   location: EU
-  description: Analytics data
+depends_on:
+  - documents
 ```
 
 ```bash
-pragma resources apply dataset.yaml
+pragma resources apply .
 ```
 
-## Next Steps
+pragma-os provisions both resources and establishes the dependency. When new documents land in storage, the embeddings dataset knows about it. The full RAG pipeline example with vector search is coming soon.
+
+## Get Started
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get up and running in 5 minutes.
+    Install your first resource in 5 minutes.
   </Card>
-  <Card title="Concepts" icon="book" href="/concepts/overview">
-    Understand how Pragmatiks works.
+  <Card title="How It Works" icon="book" href="/concepts/how-it-works">
+    Understand the pragma-os model.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/cli/overview">
     Complete command reference.
