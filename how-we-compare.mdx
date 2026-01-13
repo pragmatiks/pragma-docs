@@ -1,86 +1,132 @@
 ---
 title: "How pragma-os Compares"
-description: "Understand where pragma-os fits in the data infrastructure landscape and when to use it"
+description: "Understand where pragma-os fits in the data infrastructure landscape"
 ---
 
-pragma-os isn't trying to replace everything. Different tools solve different problems, and understanding where each fits helps you make better decisions.
+pragma-os isn't trying to replace everything. Different tools solve different problems. Here's where we fit.
 
-Here's how pragma-os compares to the tools you're probably already using.
+<Tabs>
+  <Tab title="vs Terraform">
+    ## vs Infrastructure as Code
 
-## vs Infrastructure as Code (Terraform, Pulumi)
+    Infrastructure as Code tools excel at **provisioning**. You declare what you want, they create it. But what happens after?
 
-Infrastructure as Code tools excel at provisioning. You declare what you want, they create it. But what happens after?
+    <CardGroup cols={2}>
+      <Card title="Terraform / Pulumi" icon="hashtag">
+        - Provisions infrastructure
+        - Changes require manual cascade
+        - Dependencies resolved at build-time
+        - Best for static infrastructure
+      </Card>
+      <Card title="pragma-os" icon="p">
+        - Provisions **and maintains**
+        - Changes propagate automatically
+        - Dependencies are runtime reactive
+        - Best for dynamic data infrastructure
+      </Card>
+    </CardGroup>
 
-| Aspect | Terraform/Pulumi | pragma-os |
-|--------|------------------|-----------|
-| Focus | Provisioning | Provisioning + Maintenance |
-| Changes | Manual cascade | Automatic propagation |
-| Dependencies | Build-time | Runtime reactive |
-| Best for | Static infrastructure | Dynamic data infrastructure |
+    <Info>
+    **The key difference**: IaC provisions once. When your warehouse changes, you manually update dependent projects and run `terraform apply` again. pragma-os maintains continuously—changes propagate automatically through your dependency graph.
+    </Info>
+  </Tab>
 
-**The difference**: IaC provisions once. When your Snowflake warehouse changes, you manually update dependent dbt projects and run terraform apply again. pragma-os maintains continuously—changes propagate automatically through your dependency graph.
+  <Tab title="vs Airflow">
+    ## vs Orchestration
 
-This matters for data infrastructure because it's inherently interconnected. A schema change affects transformations. A warehouse resize affects compute. These cascading effects are the maintenance burden pragma-os handles.
+    Orchestrators are fantastic at **scheduling and running tasks**. They're the backbone of data pipelines everywhere.
 
-## vs Orchestration (Airflow, Prefect, Dagster)
+    <CardGroup cols={2}>
+      <Card title="Airflow / Prefect / Dagster" icon="clock">
+        - Schedules and runs tasks
+        - Manages task-level dependencies
+        - Runs workflows on infrastructure
+        - Best for data pipelines
+      </Card>
+      <Card title="pragma-os" icon="p">
+        - Provisions and maintains infrastructure
+        - Manages infrastructure-level dependencies
+        - Provides the platform layer
+        - Best for platform infrastructure
+      </Card>
+    </CardGroup>
 
-Orchestrators are fantastic at scheduling and running tasks. They're the backbone of data pipelines everywhere.
+    <Info>
+    **The key difference**: Orchestrators schedule tasks that run *on* infrastructure. pragma-os manages *that infrastructure*. Your Airflow DAG transforms data in BigQuery—pragma-os ensures BigQuery exists, is configured correctly, and stays in sync.
+    </Info>
 
-| Aspect | Airflow/Prefect/Dagster | pragma-os |
-|--------|-------------------------|-----------|
-| Focus | Task scheduling | Infrastructure management |
-| Scope | Runs workflows | Provisions + maintains stack |
-| Dependencies | Task-level | Infrastructure-level |
-| Best for | Data pipelines | Platform infrastructure |
+    <Tip>
+    These tools **complement each other**. pragma-os handles the platform layer so your orchestrator can focus on running pipelines.
+    </Tip>
+  </Tab>
 
-**The difference**: Orchestrators schedule tasks that run *on* infrastructure. pragma-os manages *that infrastructure*. Your Airflow DAG transforms data in Snowflake—pragma-os ensures Snowflake exists, is configured correctly, and stays in sync with your dbt project.
+  <Tab title="vs Databricks">
+    ## vs Platform-as-a-Service
 
-These tools complement each other. pragma-os handles the platform layer so your orchestrator can focus on what it does best: running pipelines.
+    Managed platforms are powerful. They handle operations so you can focus on workloads.
 
-## vs Platform-as-a-Service (Databricks, Snowflake)
+    <CardGroup cols={2}>
+      <Card title="Databricks / Snowflake" icon="database">
+        - Vertical integration
+        - Opinionated stack
+        - Vendor-specific ecosystem
+        - Best for specific workloads
+      </Card>
+      <Card title="pragma-os" icon="p">
+        - Horizontal platform
+        - Any tool combination
+        - Open ecosystem
+        - Best for custom platforms
+      </Card>
+    </CardGroup>
 
-Managed platforms are powerful. They handle operations so you can focus on workloads.
+    <Info>
+    **The key difference**: PaaS platforms optimize for specific workloads within their ecosystem. pragma-os lets you build custom platforms from any combination of tools.
+    </Info>
 
-| Aspect | Databricks/Snowflake | pragma-os |
-|--------|---------------------|-----------|
-| Approach | Vertical integration | Horizontal platform |
-| Flexibility | Opinionated stack | Any tool combination |
-| Lock-in | Vendor-specific | Open ecosystem |
-| Best for | Specific workloads | Custom platforms |
+    This isn't about replacing these platforms—it's about orchestrating them as part of a larger, cohesive system.
+  </Tab>
+</Tabs>
 
-**The difference**: PaaS platforms optimize for specific workloads within their ecosystem. pragma-os lets you build custom platforms from any combination of tools. Need Snowflake for warehousing, dbt for transformations, and Airbyte for ingestion? pragma-os manages them together.
-
-This isn't about replacing these platforms—it's about orchestrating them as part of a larger, cohesive system.
+---
 
 ## When to Use pragma-os
 
-pragma-os makes sense when:
+<CardGroup cols={2}>
+  <Card title="Multiple Tools" icon="layer-group">
+    Your stack includes BigQuery, dbt, vector databases, and more. You need them to work together.
+  </Card>
+  <Card title="Dynamic Dependencies" icon="arrows-rotate">
+    When your warehouse changes, your transformations should adapt. When your source evolves, your pipelines should respond.
+  </Card>
+  <Card title="Product Focus" icon="bullseye">
+    You'd rather ship features than chase cascading configuration changes.
+  </Card>
+  <Card title="No Platform Team" icon="users">
+    You need platform-team capabilities without hiring a platform team.
+  </Card>
+</CardGroup>
 
-- **You're building AI/data infrastructure from multiple tools** — Your stack includes Snowflake, dbt, Airbyte, vector databases, and more. You need them to work together.
-
-- **Your components have dependencies that need to stay in sync** — When your warehouse changes, your transformations should adapt. When your source schema evolves, your pipelines should respond.
-
-- **You want to focus on product, not infrastructure maintenance** — You'd rather ship features than chase cascading configuration changes.
-
-- **You don't have a dedicated platform team** — You need platform-team capabilities without hiring a platform team.
+---
 
 ## When pragma-os Might Not Be Right
 
-Being honest about fit:
+<AccordionGroup>
+  <Accordion title="You only need one tool">
+    If you're just using BigQuery, use BigQuery directly. pragma-os adds value when you're coordinating multiple systems.
+  </Accordion>
+  <Accordion title="Your infrastructure is completely static">
+    If nothing changes after initial setup, Terraform works fine. pragma-os shines when infrastructure is dynamic.
+  </Accordion>
+  <Accordion title="You have a mature platform team">
+    If you've built internal tooling that handles dependency propagation, you might not need to adopt something new.
+  </Accordion>
+</AccordionGroup>
 
-- **You only need one tool** — If you're just using Snowflake, use Snowflake directly. pragma-os adds value when you're coordinating multiple systems.
-
-- **Your infrastructure is completely static** — If nothing changes after initial setup, Terraform works fine. pragma-os shines when infrastructure is dynamic.
-
-- **You already have a mature platform team with existing solutions** — If you've built internal tooling that handles dependency propagation, you might not need to adopt something new.
+---
 
 ## Summary
 
-pragma-os solves a specific problem: maintaining AI and data infrastructure as dependencies change. It's not a replacement for Terraform, Airflow, or Snowflake—it's what ties them together and keeps them in sync.
-
-| Tool | Solves |
-|------|--------|
-| Terraform | Provisioning infrastructure |
-| Airflow | Scheduling pipelines |
-| Snowflake | Running workloads |
-| pragma-os | Maintaining it all together |
+<Card title="pragma-os solves maintenance" icon="wrench">
+  It's not a replacement for Terraform, Airflow, or Snowflake—it's what **ties them together** and keeps them in sync as your infrastructure evolves.
+</Card>
