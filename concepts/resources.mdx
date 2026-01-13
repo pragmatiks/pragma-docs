@@ -1,64 +1,103 @@
 ---
 title: "Resources"
-description: "Resource configuration and lifecycle"
+description: "Infrastructure components you install and configure"
 ---
 
-A resource represents a managed object in an external tool—a storage bucket, a BigQuery dataset, or a secret.
+Resources are like apps in the pragma ecosystem. You don't build them from scratch—you install pre-built, tested components and configure them for your needs.
 
-## Resource Identity
+Just as you'd install a photo editor or a database app on your computer, you install resources like storage buckets, datasets, or secrets. Each resource type knows how to provision and manage itself. You focus on configuration, not implementation.
 
-Every resource has a unique identity:
+## Resource Structure
+
+Every resource has a consistent structure:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `provider` | The provider that manages this resource | `gcp` |
+| `provider` | The provider that manages this resource (like an app category) | `gcp` |
 | `resource` | The type of resource | `storage` |
-| `name` | A unique name you assign | `data-lake` |
+| `name` | A unique identifier you assign | `data-lake` |
+| `config` | Your settings for this resource | `location: EU` |
+| `depends_on` | What it connects to | Other resources |
+| `outputs` | What it exposes to other resources | URLs, IDs, secrets |
 
-## Lifecycle States
+## Configuration Example
 
-Resources move through these states:
-
-| State | Description |
-|-------|-------------|
-| **DRAFT** | Saved but not submitted for processing |
-| **PENDING** | Queued for processing |
-| **PROCESSING** | Currently being processed |
-| **READY** | Successfully processed |
-| **FAILED** | Processing failed |
-
-## Configuration and Outputs
-
-Resources have configuration (what you define) and outputs (what providers produce):
+Here's a GCP storage bucket resource:
 
 ```yaml
-# You define this
 provider: gcp
 resource: storage
 name: data-lake
 config:
   location: EU
   storage_class: STANDARD
-
-# Provider produces outputs after processing
-# outputs:
-#   bucket_url: "..."
-#   created_at: "..."
 ```
+
+After provisioning, the resource exposes outputs that other resources can reference:
+
+```yaml
+# After provisioning, outputs become available:
+# outputs:
+#   bucket_url: "gs://pragma-data-lake-abc123"
+#   self_link: "https://www.googleapis.com/storage/v1/b/pragma-data-lake-abc123"
+```
+
+## Resource Lifecycle
+
+Resources move through these states as pragma manages them:
+
+| State | Description |
+|-------|-------------|
+| **PENDING** | Queued for provisioning |
+| **PROVISIONING** | Currently being created or updated |
+| **READY** | Successfully provisioned and operational |
+| **UPDATING** | Configuration change in progress |
+| **DELETING** | Being removed |
+| **FAILED** | Provisioning or update failed |
+
+## Dependencies
+
+Resources can depend on other resources. When you reference another resource's outputs, pragma automatically tracks the dependency:
+
+```yaml
+provider: gcp
+resource: bigquery_dataset
+name: analytics
+config:
+  location: EU
+
+---
+provider: gcp
+resource: bigquery_table
+name: events
+config:
+  dataset: ${gcp.bigquery_dataset.analytics.dataset_id}
+  schema:
+    - name: event_id
+      type: STRING
+    - name: timestamp
+      type: TIMESTAMP
+```
+
+When the dataset changes, pragma knows to update the table.
 
 ## Applying Resources
 
-By default, resources are created in DRAFT state:
+Create resources in draft state:
 
 ```bash
 pragma resources apply warehouse.yaml
 ```
 
-To queue for immediate processing:
+Queue for immediate provisioning:
 
 ```bash
 pragma resources apply --pending warehouse.yaml
 ```
+
+## The Marketplace
+
+In the future, the marketplace will show install counts, ratings, and documentation for each resource type—making it easy to discover and evaluate infrastructure components before you install them.
 
 ## Next Steps
 

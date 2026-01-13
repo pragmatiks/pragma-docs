@@ -65,10 +65,10 @@
         ]
       },
       {
-        "tab": "Providers",
+        "tab": "Marketplace",
         "groups": [
           {
-            "group": "Provider Catalog",
+            "group": "Resource Catalog",
             "pages": [
               "providers/overview"
             ]

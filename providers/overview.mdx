@@ -1,33 +1,53 @@
 ---
-title: "Provider Catalog"
-description: "Available providers and their resources"
+title: "Resource Marketplace"
+description: "Browse and install pre-built infrastructure resources"
 ---
 
-Providers extend Pragmatiks to manage different data tools.
+The marketplace is where you find resources to install. Browse available resources like an app store, then install what you need with a single command.
 
-## Available Providers
+## Provider Tiers
 
-### GCP
+Resources are built and maintained by providers. We categorize them into three tiers:
 
-Google Cloud Platform resources.
+| Tier | Description | Status |
+|------|-------------|--------|
+| **First-party** | Built and maintained by Pragmatiks. Guaranteed to work and fully supported. | Available |
+| **Verified Partners** | Certified by Pragmatiks, maintained by partners. | Coming soon |
+| **Community** | Shared by the community. | Coming soon |
+
+## Available Resources
+
+All resources below are first-party, built and maintained by Pragmatiks.
+
+### GCP Provider
+
+Google Cloud Platform infrastructure resources.
 
 | Resource | Description |
 |----------|-------------|
 | `gcp/storage` | Cloud Storage buckets |
 | `gcp/bigquery-dataset` | BigQuery datasets |
 
-### Pragma (Built-in)
+### Pragma Provider
 
-Platform resources.
+Platform resources built into Pragmatiks.
 
 | Resource | Description |
 |----------|-------------|
 | `pragma/secret` | Secure credential storage |
 
-## Building Custom Providers
+## Browsing Resources
 
-Need a provider that doesn't exist? Build your own.
+The web marketplace is coming with the pragma-os dashboard. For now, browse resources via the CLI:
+
+```bash
+pragma providers list
+```
+
+## Building Your Own
+
+Want to create resources for your team or the community?
 
 <Card title="Building Providers" icon="hammer" href="/building-providers/overview">
-  Create a custom provider.
+  Learn how to build custom providers and resources.
 </Card>

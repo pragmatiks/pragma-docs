@@ -1,56 +1,68 @@
 ---
 title: "Quickstart"
-description: "Get started with Pragmatiks in 5 minutes"
+description: "Install your first resource in 5 minutes"
 ---
+
+Welcome to pragma-os, the operating system for AI infrastructure. In this guide, you'll install your first cloud resource - a GCP storage bucket - and see how easy infrastructure management can be.
+
+<Note>
+The web marketplace is coming soon. For now, you define resources in YAML and install them via the CLI.
+</Note>
 
 ## Prerequisites
 
 - Python 3.11+
-- A Pragmatiks account
+- A [Pragmatiks account](https://pragmatiks.io)
 
-## Step 1: Install the CLI
+## Install the CLI
 
 ```bash
 pip install pragma-cli
 ```
 
-## Step 2: Authenticate
+## Authenticate
 
 ```bash
 pragma auth login
 ```
 
-This opens your browser for authentication.
+This opens your browser. Sign in, and you're connected.
 
-## Step 3: Create a Resource
+## Install your first resource
 
-Create a file called `bucket.yaml`:
+Create a resource definition called `bucket.yaml`:
 
 ```yaml
 provider: gcp
 resource: storage
-name: my-bucket
+name: my-first-bucket
 config:
   location: EU
 ```
 
-## Step 4: Apply the Resource
+Now install it:
 
 ```bash
 pragma resources apply bucket.yaml
 ```
 
-## Step 5: Check Status
+That's it - your infrastructure is ready.
+
+## See it in action
+
+Check the status of your installed resources:
 
 ```bash
 pragma resources list
 ```
 
-## Next Steps
+You just installed your first resource. From a simple definition to running infrastructure in seconds.
+
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Concepts" icon="book" href="/concepts/overview">
-    Learn about resources, providers, and dependencies.
+  <Card title="How It Works" icon="lightbulb" href="/concepts/how-it-works">
+    Understand the pragma-os model.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/cli/overview">
     Explore all available commands.
