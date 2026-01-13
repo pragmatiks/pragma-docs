@@ -1,0 +1,133 @@
+---
+title: "Verify Setup"
+description: "Confirm your resources are provisioned correctly"
+---
+
+After completing the [quickstart](/quickstart), verify that your resources are installed and functioning as expected. This guide shows you how to check resource status, understand lifecycle states, and troubleshoot common verification failures.
+
+## Check Resource Status
+
+List all your installed resources:
+
+```bash
+pragma resources list
+```
+
+After completing the quickstart, you should see output like:
+
+```
+gcp/storage/my-first-bucket [READY]
+```
+
+The `[READY]` status indicates your bucket was provisioned successfully.
+
+## Understanding Lifecycle States
+
+Resources move through several states during provisioning:
+
+| State | Meaning |
+|-------|---------|
+| **PENDING** | Queued and waiting - either for dependencies to be ready or for processing to begin |
+| **PROVISIONING** | Currently being created by the provider |
+| **READY** | Successfully provisioned and operational |
+| **FAILED** | Something went wrong during provisioning |
+
+<Tip>
+A resource in PENDING state is normal immediately after applying. It should transition to PROVISIONING within a few seconds, then to READY once complete.
+</Tip>
+
+## Get Resource Details
+
+View detailed information about a specific resource:
+
+```bash
+pragma resources get gcp/storage my-first-bucket
+```
+
+This shows:
+
+- Current lifecycle state
+- Configuration values
+- Output values (like the bucket URL)
+- Any error messages if the resource failed
+
+For a successful bucket, you'll see outputs like:
+
+```yaml
+outputs:
+  bucket_url: "gs://my-first-bucket-abc123"
+  self_link: "https://www.googleapis.com/storage/v1/b/my-first-bucket-abc123"
+```
+
+## Verify in GCP Console
+
+You can also confirm the resource exists in your GCP project:
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com)
+2. Navigate to **Cloud Storage > Buckets**
+3. Find your bucket by name (it will have a unique suffix like `my-first-bucket-abc123`)
+
+The bucket should be visible with the location you specified (`EU` in the quickstart example).
+
+## Troubleshooting Verification Failures
+
+### Resource Stuck in PENDING
+
+If a resource stays in PENDING state for more than a few minutes:
+
+- **Check dependencies** - Resources wait for their dependencies to reach READY first
+- **Verify credentials** - Your GCP credentials may have expired
+
+```bash
+# Refresh credentials if needed
+gcloud auth application-default login
+```
+
+### Resource Shows FAILED
+
+A failed resource means something went wrong during provisioning. Check the error details:
+
+```bash
+pragma resources get gcp/storage my-first-bucket
+```
+
+Common failure causes:
+
+| Error | Solution |
+|-------|----------|
+| Permission denied | Ensure your GCP account has Storage Admin role |
+| Quota exceeded | Check your project quotas in GCP Console |
+| Invalid configuration | Review your YAML for typos or invalid values |
+
+### Resource Not Appearing in List
+
+If `pragma resources list` shows nothing:
+
+- Verify you applied the resource with `pragma resources apply bucket.yaml`
+- Check you're authenticated: `pragma auth whoami`
+- Ensure the YAML file has valid syntax
+
+## Recovering from Failures
+
+If your resource is in FAILED state:
+
+1. Check the error message with `pragma resources get`
+2. Fix the underlying issue (permissions, configuration, etc.)
+3. Re-apply the resource:
+
+```bash
+pragma resources apply --pending bucket.yaml
+```
+
+For more complex recovery scenarios, see the [Error Recovery guide](/guides/error-recovery).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="How It Works" icon="lightbulb" href="/concepts/how-it-works">
+    Understand the pragma-os model.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Explore all available commands.
+  </Card>
+</CardGroup>

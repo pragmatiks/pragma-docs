@@ -1,69 +1,183 @@
 ---
 title: "Building Providers"
-description: "Create custom providers for Pragmatiks"
+description: "Create custom providers to manage any infrastructure or service"
 ---
 
-Providers let you extend Pragmatiks to manage any data tool.
+Providers let you extend Pragmatiks to manage any tool, service, or infrastructure. A provider packages the logic to create, update, and delete resources of specific types.
 
-## Getting Started
+## Why Build a Provider?
 
-Create a new provider project:
+Build a provider when you want to:
+
+- **Manage internal tools** - Bring your proprietary systems into the Pragma ecosystem
+- **Support new services** - Add resources for cloud services, databases, or APIs not yet covered
+- **Standardize operations** - Encode your team's best practices into reusable resource types
+- **Enable reactive pipelines** - Let your resources participate in dependency-driven workflows
+
+Once deployed, your provider's resources work like any other Pragma resource: users apply configurations, the platform handles lifecycle events, and outputs propagate through dependency chains.
+
+## Provider Architecture
+
+A provider consists of three main components:
+
+### Provider
+
+A namespace that groups related resources. Think of it like a FastAPI router that collects related endpoints.
+
+```python
+from pragma_sdk import Provider
+
+gcp = Provider(name="gcp")
+```
+
+### Resource
+
+The core abstraction. Each resource type:
+
+- Has a **Config** schema defining what users configure
+- Has an **Outputs** schema defining what it exposes to other resources
+- Implements **lifecycle methods** to handle create, update, and delete events
+
+```python
+from pragma_sdk import Resource, Config, Outputs
+
+class DatabaseConfig(Config):
+    name: str
+    size_gb: int = 10
+
+class DatabaseOutputs(Outputs):
+    connection_url: str
+
+@gcp.resource("database")
+class Database(Resource[DatabaseConfig, DatabaseOutputs]):
+    async def on_create(self) -> DatabaseOutputs:
+        # Create the database, return outputs
+        ...
+
+    async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
+        # Handle configuration changes
+        ...
+
+    async def on_delete(self) -> None:
+        # Clean up the database
+        ...
+```
+
+### Config and Outputs
+
+Both extend Pydantic `BaseModel` with `extra="forbid"` to catch typos and invalid fields:
+
+- **Config**: User-provided settings. Define required fields, defaults, and validation.
+- **Outputs**: Values your resource exposes. Other resources can reference these fields.
+
+## Lifecycle Methods
+
+Every resource implements three async methods:
+
+| Method | Called When | Returns |
+|--------|-------------|---------|
+| `on_create` | Resource is first provisioned | `Outputs` |
+| `on_update` | Configuration changes | `Outputs` |
+| `on_delete` | Resource is removed | `None` |
+
+These methods must be **idempotent**. The platform may retry events if delivery fails, so calling a lifecycle method twice with the same input should produce the same result.
+
+```python
+async def on_create(self) -> SecretOutputs:
+    # Idempotent: handle "already exists" gracefully
+    try:
+        secret = client.create_secret(...)
+    except AlreadyExists:
+        secret = client.get_secret(...)  # Reuse existing
+
+    return SecretOutputs(resource_name=secret.name)
+```
+
+## Prerequisites
+
+Before building a provider, you need:
+
+- **Python 3.12+** - Providers use modern Python features
+- **uv** - Fast Python package manager (install via `curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- **pragma-sdk** - The SDK provides `Provider`, `Resource`, `Config`, and `Outputs` classes
+- **Pragmatiks CLI** - For initializing projects and deploying (`pragma provider init`)
+
+## Project Structure
+
+Initialize a provider project:
 
 ```bash
 pragma provider init mycompany
 cd mycompany-provider
 ```
 
-## Project Structure
+This creates:
 
 ```
 mycompany-provider/
 ├── pyproject.toml
 ├── src/mycompany_provider/
-│   └── resources.py
+│   ├── __init__.py         # Provider instance and exports
+│   └── resources/
+│       ├── __init__.py     # Resource exports for discovery
+│       └── example.py      # Your resource implementations
 └── tests/
+    └── test_example.py     # Tests using ProviderHarness
 ```
 
-## Defining Resources
+## Testing Locally
+
+The SDK includes `ProviderHarness` for testing lifecycle methods without deploying:
 
 ```python
-from pragma_sdk import Resource, Config, provider
+from pragma_sdk.provider import ProviderHarness
+from mycompany_provider import Database, DatabaseConfig
 
-class WarehouseConfig(Config):
-    size: str = "SMALL"
+async def test_database_creation():
+    harness = ProviderHarness()
 
-@provider.resource("mycompany", "warehouse")
-class Warehouse(Resource):
-    config: WarehouseConfig
+    result = await harness.invoke_create(
+        Database,
+        name="test-db",
+        config=DatabaseConfig(name="analytics", size_gb=50)
+    )
 
-    async def on_create(self):
-        # Create the warehouse
-        pass
-
-    async def on_update(self):
-        # Update the warehouse
-        pass
-
-    async def on_delete(self):
-        # Delete the warehouse
-        pass
+    assert result.success
+    assert "postgres://" in result.outputs.connection_url
 ```
 
-## Testing
-
-```bash
-uv run pytest tests/
-```
+The harness simulates the runtime environment, letting you verify lifecycle logic before deployment.
 
 ## Deploying
 
+Once your provider is ready:
+
 ```bash
-pragma provider sync    # Register resource types
-pragma provider push --deploy  # Build and deploy
+# Register resource types with the platform
+pragma provider sync
+
+# Build and deploy
+pragma provider push --deploy
 ```
 
-## Next Steps
+After deployment, users can create resources of your types:
 
-<Card title="CLI Providers" icon="terminal" href="/cli/providers">
-  Provider CLI commands.
-</Card>
+```yaml
+provider: mycompany
+resource: database
+name: analytics
+config:
+  name: analytics
+  size_gb: 100
+```
+
+## What's Next
+
+<CardGroup cols={2}>
+  <Card title="CLI Provider Commands" icon="terminal" href="/cli/providers">
+    Initialize, sync, and deploy providers.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdk/overview">
+    Full SDK documentation.
+  </Card>
+</CardGroup>

@@ -1,0 +1,266 @@
+---
+title: "Migrating from Terraform"
+description: "Understand when and how to complement Terraform with pragma-os"
+---
+
+This guide helps you understand where pragma-os fits alongside Terraform and how to use both tools effectively. We're not here to tell you to replace Terraform—that would be the wrong advice for most teams.
+
+## The Honest Truth
+
+**Terraform is excellent at what it does.** If you're provisioning VPCs, IAM policies, or Kubernetes clusters, keep using Terraform. pragma-os isn't trying to replace general infrastructure provisioning.
+
+**pragma-os solves a different problem.** It's designed specifically for data and AI infrastructure where resources have runtime dependencies that change over time—schemas evolve, pipelines update, and downstream systems need to react automatically.
+
+## Conceptual Differences
+
+| | Terraform | pragma-os |
+|---|---|---|
+| **Model** | Declarative state | Reactive dependencies |
+| **When it runs** | On `terraform apply` | Continuously |
+| **Dependencies** | Resolved at plan time | Resolved at runtime, reactive |
+| **Change propagation** | Manual cascade | Automatic |
+| **Best for** | Static infrastructure | Dynamic data infrastructure |
+| **Drift handling** | Detected via `plan` | Prevented via propagation |
+
+### Declarative State vs Reactive Dependencies
+
+Terraform compares your desired state to the current state and makes changes to converge them. This works brilliantly when infrastructure is relatively static.
+
+```hcl
+# Terraform: "Make this exist"
+resource "google_bigquery_dataset" "analytics" {
+  dataset_id = "analytics"
+  location   = "EU"
+}
+```
+
+pragma-os also declares desired state, but adds reactive relationships. When a dependency changes, dependent resources are notified and can respond:
+
+```yaml
+# pragma-os: "Make this exist, and keep it in sync with dependencies"
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/storage/data-lake
+config:
+  location: EU
+  source: "${gcp/storage/data-lake.outputs.bucket_url}"
+```
+
+When `data-lake` changes—new bucket, new path, new schema—`analytics` automatically receives that update and can reconfigure itself.
+
+## Side-by-Side: A Storage Bucket
+
+Here's the same resource in both tools:
+
+<CodeGroup>
+```hcl Terraform
+resource "google_storage_bucket" "data_lake" {
+  name     = "my-data-lake"
+  location = "EU"
+
+  uniform_bucket_level_access = true
+}
+```
+
+```yaml pragma-os
+provider: gcp
+resource: storage
+name: data-lake
+config:
+  location: EU
+```
+</CodeGroup>
+
+For a single static resource, the difference is just syntax. The real difference emerges when you have dependencies.
+
+## Side-by-Side: Dependencies
+
+Consider a pipeline where a BigQuery dataset depends on a storage bucket:
+
+<CodeGroup>
+```hcl Terraform
+resource "google_storage_bucket" "data_lake" {
+  name     = "my-data-lake"
+  location = "EU"
+}
+
+resource "google_bigquery_dataset" "analytics" {
+  dataset_id = "analytics"
+  location   = "EU"
+
+  # Reference resolved at plan time
+  labels = {
+    source_bucket = google_storage_bucket.data_lake.name
+  }
+}
+```
+
+```yaml pragma-os
+provider: gcp
+resource: storage
+name: data-lake
+config:
+  location: EU
+---
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/storage/data-lake
+config:
+  location: EU
+  source: "${gcp/storage/data-lake.outputs.bucket_url}"
+```
+</CodeGroup>
+
+The syntax looks similar, but the behavior differs:
+
+| Scenario | Terraform | pragma-os |
+|---|---|---|
+| Initial creation | Both create in dependency order | Both create in dependency order |
+| Bucket changes | Rerun `terraform apply` manually | `analytics` notified automatically |
+| Schema evolves | Update configs, rerun everywhere | Propagates through dependency graph |
+| Someone modifies bucket outside the tool | Drift detected on next `plan` | Change propagates to dependents |
+
+## Coexistence Patterns
+
+Most teams should use both tools. Here's how to divide responsibilities:
+
+### Pattern 1: Terraform for Foundation, pragma-os for Data Layer
+
+Use Terraform for infrastructure that rarely changes:
+
+```hcl
+# terraform/main.tf
+# Foundation infrastructure - changes rarely
+
+resource "google_project" "data_platform" {
+  name       = "data-platform"
+  project_id = "my-data-platform"
+}
+
+resource "google_compute_network" "main" {
+  name    = "main-vpc"
+  project = google_project.data_platform.project_id
+}
+
+resource "google_service_account" "pragma" {
+  account_id = "pragma-os-sa"
+  project    = google_project.data_platform.project_id
+}
+```
+
+Use pragma-os for data infrastructure that evolves:
+
+```yaml
+# pragma/data-pipeline.yaml
+# Data infrastructure - changes frequently
+
+provider: gcp
+resource: storage
+name: raw-data
+config:
+  location: EU
+---
+provider: gcp
+resource: bigquery-dataset
+name: staging
+depends_on:
+  - gcp/storage/raw-data
+config:
+  source: "${gcp/storage/raw-data.outputs.bucket_url}"
+---
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+depends_on:
+  - gcp/bigquery-dataset/staging
+config:
+  source: "${gcp/bigquery-dataset/staging.outputs.dataset_id}"
+```
+
+### Pattern 2: Terraform Outputs as pragma-os Inputs
+
+Reference Terraform-managed resources in pragma-os:
+
+```yaml
+# Reference infrastructure created by Terraform
+provider: gcp
+resource: bigquery-dataset
+name: analytics
+config:
+  project: "my-data-platform"  # Created by Terraform
+  location: EU
+```
+
+pragma-os doesn't need to know how the project was created—it just uses it.
+
+### Pattern 3: Gradual Migration
+
+Start with pragma-os for new data resources while keeping existing Terraform:
+
+1. Keep existing Terraform configurations unchanged
+2. Add new data/AI resources with pragma-os
+3. Over time, move dynamic data resources to pragma-os if the reactive model helps
+4. Keep static infrastructure in Terraform
+
+## What pragma-os Does NOT Replace
+
+Be clear about scope. pragma-os is designed for data and AI infrastructure, not general IaC:
+
+<AccordionGroup>
+  <Accordion title="Network infrastructure">
+    VPCs, subnets, firewalls, load balancers—use Terraform. These are static and well-suited to declarative state.
+  </Accordion>
+  <Accordion title="IAM and security">
+    Roles, policies, service accounts—use Terraform. Security infrastructure benefits from explicit, auditable state files.
+  </Accordion>
+  <Accordion title="Kubernetes clusters">
+    Cluster provisioning, node pools, namespaces—use Terraform. The cluster itself is foundational infrastructure.
+  </Accordion>
+  <Accordion title="Multi-cloud orchestration">
+    If you need to coordinate AWS, GCP, and Azure simultaneously, Terraform's provider ecosystem is more mature for this.
+  </Accordion>
+</AccordionGroup>
+
+## When to Choose pragma-os
+
+Consider pragma-os when you have:
+
+- **Data pipelines with dependencies** - Resources that need to react when upstream sources change
+- **AI/ML infrastructure** - Vector databases, embedding pipelines, model serving that needs to stay synchronized
+- **Frequently evolving schemas** - Data sources where structure changes and downstream systems need to adapt
+- **Maintenance burden** - Spending significant time manually propagating changes through your data stack
+
+## When to Stay with Terraform
+
+Stay with Terraform when you have:
+
+- **Static infrastructure** - Networks, IAM, clusters that change infrequently
+- **Compliance requirements** - Auditors who want to see explicit state files and plan outputs
+- **Multi-cloud needs** - Complex cross-provider dependencies that Terraform handles well
+- **Existing investment** - Large Terraform codebase that works fine for your use case
+
+## Summary
+
+pragma-os and Terraform solve different problems. Terraform provisions and maintains state for static infrastructure. pragma-os maintains reactive dependencies for dynamic data infrastructure.
+
+Most teams benefit from using both:
+
+- Terraform for the foundational layer that changes rarely
+- pragma-os for the data layer where changes need to propagate automatically
+
+Don't replace what's working. Add pragma-os where reactive dependencies would reduce your maintenance burden.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Reactive Dependencies" icon="arrows-rotate" href="/concepts/reactive-dependencies">
+    Understand how automatic change propagation works.
+  </Card>
+  <Card title="How We Compare" icon="scale-balanced" href="/how-we-compare">
+    See how pragma-os compares to other tools.
+  </Card>
+</CardGroup>

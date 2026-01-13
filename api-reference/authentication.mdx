@@ -1,0 +1,85 @@
+---
+title: "Authentication"
+description: "How to authenticate with the Pragmatiks API"
+---
+
+All API endpoints require authentication using Bearer tokens. This guide explains how to obtain and use tokens.
+
+## Getting a Token
+
+You can get an authentication token using the CLI:
+
+```bash
+pragma auth login
+```
+
+This opens your browser for authentication. After successful login, your token is stored locally.
+
+To view your current token for API calls:
+
+```bash
+pragma auth token
+```
+
+## Using Tokens
+
+Include your token in the `Authorization` header of every request:
+
+```bash
+curl -H "Authorization: Bearer <your-token>" \
+  https://api.pragmatiks.io/resources/
+```
+
+## Token Lifecycle
+
+Tokens are JWTs issued by Clerk and have a limited lifetime. The CLI automatically refreshes tokens when needed. If you receive a `401 Unauthorized` response, re-authenticate:
+
+```bash
+pragma auth login
+```
+
+## Request Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token for authentication |
+| `Content-Type` | For POST/PUT | `application/json` for JSON bodies, `multipart/form-data` for file uploads |
+
+## Example: Authenticated Request
+
+```bash
+# Set your token
+TOKEN=$(pragma auth token)
+
+# List resources
+curl -H "Authorization: Bearer $TOKEN" \
+  https://api.pragmatiks.io/resources/
+```
+
+## Multi-Tenant Isolation
+
+Your token identifies your organization. All API requests are automatically scoped to your organization's namespace. You cannot access resources belonging to other organizations.
+
+## Error Responses
+
+| Status | Meaning |
+|--------|---------|
+| `401 Unauthorized` | Missing or invalid token |
+| `403 Forbidden` | Token valid but lacks permission for the requested operation |
+
+```json
+{
+  "detail": "Not authenticated"
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/api-reference/errors">
+    Understand API error responses.
+  </Card>
+  <Card title="Examples" icon="code" href="/api-reference/examples">
+    See curl examples for common operations.
+  </Card>
+</CardGroup>

@@ -3,37 +3,35 @@ title: "How pragma-os Works"
 description: "Understanding the operating system for AI infrastructure"
 ---
 
-Think of pragma-os like the operating system on your phone. You don't build apps from scratch—you install them from a marketplace, configure them to your needs, and they just work. When one app updates, others that depend on it adapt automatically.
+pragma-os manages infrastructure through three core concepts: resources, providers, and reactive dependencies.
 
-pragma-os brings this same experience to infrastructure.
+```mermaid
+graph LR
+    A[CLI] --> B[API]
+    B --> C[Resources]
+    C --> D[Providers]
+    D --> E[Cloud Infrastructure]
+```
 
-## The OS Metaphor
+## Core Concepts
 
 <CardGroup cols={3}>
   <Card title="Resources" icon="cube">
-    **Like apps you install**
-
     Infrastructure components—storage buckets, datasets, APIs—that you declare and pragma-os provisions.
   </Card>
   <Card title="Providers" icon="plug">
-    **Like app developers**
-
-    Teams that build and maintain resources. They handle complexity so you don't have to.
+    Components that manage specific resource types, handling creation, updates, and deletion.
   </Card>
   <Card title="Reactive Dependencies" icon="arrows-rotate">
-    **Like auto-updates**
-
-    When one resource changes, dependent resources automatically adapt.
+    When one resource changes, dependent resources automatically update.
   </Card>
 </CardGroup>
-
-Instead of writing Terraform modules, managing state files, and debugging deployment scripts, you declare what you need and pragma-os handles the rest.
 
 ---
 
 ## Resources
 
-A resource is an infrastructure component you want to use—a storage bucket, a BigQuery dataset, a service account. You "install" resources by declaring them:
+A resource is an infrastructure component—a storage bucket, a BigQuery dataset, a service account. You declare resources in YAML:
 
 ```yaml
 provider: gcp
@@ -43,17 +41,13 @@ config:
   location: EU
 ```
 
-That's it. No provider blocks, no state management, no `terraform apply`. pragma-os creates the dataset, tracks its state, and manages its entire lifecycle.
-
-<Tip>
-Resources come pre-built and tested. You configure them for your needs, just like adjusting app settings.
-</Tip>
+pragma-os creates the dataset, tracks its state, and manages its lifecycle.
 
 ---
 
 ## Providers
 
-Providers know how to manage specific resource types. Think of them as app developers who handle all the complexity so you don't have to.
+Providers manage specific resource types.
 
 <Tabs>
   <Tab title="GCP Provider">
@@ -75,7 +69,7 @@ You never interact with providers directly. You declare resources, and pragma-os
 
 ## Reactive Dependencies
 
-Here's where pragma-os really shines. Infrastructure components depend on each other—a data pipeline needs a storage bucket, which needs a service account. Managing these dependencies manually is error-prone.
+Infrastructure components depend on each other—a data pipeline needs a storage bucket, which needs a service account. pragma-os tracks these dependencies and propagates changes automatically.
 
 ```yaml
 provider: gcp
@@ -97,39 +91,22 @@ depends_on:
   </Step>
 </Steps>
 
-This isn't just about creation order. It's a reactive system—changes propagate through your infrastructure graph automatically.
+Changes propagate through your infrastructure dependency graph automatically.
 
 ---
 
-## Why This Matters
-
-<CardGroup cols={2}>
-  <Card title="Faster Setup" icon="rocket">
-    Install resources, don't build them. Minutes instead of weeks.
-  </Card>
-  <Card title="Fewer Errors" icon="shield-check">
-    Dependencies are tracked automatically, not manually managed.
-  </Card>
-  <Card title="Less Maintenance" icon="wrench">
-    Changes propagate automatically. No more chasing cascading updates.
-  </Card>
-  <Card title="Better Visibility" icon="eye">
-    See your entire infrastructure as a connected graph.
-  </Card>
-</CardGroup>
-
----
-
-## Next Steps
+## Learn More
 
 <CardGroup cols={3}>
   <Card title="Resources" icon="cube" href="/concepts/resources">
     Learn how to declare and configure infrastructure components.
   </Card>
   <Card title="Providers" icon="plug" href="/concepts/providers">
-    Understand who builds and maintains resources.
+    Understand how providers manage resources.
   </Card>
   <Card title="Reactive Dependencies" icon="diagram-project" href="/concepts/reactive-dependencies">
     See how changes propagate through your infrastructure.
   </Card>
 </CardGroup>
+
+For an introduction to what pragma-os offers, see [Why pragma-os](/learn/why-pragma-os).

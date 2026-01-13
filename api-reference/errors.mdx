@@ -1,0 +1,194 @@
+---
+title: "Error Codes"
+description: "Understanding API error responses"
+---
+
+The API uses standard HTTP status codes and returns detailed error information in JSON format.
+
+## HTTP Status Codes
+
+| Code | Meaning | When it occurs |
+|------|---------|----------------|
+| `200` | Success | Request completed successfully |
+| `201` | Created | Resource created successfully |
+| `202` | Accepted | Request accepted for async processing |
+| `204` | No Content | Successful deletion (no response body) |
+| `400` | Bad Request | Invalid request parameters |
+| `401` | Unauthorized | Missing or invalid authentication |
+| `403` | Forbidden | Authenticated but not authorized |
+| `404` | Not Found | Resource does not exist |
+| `409` | Conflict | Invalid state transition or concurrent modification |
+| `422` | Validation Error | Request body failed validation |
+| `500` | Server Error | Internal server error |
+
+## Error Response Format
+
+All error responses follow this structure:
+
+```json
+{
+  "detail": "Human-readable error message"
+}
+```
+
+Validation errors include additional location information:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "name"],
+      "msg": "field required",
+      "type": "value_error.missing"
+    }
+  ]
+}
+```
+
+## Common Errors
+
+### Authentication Errors (401)
+
+Missing or expired token:
+
+```json
+{
+  "detail": "Not authenticated"
+}
+```
+
+**Solution**: Re-authenticate with `pragma auth login`.
+
+### Not Found Errors (404)
+
+Resource or build job does not exist:
+
+```json
+{
+  "detail": "Resource not found: postgres/database/my-db"
+}
+```
+
+**Solution**: Verify the resource ID exists in your namespace.
+
+### Conflict Errors (409)
+
+#### Invalid Lifecycle Transition
+
+Attempting an invalid state change:
+
+```json
+{
+  "detail": "Cannot transition from PROCESSING to DRAFT"
+}
+```
+
+**Solution**: Wait for the current operation to complete before modifying.
+
+#### Resource In Processing
+
+Modifying a resource while it's being processed:
+
+```json
+{
+  "detail": "Resource is currently being processed and cannot be modified"
+}
+```
+
+**Solution**: Wait for the resource to reach READY or FAILED state.
+
+### Validation Errors (422)
+
+#### Missing Required Fields
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "provider"],
+      "msg": "field required",
+      "type": "value_error.missing"
+    }
+  ]
+}
+```
+
+**Solution**: Include all required fields in your request.
+
+#### Dependency Validation Failed
+
+Dependencies don't exist or aren't ready:
+
+```json
+{
+  "detail": "Dependency validation failed: postgres/database/missing-db does not exist"
+}
+```
+
+**Solution**: Ensure all dependencies exist and are in READY state.
+
+#### Field Reference Resolution Failed
+
+A field reference points to a non-existent output:
+
+```json
+{
+  "detail": "Field reference failed: postgres/database/my-db does not have output 'connection_string'"
+}
+```
+
+**Solution**: Verify the referenced resource exists and has the expected outputs.
+
+### Build Errors (400/404)
+
+#### Build Job Not Found
+
+```json
+{
+  "detail": "Build job not found: buildkit-abc123"
+}
+```
+
+**Solution**: Verify the job name from the push response.
+
+#### Build Creation Failed
+
+```json
+{
+  "detail": "Failed to create build job"
+}
+```
+
+**Solution**: Check that the provider code tarball is valid.
+
+### Deployment Errors (404/500)
+
+#### Deployment Not Found
+
+```json
+{
+  "detail": "Deployment not found: provider-my-provider"
+}
+```
+
+**Solution**: Deploy the provider first with the deploy endpoint.
+
+## Lifecycle State Reference
+
+Understanding lifecycle states helps interpret errors:
+
+| State | Description | Can Modify? |
+|-------|-------------|-------------|
+| `draft` | Initial state, not yet committed | Yes |
+| `pending` | Committed, waiting to be processed | No |
+| `processing` | Currently being handled by a provider | No |
+| `ready` | Successfully processed | Yes |
+| `failed` | Processing failed, error recorded | Yes |
+
+## Best Practices
+
+1. **Check response status codes** before parsing the body
+2. **Retry with backoff** for 5xx errors
+3. **Don't retry** 4xx errors without fixing the request
+4. **Poll status endpoints** for async operations (builds, deployments)
+5. **Log correlation IDs** from responses for debugging

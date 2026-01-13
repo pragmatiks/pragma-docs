@@ -1,11 +1,9 @@
 ---
 title: "Resources"
-description: "Infrastructure components you install and configure"
+description: "Infrastructure components you declare and configure"
 ---
 
-Resources are like apps in the pragma ecosystem. You don't build them from scratch—you install pre-built, tested components and configure them for your needs.
-
-Just as you'd install a photo editor or a database app on your computer, you install resources like storage buckets, datasets, or secrets. Each resource type knows how to provision and manage itself. You focus on configuration, not implementation.
+Resources are the infrastructure components that pragma-os manages: storage buckets, datasets, secrets, and more. You declare resources in YAML, and pragma-os handles provisioning, state tracking, and lifecycle management.
 
 ## Resource Structure
 
@@ -13,7 +11,7 @@ Every resource has a consistent structure:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `provider` | The provider that manages this resource (like an app category) | `gcp` |
+| `provider` | The provider that manages this resource | `gcp` |
 | `resource` | The type of resource | `storage` |
 | `name` | A unique identifier you assign | `data-lake` |
 | `config` | Your settings for this resource | `location: EU` |
@@ -46,10 +44,26 @@ After provisioning, the resource exposes outputs that other resources can refere
 
 Resources move through these states as pragma manages them:
 
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT
+    DRAFT --> PENDING: apply --pending
+    PENDING --> PROVISIONING: provider starts
+    PROVISIONING --> READY: success
+    PROVISIONING --> FAILED: error
+    READY --> UPDATING: config change
+    UPDATING --> READY: success
+    UPDATING --> FAILED: error
+    FAILED --> PENDING: retry
+    READY --> DELETING: delete
+    DELETING --> [*]: removed
+```
+
 | State | Description |
 |-------|-------------|
+| **DRAFT** | Created but not yet queued |
 | **PENDING** | Queued for provisioning |
-| **PROVISIONING** | Currently being created or updated |
+| **PROVISIONING** | Currently being created |
 | **READY** | Successfully provisioned and operational |
 | **UPDATING** | Configuration change in progress |
 | **DELETING** | Being removed |
@@ -94,10 +108,6 @@ Queue for immediate provisioning:
 ```bash
 pragma resources apply --pending warehouse.yaml
 ```
-
-## The Marketplace
-
-In the future, the marketplace will show install counts, ratings, and documentation for each resource type—making it easy to discover and evaluate infrastructure components before you install them.
 
 ## Next Steps
 

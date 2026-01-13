@@ -1,0 +1,411 @@
+---
+title: "Examples"
+description: "Curl examples for common API operations"
+---
+
+This page provides practical curl examples for interacting with the Pragmatiks API.
+
+## Setup
+
+Set your authentication token as an environment variable:
+
+```bash
+export TOKEN=$(pragma auth token)
+export API="https://api.pragmatiks.io"
+```
+
+## Resources
+
+### List All Resources
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "provider": "postgres",
+    "resource": "database",
+    "name": "my-app-db",
+    "lifecycle_state": "ready",
+    "config": {
+      "version": "15"
+    },
+    "outputs": {
+      "connection_string": "postgres://..."
+    },
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:35:00Z"
+  }
+]
+```
+
+### Filter Resources by Provider
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/?provider=postgres"
+```
+
+### Filter Resources by Type
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/?provider=postgres&resource=database"
+```
+
+### Filter Resources by Tags
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/?tags=production&tags=critical"
+```
+
+### Get a Specific Resource
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/postgres%3Adatabase%3Amy-app-db"
+```
+
+<Note>
+Resource IDs use the format `provider:resource:name` and must be URL-encoded. The colon `:` becomes `%3A`.
+</Note>
+
+### Create a Resource (Draft)
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API/resources/apply" \
+  -d '{
+    "provider": "postgres",
+    "resource": "database",
+    "name": "my-new-db",
+    "config": {
+      "version": "15"
+    },
+    "lifecycle_state": "draft"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "provider": "postgres",
+  "resource": "database",
+  "name": "my-new-db",
+  "lifecycle_state": "draft",
+  "config": {
+    "version": "15"
+  },
+  "outputs": {},
+  "created_at": "2024-01-15T11:00:00Z",
+  "updated_at": "2024-01-15T11:00:00Z"
+}
+```
+
+### Commit a Resource (Submit for Processing)
+
+Change `lifecycle_state` to `pending` to submit the resource for processing:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API/resources/apply" \
+  -d '{
+    "provider": "postgres",
+    "resource": "database",
+    "name": "my-new-db",
+    "config": {
+      "version": "15"
+    },
+    "lifecycle_state": "pending"
+  }'
+```
+
+### Update an Existing Resource
+
+Apply changes to an existing resource:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API/resources/apply" \
+  -d '{
+    "provider": "postgres",
+    "resource": "database",
+    "name": "my-new-db",
+    "config": {
+      "version": "16"
+    },
+    "lifecycle_state": "pending"
+  }'
+```
+
+### Delete a Resource
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/postgres%3Adatabase%3Amy-new-db"
+```
+
+**Response:** `204 No Content`
+
+## Dead Letter Operations
+
+### List Dead Letter Events
+
+Events that failed processing are stored in the dead letter queue:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "event_id": "evt_abc123",
+    "provider": "postgres",
+    "resource_type": "database",
+    "resource_name": "failed-db",
+    "event_type": "CREATE",
+    "error_message": "Connection timeout",
+    "attempt_count": 3,
+    "failed_at": "2024-01-15T12:00:00Z"
+  }
+]
+```
+
+### Filter by Provider
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter?provider=postgres"
+```
+
+### Get a Specific Dead Letter Event
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter/evt_abc123"
+```
+
+### Retry a Failed Event
+
+Requeue a single event for processing:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter/evt_abc123/retry"
+```
+
+### Retry All Failed Events
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter/retry-all"
+```
+
+**Response:**
+
+```json
+{
+  "retried": 5
+}
+```
+
+### Delete a Dead Letter Event
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter/evt_abc123"
+```
+
+### Bulk Delete Dead Letter Events
+
+Delete all events:
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter?all=true"
+```
+
+Delete events for a specific provider:
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/ops/dead-letter?provider=postgres"
+```
+
+## Provider Operations
+
+### Push Provider Code
+
+Upload provider code to build a container image:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "code=@provider.tar.gz" \
+  "$API/providers/my-provider/push"
+```
+
+**Response:**
+
+```json
+{
+  "build_id": "build_xyz789",
+  "job_name": "buildkit-my-provider-abc123",
+  "status": "pending",
+  "message": "Build job created"
+}
+```
+
+### Check Build Status
+
+Poll the build status until completion:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/providers/my-provider/builds/buildkit-my-provider-abc123"
+```
+
+**Response (in progress):**
+
+```json
+{
+  "job_name": "buildkit-my-provider-abc123",
+  "status": "building",
+  "image": null,
+  "error_message": null
+}
+```
+
+**Response (success):**
+
+```json
+{
+  "job_name": "buildkit-my-provider-abc123",
+  "status": "success",
+  "image": "registry.example.com/my-provider:abc123",
+  "error_message": null
+}
+```
+
+### Stream Build Logs
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/providers/my-provider/builds/buildkit-my-provider-abc123/logs"
+```
+
+### Deploy a Provider
+
+After a successful build, deploy the provider:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API/providers/my-provider/deploy" \
+  -d '{
+    "image": "registry.example.com/my-provider:abc123"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "deployment_name": "provider-my-provider",
+  "status": "progressing",
+  "available_replicas": 0,
+  "ready_replicas": 0
+}
+```
+
+### Check Deployment Status
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/providers/my-provider/deployment"
+```
+
+**Response (available):**
+
+```json
+{
+  "deployment_name": "provider-my-provider",
+  "status": "available",
+  "available_replicas": 1,
+  "ready_replicas": 1
+}
+```
+
+## Resource Definitions
+
+### Register a Resource Type
+
+Providers register resource types to declare what they can manage:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API/resources/register" \
+  -d '{
+    "provider": "my-provider",
+    "resource": "widget",
+    "description": "A custom widget resource",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "size": {"type": "string"},
+        "color": {"type": "string"}
+      },
+      "required": ["size"]
+    }
+  }'
+```
+
+### Unregister a Resource Type
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/resources/unregister/my-provider/widget"
+```
+
+## Health Check
+
+The health endpoint does not require authentication:
+
+```bash
+curl "$API/health"
+```
+
+**Response:**
+
+```json
+{
+  "status": "healthy"
+}
+```

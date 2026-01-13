@@ -1,0 +1,85 @@
+---
+title: "Glossary"
+description: "Core terminology and concepts in pragma-os"
+---
+
+## Resource
+
+The fundamental unit in pragma-os. A resource represents a single infrastructure component that can be provisioned, configured, and managed. Each resource has a unique identifier composed of `provider/resource/name` (e.g., `gcp/storage/data-lake`).
+
+Resources are declarative: you specify the desired state, and pragma-os ensures the actual state matches.
+
+## Provider
+
+A provider manages one or more resource types. Providers handle the lifecycle operations for their resources: creation, updates, and deletion. Each provider knows how to translate resource configurations into actual infrastructure.
+
+Examples: `gcp` provider manages GCP resources, `pragma` provider manages platform-internal resources.
+
+## Config
+
+The configuration block of a resource. Config contains the settings that define how a resource should be provisioned. These are provider-specific—each resource type accepts different configuration options.
+
+```yaml
+config:
+  location: EU
+  storage_class: STANDARD
+```
+
+## Outputs
+
+Values that a resource exposes after provisioning. Outputs allow other resources to reference dynamically-generated values like IDs, URLs, or connection strings. Outputs are only available when a resource reaches READY state.
+
+```yaml
+# Available after provisioning:
+outputs:
+  bucket_url: "gs://pragma-data-lake-abc123"
+  self_link: "https://www.googleapis.com/storage/v1/b/pragma-data-lake-abc123"
+```
+
+## depends_on
+
+Declares explicit dependencies between resources. When resource A depends on resource B, pragma-os ensures B reaches READY state before processing A. Dependencies also trigger automatic updates: when B changes, A is notified.
+
+```yaml
+depends_on:
+  - gcp/storage/data-lake
+  - gcp/bigquery-dataset/source
+```
+
+## FieldReference
+
+A dynamic value reference using the syntax `${provider/resource/name.outputs.field}`. Field references resolve at runtime to the actual output values from dependency resources.
+
+```yaml
+config:
+  source_bucket: "${gcp/storage/data-lake.outputs.bucket_url}"
+```
+
+When the referenced resource updates, the field reference automatically resolves to the new value.
+
+## Lifecycle States
+
+Resources move through these states as pragma-os manages them:
+
+| State | Description |
+|-------|-------------|
+| **DRAFT** | Resource defined but not queued for provisioning |
+| **PENDING** | Queued and waiting for dependencies to be ready |
+| **PROVISIONING** | Currently being created by the provider |
+| **READY** | Successfully provisioned and operational |
+| **UPDATING** | Configuration change in progress |
+| **DELETING** | Being removed |
+| **FAILED** | Provisioning or update failed |
+
+State transitions are managed by pragma-os based on provider responses and dependency status.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Resources" icon="cube" href="/concepts/resources">
+    Learn about resource structure and lifecycle.
+  </Card>
+  <Card title="Reactive Dependencies" icon="diagram-project" href="/concepts/reactive-dependencies">
+    Understand automatic change propagation.
+  </Card>
+</CardGroup>

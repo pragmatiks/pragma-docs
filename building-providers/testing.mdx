@@ -1,0 +1,430 @@
+---
+title: "Testing Providers"
+description: "Test provider lifecycle methods with pytest and ProviderHarness"
+---
+
+Testing providers before deployment catches bugs early and ensures your lifecycle methods behave correctly. The SDK provides `ProviderHarness`, a mock runtime that lets you test resources without connecting to production infrastructure.
+
+## Prerequisites
+
+Your provider project should have pytest configured:
+
+```toml
+# pyproject.toml
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+```
+
+## ProviderHarness
+
+`ProviderHarness` simulates the runtime environment, letting you invoke lifecycle methods directly:
+
+```python
+from pragma_sdk.provider import ProviderHarness
+from mycompany_provider import Database, DatabaseConfig
+
+async def test_create_database():
+    harness = ProviderHarness()
+
+    result = await harness.invoke_create(
+        Database,
+        name="test-db",
+        config=DatabaseConfig(name="analytics", size_gb=50)
+    )
+
+    assert result.success
+    assert result.outputs.connection_url is not None
+```
+
+### LifecycleResult
+
+Each invoke method returns a `LifecycleResult` with:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `success` | `bool` | Whether the lifecycle method succeeded |
+| `failed` | `bool` | Opposite of `success` (convenience property) |
+| `outputs` | `Outputs \| None` | Returned outputs on success |
+| `error` | `Exception \| None` | Captured exception on failure |
+| `resource` | `Resource` | The resource instance used |
+
+### Testing Create
+
+```python
+async def test_create_returns_outputs(harness: ProviderHarness):
+    config = DatabaseConfig(name="my-db", size_gb=20)
+
+    result = await harness.invoke_create(
+        Database,
+        name="my-db",
+        config=config
+    )
+
+    assert result.success
+    assert "my-db" in result.outputs.connection_url
+```
+
+### Testing Update
+
+Pass both the new config and the previous config:
+
+```python
+async def test_update_resizes_database(harness: ProviderHarness):
+    # Simulate existing resource with outputs
+    existing_outputs = DatabaseOutputs(
+        connection_url="postgres://localhost/mydb",
+        database_id="db-123"
+    )
+
+    result = await harness.invoke_update(
+        Database,
+        name="my-db",
+        config=DatabaseConfig(name="my-db", size_gb=50),
+        previous_config=DatabaseConfig(name="my-db", size_gb=20),
+        current_outputs=existing_outputs,
+    )
+
+    assert result.success
+```
+
+### Testing Delete
+
+```python
+async def test_delete_succeeds(harness: ProviderHarness):
+    result = await harness.invoke_delete(
+        Database,
+        name="my-db",
+        config=DatabaseConfig(name="my-db"),
+        current_outputs=DatabaseOutputs(
+            connection_url="postgres://localhost/mydb",
+            database_id="db-123"
+        ),
+    )
+
+    assert result.success
+    assert result.outputs is None
+```
+
+### Testing Failures
+
+Verify that your resource rejects invalid configurations:
+
+```python
+async def test_update_rejects_immutable_field_change(harness: ProviderHarness):
+    result = await harness.invoke_update(
+        Database,
+        name="my-db",
+        config=DatabaseConfig(name="renamed-db", size_gb=20),
+        previous_config=DatabaseConfig(name="my-db", size_gb=20),
+    )
+
+    assert result.failed
+    assert "Cannot rename" in str(result.error)
+```
+
+## Mocking External Services
+
+Most providers interact with external APIs. Use pytest's `monkeypatch` fixture to replace API clients with mocks.
+
+### Mock Setup with conftest.py
+
+Create reusable fixtures in `tests/conftest.py`:
+
+```python
+from unittest.mock import MagicMock
+import pytest
+from pragma_sdk.provider import ProviderHarness
+
+
+@pytest.fixture
+def harness() -> ProviderHarness:
+    """Test harness for invoking lifecycle methods."""
+    return ProviderHarness()
+
+
+@pytest.fixture
+def mock_cloud_client(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Mock cloud API client."""
+    mock_client = MagicMock()
+
+    # Configure mock responses
+    mock_db = MagicMock()
+    mock_db.id = "db-123"
+    mock_db.connection_string = "postgres://localhost/test"
+    mock_client.create_database.return_value = mock_db
+    mock_client.get_database.return_value = mock_db
+
+    # Patch the client constructor
+    monkeypatch.setattr(
+        "mycompany_provider.resources.database.CloudClient",
+        lambda: mock_client,
+    )
+
+    return mock_client
+```
+
+### Using Mocks in Tests
+
+```python
+async def test_create_calls_api(
+    harness: ProviderHarness,
+    mock_cloud_client: MagicMock,
+):
+    config = DatabaseConfig(name="my-db", size_gb=20)
+
+    result = await harness.invoke_create(
+        Database,
+        name="my-db",
+        config=config
+    )
+
+    assert result.success
+    mock_cloud_client.create_database.assert_called_once()
+```
+
+### Mocking GCP Services
+
+For GCP providers, mock the service client and credentials:
+
+```python
+@pytest.fixture
+def mock_secretmanager_client(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Mock GCP Secret Manager client."""
+    mock_client = MagicMock()
+
+    # Mock create_secret response
+    mock_secret = MagicMock()
+    mock_secret.name = "projects/test-project/secrets/test-secret"
+    mock_client.create_secret.return_value = mock_secret
+    mock_client.get_secret.return_value = mock_secret
+
+    # Mock add_secret_version response
+    mock_version = MagicMock()
+    mock_version.name = "projects/test-project/secrets/test-secret/versions/1"
+    mock_client.add_secret_version.return_value = mock_version
+
+    # Patch the client constructor
+    monkeypatch.setattr(
+        "mycompany_provider.resources.secret.secretmanager.SecretManagerServiceClient",
+        lambda credentials=None: mock_client,
+    )
+
+    # Mock credentials creation
+    mock_credentials = MagicMock()
+    monkeypatch.setattr(
+        "mycompany_provider.resources.secret.service_account.Credentials.from_service_account_info",
+        lambda info: mock_credentials,
+    )
+
+    return mock_client
+```
+
+## Testing Idempotency
+
+Verify your lifecycle methods handle retry scenarios correctly.
+
+### Create Idempotency
+
+Test that `on_create` handles "already exists" errors:
+
+```python
+from google.api_core.exceptions import AlreadyExists
+
+async def test_create_handles_already_exists(
+    harness: ProviderHarness,
+    mock_secretmanager_client: MagicMock,
+):
+    # Simulate "already exists" on first create attempt
+    mock_secretmanager_client.create_secret.side_effect = AlreadyExists("exists")
+
+    result = await harness.invoke_create(
+        Secret,
+        name="my-secret",
+        config=SecretConfig(project_id="proj", secret_id="sec", data="val"),
+    )
+
+    # Should succeed by fetching existing secret
+    assert result.success
+    mock_secretmanager_client.get_secret.assert_called_once()
+```
+
+### Delete Idempotency
+
+Test that `on_delete` handles "not found" errors:
+
+```python
+from google.api_core.exceptions import NotFound
+
+async def test_delete_handles_not_found(
+    harness: ProviderHarness,
+    mock_secretmanager_client: MagicMock,
+):
+    # Simulate "not found" (already deleted)
+    mock_secretmanager_client.delete_secret.side_effect = NotFound("gone")
+
+    result = await harness.invoke_delete(
+        Secret,
+        name="my-secret",
+        config=SecretConfig(project_id="proj", secret_id="sec", data="val"),
+    )
+
+    # Should succeed - resource already deleted
+    assert result.success
+```
+
+## Testing Configuration Scenarios
+
+Test different configuration combinations and edge cases.
+
+### Valid Configurations
+
+```python
+@pytest.mark.parametrize("size_gb", [10, 50, 100, 1000])
+async def test_create_with_various_sizes(
+    harness: ProviderHarness,
+    mock_cloud_client: MagicMock,
+    size_gb: int,
+):
+    config = DatabaseConfig(name="test-db", size_gb=size_gb)
+
+    result = await harness.invoke_create(
+        Database,
+        name="test-db",
+        config=config
+    )
+
+    assert result.success
+```
+
+### Credentials as String or Dict
+
+Some configurations accept credentials as either a dict or JSON string:
+
+```python
+import json
+
+async def test_create_with_string_credentials(
+    harness: ProviderHarness,
+    mock_secretmanager_client: MagicMock,
+):
+    # Credentials as JSON string (common with environment variables)
+    string_credentials = json.dumps({
+        "type": "service_account",
+        "project_id": "test-project",
+        # ... other fields
+    })
+
+    config = SecretConfig(
+        project_id="test-project",
+        secret_id="my-secret",
+        data="secret-value",
+        credentials=string_credentials,
+    )
+
+    result = await harness.invoke_create(Secret, name="my-secret", config=config)
+
+    assert result.success
+```
+
+## Tracking Test History
+
+The harness tracks all invocations for debugging:
+
+```python
+async def test_harness_tracks_events(harness: ProviderHarness):
+    await harness.invoke_create(
+        Database, name="db-1", config=DatabaseConfig(name="db-1")
+    )
+    await harness.invoke_create(
+        Database, name="db-2", config=DatabaseConfig(name="db-2")
+    )
+
+    assert len(harness.events) == 2
+    assert len(harness.results) == 2
+    assert harness.events[0].name == "db-1"
+    assert harness.events[1].name == "db-2"
+
+    # Reset for next test
+    harness.clear()
+    assert len(harness.events) == 0
+```
+
+## Project Structure
+
+Organize your tests to mirror your resource structure:
+
+```
+mycompany-provider/
+├── src/mycompany_provider/
+│   ├── __init__.py
+│   └── resources/
+│       ├── __init__.py
+│       ├── database.py
+│       └── secret.py
+└── tests/
+    ├── conftest.py          # Shared fixtures
+    ├── test_database.py     # Database resource tests
+    └── test_secret.py       # Secret resource tests
+```
+
+### Sample conftest.py
+
+```python
+from unittest.mock import MagicMock
+import pytest
+from pragma_sdk.provider import ProviderHarness
+
+
+@pytest.fixture
+def harness() -> ProviderHarness:
+    """Test harness for invoking lifecycle methods."""
+    return ProviderHarness()
+
+
+@pytest.fixture
+def sample_credentials() -> dict:
+    """Sample credentials for testing (not real credentials)."""
+    return {
+        "type": "service_account",
+        "project_id": "test-project",
+        "private_key_id": "key123",
+        "private_key": "-----BEGIN RSA PRIVATE KEY-----\nfake-key\n-----END RSA PRIVATE KEY-----\n",
+        "client_email": "test@test-project.iam.gserviceaccount.com",
+        "client_id": "123456789",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+    }
+```
+
+## Running Tests
+
+Run tests with pytest:
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_database.py
+
+# Run tests matching a pattern
+pytest -k "test_create"
+```
+
+## What's Next
+
+<CardGroup cols={2}>
+  <Card title="Lifecycle Methods" icon="arrows-rotate" href="/building-providers/lifecycle">
+    Deep dive into on_create, on_update, and on_delete.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdk/overview">
+    Full SDK documentation.
+  </Card>
+</CardGroup>

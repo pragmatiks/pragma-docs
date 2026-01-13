@@ -1,0 +1,40 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about pragma-os"
+---
+
+<AccordionGroup>
+  <Accordion title="Is there a free tier?">
+    pragma-os is currently in private beta. During this period, usage is free for beta participants. Pricing will be announced when we move to general availability. Contact support@pragmatiks.io to request beta access.
+  </Accordion>
+
+  <Accordion title="What cloud providers are supported?">
+    Currently, pragma-os supports **Google Cloud Platform (GCP)** resources including Cloud Storage, BigQuery datasets, and BigQuery tables. AWS and Azure support is on the roadmap. See the [Marketplace](/providers/overview) for the full list of available resources.
+  </Accordion>
+
+  <Accordion title="How does pragma-os handle authentication and security?">
+    pragma-os uses [Clerk](https://clerk.com) for user authentication. When you run `pragma auth login`, you authenticate through a secure browser flow. Your credentials are never stored in plaintext. Provider credentials (like GCP service accounts) are managed separately and securely within the platform. See [Authentication](/cli/authentication) for details.
+  </Accordion>
+
+  <Accordion title="What happens if a resource fails?">
+    When a resource operation fails, pragma-os captures the failure details and moves the event to a dead letter queue after retries are exhausted. This prevents cascading failures while preserving context for debugging. You can inspect failures, fix the root cause, and retry. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
+  </Accordion>
+
+  <Accordion title="Can I use pragma-os alongside Terraform?">
+    Yes. pragma-os and Terraform solve different problems and can coexist. Use Terraform for static infrastructure that rarely changes (VPCs, IAM, etc.) and pragma-os for dynamic data infrastructure with dependencies that need automatic propagation. See [How We Compare](/how-we-compare) for more details on when to use each tool.
+  </Accordion>
+
+  <Accordion title="How do I get support?">
+    Email support@pragmatiks.io for assistance. Beta participants also have access to a private Slack channel for faster response times.
+  </Accordion>
+
+  <Accordion title="What's on the roadmap?">
+    Key roadmap items include:
+    - **AWS and Azure providers** - Expanding beyond GCP
+    - **Vector database resources** - Pinecone, Weaviate, and Qdrant support
+    - **Pre-built RAG pipelines** - Full end-to-end AI infrastructure templates
+    - **Team workspaces** - Collaboration features for organizations
+
+    Contact support@pragmatiks.io to share feature requests or learn more about upcoming releases.
+  </Accordion>
+</AccordionGroup>

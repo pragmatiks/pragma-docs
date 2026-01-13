@@ -1,0 +1,215 @@
+---
+title: "Error Recovery"
+description: "Diagnose and recover from failed resources"
+---
+
+When a resource fails, pragma captures the failure details and gives you the tools to diagnose, fix, and retry. This guide walks through identifying failures, understanding their causes, and getting your infrastructure back to a healthy state.
+
+## Identifying Failed Resources
+
+Resources in a failed state appear with `[FAILED]` when listed:
+
+```bash
+pragma resources list
+```
+
+Output shows lifecycle states for all resources:
+
+```
+gcp/storage/data-lake [READY]
+gcp/bigquery-dataset/analytics [FAILED]
+gcp/bigquery-table/events [PENDING]
+```
+
+To see details about a specific failed resource:
+
+```bash
+pragma resources get gcp/bigquery-dataset analytics
+```
+
+## Common Failure Scenarios
+
+### Configuration Errors
+
+The most common cause of failure is invalid configuration:
+
+- **Missing required fields** - A required config value is missing
+- **Invalid values** - A value doesn't match the expected format or constraints
+- **Permission errors** - The provider doesn't have access to create or modify the resource
+
+**Recovery**: Fix the configuration in your YAML file and re-apply:
+
+```bash
+pragma resources apply --pending fixed-resource.yaml
+```
+
+### Dependency Failures
+
+A resource fails if its dependencies aren't satisfied:
+
+- **Missing dependency** - A referenced resource doesn't exist
+- **Dependency not ready** - A dependency exists but isn't in READY state
+- **Invalid field reference** - A `${...}` reference points to a field that doesn't exist
+
+**Recovery**: Ensure all dependencies are in READY state first:
+
+```bash
+# Check dependency status
+pragma resources get gcp/storage data-lake
+
+# If dependency is failed, fix it first
+pragma resources apply --pending data-lake.yaml
+```
+
+### Provider Errors
+
+Sometimes the underlying provider (GCP, AWS, etc.) rejects the operation:
+
+- **Quota exceeded** - You've hit a service limit
+- **Resource conflicts** - A resource with that name already exists outside pragma
+- **Service unavailable** - Temporary provider outage
+
+**Recovery**: Address the provider-specific issue, then retry the resource.
+
+## Using the Dead Letter Queue
+
+When a resource operation fails after retries, it moves to the dead letter queue. This prevents failed operations from blocking other work and preserves the failure details for investigation.
+
+### List Failed Events
+
+See all failed events:
+
+```bash
+pragma ops dead-letter list
+```
+
+Output shows a table with event details:
+
+```
+Event ID    Provider   Resource Type   Resource Name   Error Message              Failed At
+evt_abc123  gcp        bigquery-dataset  analytics     Permission denied: ...     2024-01-15 10:30:00
+evt_def456  gcp        storage           backup        Quota exceeded: ...        2024-01-15 10:32:00
+```
+
+Filter by provider to focus on specific failures:
+
+```bash
+pragma ops dead-letter list --provider gcp
+```
+
+### Inspect Event Details
+
+Get the full error message and context:
+
+```bash
+pragma ops dead-letter show evt_abc123
+```
+
+This returns the complete event data including:
+- The resource that failed
+- The full error message
+- When the failure occurred
+- The operation that was attempted
+
+### Retry Failed Events
+
+After fixing the underlying issue, retry the failed operation:
+
+```bash
+pragma ops dead-letter retry evt_abc123
+```
+
+Or retry all failed events at once:
+
+```bash
+pragma ops dead-letter retry --all
+```
+
+### Clear Resolved Events
+
+Once you've addressed failures (or decided to abandon them), remove events from the queue:
+
+```bash
+# Delete a single event
+pragma ops dead-letter delete evt_abc123
+
+# Delete all events for a provider
+pragma ops dead-letter delete --provider gcp
+
+# Delete all events
+pragma ops dead-letter delete --all
+```
+
+## Dependency Failure Cascades
+
+When a resource fails, it affects downstream resources:
+
+1. **Failed resources stay failed** - They don't retry automatically
+2. **Dependent resources wait** - Resources that depend on a failed resource stay in PENDING
+3. **Changes don't propagate** - The dependency graph pauses until the failure is resolved
+
+Consider this dependency chain:
+
+```
+data-lake (READY) -> analytics (FAILED) -> reports (PENDING)
+```
+
+The `reports` resource can't proceed because `analytics` is failed. To recover:
+
+1. Fix the `analytics` configuration
+2. Re-apply with `--pending` to retry
+3. Once `analytics` reaches READY, `reports` will automatically proceed
+
+## Recovery Workflow
+
+When you encounter failures, follow this workflow:
+
+<Steps>
+  <Step title="Identify failures">
+    ```bash
+    pragma resources list
+    pragma ops dead-letter list
+    ```
+  </Step>
+  <Step title="Investigate root cause">
+    ```bash
+    pragma resources get <provider>/<resource> <name>
+    pragma ops dead-letter show <event-id>
+    ```
+  </Step>
+  <Step title="Fix the issue">
+    Update your YAML configuration, fix permissions, or address provider limits.
+  </Step>
+  <Step title="Retry">
+    ```bash
+    pragma resources apply --pending fixed-resource.yaml
+    pragma ops dead-letter retry <event-id>
+    ```
+  </Step>
+  <Step title="Verify">
+    ```bash
+    pragma resources get <provider>/<resource> <name>
+    ```
+    Confirm the resource reaches READY state.
+  </Step>
+</Steps>
+
+## Preventing Failures
+
+Reduce failures by:
+
+- **Validating configuration** before applying with `--pending`
+- **Checking dependencies** are READY before applying dependent resources
+- **Using draft mode** - Apply without `--pending` first to validate, then apply with `--pending`
+- **Monitoring dead letter queue** regularly for early warning of issues
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="wrench" href="/troubleshooting/common-issues">
+    Solutions to frequent problems.
+  </Card>
+  <Card title="Resource Lifecycle" icon="arrows-spin" href="/concepts/resources">
+    Understanding resource states.
+  </Card>
+</CardGroup>

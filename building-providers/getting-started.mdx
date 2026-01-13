@@ -1,0 +1,564 @@
+---
+title: "Getting Started"
+description: "Build your first provider from scratch in 15 minutes"
+---
+
+This tutorial walks you through building a complete provider from an empty directory to a deployed, usable resource type. You will create a provider that manages JSON configuration files.
+
+## What You'll Build
+
+A `jsonstore` provider with a `config` resource that:
+- Creates JSON configuration files
+- Updates file contents when configuration changes
+- Deletes files on resource removal
+- Exposes file path and content hash as outputs
+
+This example uses local files to keep things simple. The same patterns apply when integrating with cloud APIs, databases, or any external service.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Python 3.12+** installed
+- **uv** package manager ([install instructions](https://docs.astral.sh/uv/getting-started/installation/))
+- **Pragmatiks CLI** authenticated (`pragma auth login`)
+
+Verify your setup:
+
+```bash
+uv --version
+pragma whoami
+```
+
+Expected output:
+
+```
+uv 0.5.14
+Logged in as your-email@example.com
+```
+
+## Step 1: Initialize the Project
+
+Create a new provider project using the CLI:
+
+```bash
+pragma provider init jsonstore
+cd jsonstore-provider
+```
+
+Expected output:
+
+```
+Creating provider: jsonstore
+  Created jsonstore-provider/pyproject.toml
+  Created jsonstore-provider/src/jsonstore_provider/__init__.py
+  Created jsonstore-provider/src/jsonstore_provider/resources/__init__.py
+  Created jsonstore-provider/src/jsonstore_provider/resources/example.py
+  Created jsonstore-provider/tests/__init__.py
+  Created jsonstore-provider/tests/conftest.py
+  Created jsonstore-provider/tests/test_example.py
+
+Next steps:
+  cd jsonstore-provider
+  uv sync
+  uv run pytest
+```
+
+Install dependencies:
+
+```bash
+uv sync
+```
+
+Your project structure:
+
+```
+jsonstore-provider/
+├── pyproject.toml
+├── src/jsonstore_provider/
+│   ├── __init__.py
+│   └── resources/
+│       ├── __init__.py
+│       └── example.py
+└── tests/
+    ├── __init__.py
+    ├── conftest.py
+    └── test_example.py
+```
+
+## Step 2: Define the Resource
+
+Replace the example resource with your JSON config resource. Open `src/jsonstore_provider/resources/example.py` and replace the contents:
+
+```python
+"""JSON configuration file resource."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, ClassVar
+
+from pragma_sdk import Config, Outputs, Resource
+
+
+class ConfigFileConfig(Config):
+    """Configuration for a JSON config file.
+
+    Attributes:
+        filename: Name of the JSON file to create.
+        directory: Directory where the file will be stored.
+        data: JSON-serializable data to write to the file.
+    """
+
+    filename: str
+    directory: str = "/tmp/jsonstore"
+    data: dict[str, Any]
+
+
+class ConfigFileOutputs(Outputs):
+    """Outputs from JSON config file creation.
+
+    Attributes:
+        file_path: Full path to the created file.
+        content_hash: SHA-256 hash of the file contents.
+        size_bytes: Size of the file in bytes.
+    """
+
+    file_path: str
+    content_hash: str
+    size_bytes: int
+
+
+class ConfigFile(Resource[ConfigFileConfig, ConfigFileOutputs]):
+    """JSON configuration file resource.
+
+    Manages JSON files on the filesystem with automatic content hashing.
+    Demonstrates the provider pattern without external dependencies.
+    """
+
+    provider: ClassVar[str] = "jsonstore"
+    resource: ClassVar[str] = "config"
+
+    def _get_path(self) -> Path:
+        """Build the full file path."""
+        return Path(self.config.directory) / self.config.filename
+
+    def _compute_hash(self, content: str) -> str:
+        """Compute SHA-256 hash of content."""
+        return hashlib.sha256(content.encode()).hexdigest()
+
+    async def on_create(self) -> ConfigFileOutputs:
+        """Create the JSON config file.
+
+        Creates the directory if needed and writes the JSON data.
+        Idempotent: overwrites existing file with same path.
+
+        Returns:
+            Outputs with file path, content hash, and size.
+        """
+        path = self._get_path()
+
+        # Ensure directory exists
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write JSON content
+        content = json.dumps(self.config.data, indent=2)
+        path.write_text(content)
+
+        return ConfigFileOutputs(
+            file_path=str(path),
+            content_hash=self._compute_hash(content),
+            size_bytes=len(content.encode()),
+        )
+
+    async def on_update(self, previous_config: ConfigFileConfig) -> ConfigFileOutputs:
+        """Update the JSON config file.
+
+        Handles filename/directory changes by moving the file.
+        Updates content if data changed.
+
+        Args:
+            previous_config: Configuration before this update.
+
+        Returns:
+            Updated outputs with new hash and size.
+        """
+        old_path = Path(previous_config.directory) / previous_config.filename
+        new_path = self._get_path()
+
+        # Handle path changes
+        if old_path != new_path:
+            # Ensure new directory exists
+            new_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Remove old file if it exists
+            if old_path.exists():
+                old_path.unlink()
+
+        # Write new content
+        content = json.dumps(self.config.data, indent=2)
+        new_path.write_text(content)
+
+        return ConfigFileOutputs(
+            file_path=str(new_path),
+            content_hash=self._compute_hash(content),
+            size_bytes=len(content.encode()),
+        )
+
+    async def on_delete(self) -> None:
+        """Delete the JSON config file.
+
+        Idempotent: succeeds even if file doesn't exist.
+        """
+        path = self._get_path()
+
+        if path.exists():
+            path.unlink()
+
+        # Clean up empty directory (optional)
+        try:
+            path.parent.rmdir()
+        except OSError:
+            # Directory not empty or doesn't exist - that's fine
+            pass
+```
+
+## Step 3: Register the Resource
+
+Update `src/jsonstore_provider/resources/__init__.py` to export your resource:
+
+```python
+"""Resource definitions for jsonstore provider."""
+
+from jsonstore_provider.resources.example import (
+    ConfigFile,
+    ConfigFileConfig,
+    ConfigFileOutputs,
+)
+
+__all__ = [
+    "ConfigFile",
+    "ConfigFileConfig",
+    "ConfigFileOutputs",
+]
+```
+
+Update `src/jsonstore_provider/__init__.py` to register the resource with the provider:
+
+```python
+"""JSON store provider for Pragmatiks."""
+
+from pragma_sdk import Provider
+
+from jsonstore_provider.resources import (
+    ConfigFile,
+    ConfigFileConfig,
+    ConfigFileOutputs,
+)
+
+jsonstore = Provider(name="jsonstore")
+
+# Register resources
+jsonstore.resource("config")(ConfigFile)
+
+__all__ = [
+    "jsonstore",
+    "ConfigFile",
+    "ConfigFileConfig",
+    "ConfigFileOutputs",
+]
+```
+
+## Step 4: Write Tests
+
+Testing locally before deployment catches bugs early and speeds up development. Replace `tests/test_example.py`:
+
+```python
+"""Tests for JSON config file resource."""
+
+from pathlib import Path
+
+import pytest
+from pragma_sdk.provider import ProviderHarness
+
+from jsonstore_provider import ConfigFile, ConfigFileConfig, ConfigFileOutputs
+
+
+@pytest.fixture
+def harness() -> ProviderHarness:
+    """Test harness for invoking lifecycle methods."""
+    return ProviderHarness()
+
+
+@pytest.fixture
+def test_dir(tmp_path: Path) -> str:
+    """Temporary directory for test files."""
+    return str(tmp_path)
+
+
+async def test_create_config_file(harness: ProviderHarness, test_dir: str) -> None:
+    """on_create writes JSON file and returns outputs."""
+    config = ConfigFileConfig(
+        filename="app.json",
+        directory=test_dir,
+        data={"debug": True, "port": 8080},
+    )
+
+    result = await harness.invoke_create(ConfigFile, name="app-config", config=config)
+
+    assert result.success
+    assert result.outputs is not None
+    assert result.outputs.file_path == f"{test_dir}/app.json"
+    assert result.outputs.size_bytes > 0
+
+    # Verify file was created with correct content
+    path = Path(result.outputs.file_path)
+    assert path.exists()
+    assert '"debug": true' in path.read_text()
+
+
+async def test_update_changes_content(harness: ProviderHarness, test_dir: str) -> None:
+    """on_update rewrites file when data changes."""
+    initial_config = ConfigFileConfig(
+        filename="app.json",
+        directory=test_dir,
+        data={"version": 1},
+    )
+    updated_config = ConfigFileConfig(
+        filename="app.json",
+        directory=test_dir,
+        data={"version": 2},
+    )
+
+    # Create initial file
+    create_result = await harness.invoke_create(
+        ConfigFile, name="app-config", config=initial_config
+    )
+    assert create_result.success
+    initial_hash = create_result.outputs.content_hash
+
+    # Update the file
+    update_result = await harness.invoke_update(
+        ConfigFile,
+        name="app-config",
+        config=updated_config,
+        previous_config=initial_config,
+        current_outputs=create_result.outputs,
+    )
+
+    assert update_result.success
+    assert update_result.outputs.content_hash != initial_hash
+
+    # Verify content changed
+    path = Path(update_result.outputs.file_path)
+    assert '"version": 2' in path.read_text()
+
+
+async def test_update_moves_file(harness: ProviderHarness, test_dir: str) -> None:
+    """on_update moves file when path changes."""
+    initial_config = ConfigFileConfig(
+        filename="old.json",
+        directory=test_dir,
+        data={"key": "value"},
+    )
+    updated_config = ConfigFileConfig(
+        filename="new.json",
+        directory=test_dir,
+        data={"key": "value"},
+    )
+
+    # Create initial file
+    create_result = await harness.invoke_create(
+        ConfigFile, name="config", config=initial_config
+    )
+
+    # Update with new filename
+    update_result = await harness.invoke_update(
+        ConfigFile,
+        name="config",
+        config=updated_config,
+        previous_config=initial_config,
+        current_outputs=create_result.outputs,
+    )
+
+    assert update_result.success
+    assert not Path(test_dir, "old.json").exists()
+    assert Path(test_dir, "new.json").exists()
+
+
+async def test_delete_removes_file(harness: ProviderHarness, test_dir: str) -> None:
+    """on_delete removes the file."""
+    config = ConfigFileConfig(
+        filename="temp.json",
+        directory=test_dir,
+        data={"temporary": True},
+    )
+
+    # Create then delete
+    create_result = await harness.invoke_create(ConfigFile, name="temp", config=config)
+    file_path = Path(create_result.outputs.file_path)
+    assert file_path.exists()
+
+    delete_result = await harness.invoke_delete(
+        ConfigFile,
+        name="temp",
+        config=config,
+        current_outputs=create_result.outputs,
+    )
+
+    assert delete_result.success
+    assert not file_path.exists()
+
+
+async def test_delete_idempotent(harness: ProviderHarness, test_dir: str) -> None:
+    """on_delete succeeds even if file doesn't exist."""
+    config = ConfigFileConfig(
+        filename="nonexistent.json",
+        directory=test_dir,
+        data={},
+    )
+
+    # Delete without creating - should not raise
+    result = await harness.invoke_delete(ConfigFile, name="ghost", config=config)
+
+    assert result.success
+```
+
+Run the tests:
+
+```bash
+uv run pytest -v
+```
+
+Expected output:
+
+```
+========================= test session starts ==========================
+collected 5 items
+
+tests/test_example.py::test_create_config_file PASSED
+tests/test_example.py::test_update_changes_content PASSED
+tests/test_example.py::test_update_moves_file PASSED
+tests/test_example.py::test_delete_removes_file PASSED
+tests/test_example.py::test_delete_idempotent PASSED
+
+========================== 5 passed in 0.15s ===========================
+```
+
+## Step 5: Sync Resource Types
+
+Register your resource types with the platform:
+
+```bash
+pragma provider sync
+```
+
+Expected output:
+
+```
+Syncing provider: jsonstore
+  Resource: config
+    Config schema: ConfigFileConfig (3 fields)
+    Output schema: ConfigFileOutputs (3 fields)
+
+Registered 1 resource type(s)
+```
+
+Use `--dry-run` to preview changes without applying them:
+
+```bash
+pragma provider sync --dry-run
+```
+
+## Step 6: Deploy the Provider
+
+Build and deploy your provider:
+
+```bash
+pragma provider push --deploy
+```
+
+Expected output:
+
+```
+Building provider: jsonstore
+  Creating package...
+  Uploading to registry...
+  Build ID: build-abc123
+
+Deploying provider: jsonstore
+  Deployment ID: deploy-xyz789
+  Status: running
+
+Provider deployed successfully!
+```
+
+## Step 7: Create a Resource
+
+Now users can create resources using your provider. Create a file `my-config.yaml`:
+
+```yaml
+provider: jsonstore
+resource: config
+name: my-app-settings
+config:
+  filename: settings.json
+  directory: /tmp/myapp
+  data:
+    app_name: "My Application"
+    max_connections: 100
+    features:
+      - logging
+      - metrics
+```
+
+Apply it:
+
+```bash
+pragma apply my-config.yaml
+```
+
+Expected output:
+
+```
+Applying resources...
+
+  jsonstore/config/my-app-settings
+    Status: created
+    Outputs:
+      file_path: /tmp/myapp/settings.json
+      content_hash: a1b2c3d4e5f6...
+      size_bytes: 127
+
+1 resource(s) applied successfully
+```
+
+Check the resource status:
+
+```bash
+pragma get jsonstore/config/my-app-settings
+```
+
+## Summary
+
+You've built a complete provider that:
+
+1. **Defines** Config and Outputs schemas with validation
+2. **Implements** idempotent lifecycle methods (create, update, delete)
+3. **Tests** locally using `ProviderHarness`
+4. **Deploys** to the platform with `pragma provider push`
+
+The same patterns apply to any integration. Replace the file operations with API calls to cloud services, databases, or internal tools.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Lifecycle Methods" icon="rotate" href="/building-providers/lifecycle">
+    Deep dive into on_create, on_update, and on_delete.
+  </Card>
+  <Card title="CLI Provider Commands" icon="terminal" href="/cli/providers">
+    Reference for init, sync, and push commands.
+  </Card>
+</CardGroup>

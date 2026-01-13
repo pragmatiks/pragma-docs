@@ -1,0 +1,116 @@
+---
+title: "Prerequisites"
+description: "Set up your account and GCP credentials before using pragma-os"
+---
+
+Before you can install resources with pragma-os, you need:
+
+1. A Pragmatiks account
+2. A GCP project with the necessary APIs enabled
+3. Credentials configured for GCP access
+
+## Create a Pragmatiks Account
+
+Sign up at [pragmatiks.io](https://pragmatiks.io). You can use Google, GitHub, or email to create your account.
+
+After signing up, verify your account is active:
+
+```bash
+pragma auth login
+pragma auth whoami
+```
+
+You should see your email address and account details.
+
+## GCP Project Requirements
+
+pragma-os provisions resources in your GCP project. You need:
+
+- A GCP project with billing enabled
+- Owner or Editor role on the project (or specific IAM roles for the resources you want to use)
+
+### Required APIs
+
+Enable the following APIs in your GCP project:
+
+| API | Purpose |
+|-----|---------|
+| Cloud Resource Manager | Project metadata |
+| Cloud Storage | Storage bucket resources |
+| BigQuery | Dataset and table resources |
+| IAM | Service account resources |
+
+Enable them via the console or gcloud:
+
+```bash
+gcloud services enable cloudresourcemanager.googleapis.com \
+  storage.googleapis.com \
+  bigquery.googleapis.com \
+  iam.googleapis.com \
+  --project=YOUR_PROJECT_ID
+```
+
+## Configure GCP Credentials
+
+pragma-os needs credentials to manage resources in your GCP project. You have two options:
+
+### Option 1: Application Default Credentials (Recommended)
+
+Use your personal Google account credentials. This is the simplest approach for local development.
+
+```bash
+gcloud auth application-default login
+```
+
+This opens a browser window. Sign in with a Google account that has access to your GCP project.
+
+Verify it worked:
+
+```bash
+gcloud auth application-default print-access-token
+```
+
+### Option 2: Service Account
+
+For production or CI/CD environments, use a service account key.
+
+1. Create a service account in your GCP project
+2. Grant it the necessary roles (e.g., Storage Admin, BigQuery Admin)
+3. Download a JSON key file
+4. Set the environment variable:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+```
+
+<Warning>
+Keep service account keys secure. Never commit them to version control.
+</Warning>
+
+## Verify Your Setup
+
+Run these commands to confirm everything is configured:
+
+```bash
+# Check Pragmatiks authentication
+pragma auth whoami
+
+# Check GCP project access
+gcloud config get-value project
+
+# Check GCP credentials
+gcloud auth application-default print-access-token
+```
+
+All three commands should complete without errors.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install the CLI" icon="terminal" href="/cli/installation">
+    Install the Pragma CLI.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install your first resource.
+  </Card>
+</CardGroup>

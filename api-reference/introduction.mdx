@@ -1,9 +1,9 @@
 ---
 title: "API Reference"
-description: "Pragmatiks REST API"
+description: "Pragmatiks REST API overview"
 ---
 
-The Pragmatiks API provides programmatic access to all platform features.
+The Pragmatiks API provides programmatic access to all platform features. Use it to manage resources, monitor operations, and deploy providers.
 
 ## Base URL
 
@@ -13,19 +13,109 @@ https://api.pragmatiks.io
 
 ## Authentication
 
-All API endpoints require authentication using Bearer tokens.
+All API endpoints except `/health` require authentication using Bearer tokens.
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://api.pragmatiks.io/v1/resources
+  https://api.pragmatiks.io/resources/
 ```
 
-Get a token by running `pragma auth login` or through the web dashboard.
+Get a token by running `pragma auth login` or through the web dashboard. See [Authentication](/api-reference/authentication) for details.
 
-## OpenAPI Specification
+## Request Format
 
-The full API specification is available in OpenAPI 3.0 format. Use it to generate client libraries or explore endpoints.
+- Use `Content-Type: application/json` for JSON request bodies
+- Use `multipart/form-data` for file uploads (e.g., provider code)
+- All timestamps use ISO 8601 format in UTC
+
+## Response Format
+
+Successful responses return JSON. List endpoints return arrays:
+
+```json
+[
+  {"provider": "postgres", "resource": "database", "name": "my-db", ...}
+]
+```
+
+Single-resource endpoints return objects:
+
+```json
+{"provider": "postgres", "resource": "database", "name": "my-db", ...}
+```
+
+## Filtering
+
+List endpoints support filtering via query parameters:
+
+| Endpoint | Parameters |
+|----------|------------|
+| `GET /resources/` | `provider`, `resource`, `tags` |
+| `GET /ops/dead-letter` | `provider` |
+
+### Examples
+
+Filter resources by provider:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://api.pragmatiks.io/resources/?provider=postgres"
+```
+
+Filter resources by multiple tags (all must match):
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://api.pragmatiks.io/resources/?tags=production&tags=critical"
+```
+
+## Resource Identifiers
+
+Resources are identified by `provider:resource:name`. When used in URLs, this must be URL-encoded:
+
+| Component | Example |
+|-----------|---------|
+| Unencoded | `postgres:database:my-db` |
+| URL-encoded | `postgres%3Adatabase%3Amy-db` |
+
+## Lifecycle States
+
+Resources follow a 5-state lifecycle:
+
+| State | Description |
+|-------|-------------|
+| `draft` | Initial state, can be modified freely |
+| `pending` | Committed for processing, no modifications allowed |
+| `processing` | Being handled by a provider |
+| `ready` | Successfully processed |
+| `failed` | Processing failed, error recorded |
+
+Set `lifecycle_state` when applying a resource:
+
+- `draft` - Store without processing (default)
+- `pending` - Validate and queue for processing
 
 ## Rate Limits
 
-API requests are rate limited. Contact support if you need higher limits.
+API requests are rate limited per organization. Contact support if you need higher limits.
+
+## OpenAPI Specification
+
+The full API specification is available in OpenAPI 3.1 format. Use it to generate client libraries or explore endpoints.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Learn how to authenticate API requests.
+  </Card>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/api-reference/errors">
+    Understand error responses and status codes.
+  </Card>
+  <Card title="Examples" icon="code" href="/api-reference/examples">
+    See curl examples for common operations.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Use the CLI for easier interaction with the API.
+  </Card>
+</CardGroup>

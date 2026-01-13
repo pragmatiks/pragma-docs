@@ -17,8 +17,10 @@
             "group": "Getting started",
             "pages": [
               "index",
+              "getting-started/prerequisites",
               "quickstart",
-              "how-we-compare"
+              "getting-started/verify-setup",
+              "faq"
             ]
           },
           {
@@ -27,19 +29,44 @@
               "concepts/how-it-works",
               "concepts/resources",
               "concepts/providers",
-              "concepts/reactive-dependencies"
+              "concepts/reactive-dependencies",
+              "concepts/glossary"
             ]
           },
           {
-            "group": "Use Cases",
+            "group": "Guides",
             "pages": [
-              "use-cases/rag-pipeline"
+              "guides/error-recovery",
+              {
+                "group": "Migration",
+                "pages": [
+                  "guides/migration/from-terraform"
+                ]
+              }
             ]
           },
           {
             "group": "Troubleshooting",
             "pages": [
               "troubleshooting/common-issues"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Learn",
+        "groups": [
+          {
+            "group": "About pragma-os",
+            "pages": [
+              "learn/index",
+              "learn/how-we-compare"
+            ]
+          },
+          {
+            "group": "Use Cases",
+            "pages": [
+              "learn/use-cases/rag-pipeline"
             ]
           }
         ]
@@ -83,7 +110,14 @@
           {
             "group": "Building Providers",
             "pages": [
-              "building-providers/overview"
+              "building-providers/overview",
+              "building-providers/getting-started",
+              "building-providers/config-outputs",
+              "building-providers/lifecycle",
+              "building-providers/examples",
+              "building-providers/testing",
+              "building-providers/deployment",
+              "building-providers/best-practices"
             ]
           }
         ]
@@ -94,7 +128,10 @@
           {
             "group": "API",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/introduction",
+              "api-reference/authentication",
+              "api-reference/errors",
+              "api-reference/examples"
             ],
             "openapi": "api-reference/openapi.json"
           }
