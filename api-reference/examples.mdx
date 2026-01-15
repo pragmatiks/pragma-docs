@@ -259,7 +259,7 @@ curl -X DELETE \
 
 ### Push Provider Code
 
-Upload provider code to build a container image:
+Upload provider code to start a build:
 
 ```bash
 curl -X POST \
@@ -272,8 +272,8 @@ curl -X POST \
 
 ```json
 {
-  "build_id": "build_xyz789",
-  "job_name": "buildkit-my-provider-abc123",
+  "version": "20250115.120000",
+  "job_name": "build-my-provider-abc123",
   "status": "pending",
   "message": "Build job created"
 }
@@ -285,16 +285,15 @@ Poll the build status until completion:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "$API/providers/my-provider/builds/buildkit-my-provider-abc123"
+  "$API/providers/my-provider/builds/build-my-provider-abc123"
 ```
 
 **Response (in progress):**
 
 ```json
 {
-  "job_name": "buildkit-my-provider-abc123",
+  "job_name": "build-my-provider-abc123",
   "status": "building",
-  "image": null,
   "error_message": null
 }
 ```
@@ -303,9 +302,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```json
 {
-  "job_name": "buildkit-my-provider-abc123",
+  "job_name": "build-my-provider-abc123",
   "status": "success",
-  "image": "registry.example.com/my-provider:abc123",
   "error_message": null
 }
 ```
@@ -314,12 +312,12 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "$API/providers/my-provider/builds/buildkit-my-provider-abc123/logs"
+  "$API/providers/my-provider/builds/build-my-provider-abc123/logs"
 ```
 
 ### Deploy a Provider
 
-After a successful build, deploy the provider:
+Deploy the provider to a specific version (or latest if omitted):
 
 ```bash
 curl -X POST \
@@ -327,7 +325,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   "$API/providers/my-provider/deploy" \
   -d '{
-    "image": "registry.example.com/my-provider:abc123"
+    "version": "20250115.120000"
   }'
 ```
 

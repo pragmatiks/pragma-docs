@@ -308,7 +308,7 @@
           "providers"
         ],
         "summary": "Push Provider",
-        "description": "Push provider code and trigger a build.\n\nAccepts a tarball containing provider code, stores it, and starts\na BuildKit job to build a container image.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    code: Tarball (tar.gz) containing provider source code.\n    service: Provider service for build orchestration.\n\nReturns:\n    PushResponse with build ID and job name for tracking.\n\nRaises:\n    HTTPException: 400 if storage or build creation fails.",
+        "description": "Push provider code and trigger a build.\n\nUploads provider source code and starts a build process.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    code: Provider source code archive.\n\nReturns:\n    PushResponse with version and job name for tracking.\n\nRaises:\n    HTTPException: 400 if upload or build creation fails.",
         "operationId": "providers-push_provider",
         "parameters": [
           {
@@ -361,7 +361,7 @@
           "providers"
         ],
         "summary": "Get Build Status",
-        "description": "Get the status of a build job.\n\nArgs:\n    provider_id: Provider identifier (for routing, not validated).\n    job_name: Name of the BuildKit job.\n    service: Provider service for build operations.\n\nReturns:\n    BuildResult with current build state.\n\nRaises:\n    HTTPException: 404 if build job not found.",
+        "description": "Get the status of a build job.\n\nArgs:\n    provider_id: Provider identifier.\n    job_name: Build job identifier.\n\nReturns:\n    BuildResult with current build state.\n\nRaises:\n    HTTPException: 404 if build job not found.",
         "operationId": "providers-get_build_status",
         "parameters": [
           {
@@ -413,7 +413,7 @@
           "providers"
         ],
         "summary": "Get Build Logs",
-        "description": "Stream logs from a build job.\n\nReturns build logs as a streaming text response for real-time\nmonitoring of build progress. Logs are streamed line-by-line\nwithout buffering the entire log in memory.\n\nArgs:\n    provider_id: Provider identifier (for routing, not validated).\n    job_name: Name of the BuildKit job.\n    service: Provider service for build operations.\n\nReturns:\n    StreamingResponse with build logs.\n\nRaises:\n    HTTPException: 404 if build job not found, 500 if streaming fails.",
+        "description": "Stream logs from a build job.\n\nReturns build logs as a streaming text response for real-time\nmonitoring of build progress.\n\nArgs:\n    provider_id: Provider identifier.\n    job_name: Build job identifier.\n\nReturns:\n    StreamingResponse with build logs.\n\nRaises:\n    HTTPException: 404 if build job not found, 500 if streaming fails.",
         "operationId": "providers-get_build_logs",
         "parameters": [
           {
@@ -506,7 +506,7 @@
           "providers"
         ],
         "summary": "Deploy Provider",
-        "description": "Deploy a provider from a built container image.\n\nCreates or updates the Kubernetes Deployment for the provider.\nNATS credentials are injected from the static nats-auth secret.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    request: Deploy request containing the container image reference.\n    service: Provider service for deployment orchestration.\n\nReturns:\n    DeploymentResult with initial deployment state.\n\nRaises:\n    HTTPException: 500 if deployment fails.",
+        "description": "Deploy a provider to a specific version.\n\nDeploys the provider and activates its resource schemas.\nIf no version is specified, deploys the latest successful build.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    request: Deploy request containing the version to deploy.\n\nReturns:\n    DeploymentResult with deployment state.\n\nRaises:\n    HTTPException: 404 if version not found, 500 if deployment fails.",
         "operationId": "providers-deploy_provider",
         "parameters": [
           {
@@ -920,7 +920,7 @@
           "status"
         ],
         "title": "BuildResult",
-        "description": "Result of a build status query.\n\nAttributes:\n    job_name: Name of the Kubernetes Job.\n    status: Current build status.\n    image: Full image reference (set on success).\n    error_message: Error message (set on failure).\n    build_id: Build storage ID (for internal cleanup)."
+        "description": "Result of a build status query.\n\nAttributes:\n    job_name: Unique identifier for the build job.\n    status: Current build status.\n    error_message: Error message (set on failure)."
       },
       "BuildStatus": {
         "type": "string",
@@ -931,7 +931,7 @@
           "failed"
         ],
         "title": "BuildStatus",
-        "description": "Status of a BuildKit build job."
+        "description": "Status of a provider build."
       },
       "DeadLetterEvent": {
         "properties": {
@@ -990,21 +990,22 @@
           "attempt_count"
         ],
         "title": "DeadLetterEvent",
-        "description": "Dead letter event for failed processing attempts.\n\nWhen a provider fails to process an event after exhausting retries,\nthe event is moved to the dead letter table for manual investigation.\n\nAttributes:\n    event_id: Original event ID from outbox or NATS.\n    tenant_id: Tenant/organization ID for multi-tenant isolation.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    error_message: Error message from last failed attempt.\n    attempt_count: Number of processing attempts before failure.\n    failed_at: When event was moved to dead letter."
+        "description": "Dead letter event for failed processing attempts.\n\nWhen a provider fails to process an event after exhausting retries,\nthe event is moved to the dead letter table for manual investigation.\n\nAttributes:\n    event_id: Original event ID.\n    tenant_id: Tenant/organization ID for multi-tenant isolation.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    error_message: Error message from last failed attempt.\n    attempt_count: Number of processing attempts before failure.\n    failed_at: When event was moved to dead letter."
       },
       "DeployRequest": {
         "properties": {
-          "image": {
-            "type": "string",
-            "title": "Image"
+          "version": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "null"}
+            ],
+            "title": "Version",
+            "description": "Version to deploy (CalVer format). If omitted, deploys the latest successful build."
           }
         },
         "type": "object",
-        "required": [
-          "image"
-        ],
         "title": "DeployRequest",
-        "description": "Request to deploy a provider."
+        "description": "Request to deploy a provider to a specific version."
       },
       "DeploymentResult": {
         "properties": {
@@ -1043,7 +1044,7 @@
           "status"
         ],
         "title": "DeploymentResult",
-        "description": "Result of a deployment status query.\n\nAttributes:\n    deployment_name: Name of the Kubernetes Deployment.\n    status: Current deployment status.\n    available_replicas: Number of available replicas.\n    ready_replicas: Number of ready replicas.\n    message: Status message or error details."
+        "description": "Result of a deployment status query.\n\nAttributes:\n    deployment_name: Unique identifier for the deployment.\n    status: Current deployment status.\n    available_replicas: Number of available instances.\n    ready_replicas: Number of ready instances.\n    version: Deployed version.\n    message: Status message or error details."
       },
       "DeploymentStatus": {
         "type": "string",
@@ -1171,7 +1172,7 @@
           "correlation_id"
         ],
         "title": "OutboxEvent",
-        "description": "Outbox event for transactional publishing to NATS.\n\nThe outbox pattern ensures events are published reliably by storing them\nin the database first, then publishing asynchronously via a background publisher.\n\nMulti-tenant Design:\n    Events are stored in a shared outbox table in the default namespace with\n    tenant_id field for logical isolation. A single publisher services all\n    tenants from this shared table. The tenant_id is forwarded to providers\n    so responses can be routed back to the correct tenant namespace.\n\nAttributes:\n    event_id: Unique identifier for this event.\n    tenant_id: Tenant/organization ID for multi-tenant isolation.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    previous_config: Previous configuration for UPDATE events.\n    correlation_id: Correlation ID for tracing across systems.\n    status: Publishing status (pending, published).\n    created_at: When event was created in outbox.\n    published_at: When event was published to NATS."
+        "description": "Outbox event for reliable event processing.\n\nAttributes:\n    event_id: Unique identifier for this event.\n    tenant_id: Tenant/organization ID.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    previous_config: Previous configuration for UPDATE events.\n    correlation_id: Correlation ID for tracing.\n    status: Processing status (pending, published).\n    created_at: When event was created.\n    published_at: When event was processed."
       },
       "OutboxStatus": {
         "type": "string",
@@ -1180,7 +1181,7 @@
           "published"
         ],
         "title": "OutboxStatus",
-        "description": "Status of an outbox event.\n\nAttributes:\n    PENDING: Event created but not yet published to NATS.\n    PUBLISHED: Event successfully published to NATS."
+        "description": "Status of an outbox event.\n\nAttributes:\n    PENDING: Event created but not yet processed.\n    PUBLISHED: Event successfully processed."
       },
       "PushResponse": {
         "properties": {

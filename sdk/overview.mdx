@@ -426,7 +426,7 @@ print(f"Build started: {result.job_name}")
 print(f"Status: {result.status}")  # BuildStatus.PENDING
 ```
 
-**Returns:** `PushResult` with `build_id`, `job_name`, `status`, and `message`.
+**Returns:** `PushResult` with `version`, `job_name`, `status`, and `message`.
 
 ### get_build_status
 
@@ -445,14 +445,14 @@ from pragma_sdk import BuildStatus
 result = client.get_build_status("my-provider", "build-job-123")
 
 if result.status == BuildStatus.SUCCESS:
-    print(f"Image ready: {result.image}")
+    print("Build successful!")
 elif result.status == BuildStatus.FAILED:
     print(f"Build failed: {result.error_message}")
 elif result.status == BuildStatus.BUILDING:
     print("Build in progress...")
 ```
 
-**Returns:** `BuildResult` with `job_name`, `status`, `image` (on success), `error_message` (on failure).
+**Returns:** `BuildResult` with `job_name`, `status`, and `error_message` (on failure).
 
 ### stream_build_logs
 
@@ -476,19 +476,21 @@ with client.stream_build_logs("my-provider", "build-job-123") as response:
 ```python
 def deploy_provider(
     provider_id: str,
-    image: str,         # Full image reference (e.g., registry/image:tag)
+    version: str | None = None,  # CalVer version (e.g., 20250115.120000)
 ) -> DeploymentResult
 ```
 
-Deploy a built provider image.
+Deploy a provider to a specific version. If no version is specified, deploys the latest successful build.
 
 ```python
-result = client.deploy_provider(
-    "my-provider",
-    "europe-west4-docker.pkg.dev/my-project/pragma/my-provider:v1.0.0"
-)
+# Deploy latest version
+result = client.deploy_provider("my-provider")
 print(f"Deployment: {result.deployment_name}")
+print(f"Version: {result.version}")
 print(f"Status: {result.status}")  # DeploymentStatus.PROGRESSING
+
+# Deploy specific version (useful for rollbacks)
+result = client.deploy_provider("my-provider", version="20250114.120000")
 ```
 
 ### get_deployment_status

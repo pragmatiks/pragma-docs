@@ -13,51 +13,19 @@ Before deploying, ensure:
 - You are authenticated: `pragma auth login`
 - You are in your provider project directory (contains `pyproject.toml`)
 
-## Step 1: Register Resource Types
+## Build and Deploy
 
-Register your resource types with the platform using `pragma provider sync`. This makes your Config schemas available for validation.
-
-```bash
-pragma provider sync
-```
-
-Example output:
-
-```
-Discovering resources in mycompany_provider...
-Found 2 resource(s):
-
-  mycompany/database: registered
-  mycompany/storage: registered
-
-Sync complete.
-```
-
-### Preview Changes
-
-Use `--dry-run` to preview what would be registered:
+Build and deploy your provider in a single command:
 
 ```bash
-pragma provider sync --dry-run
+pragma providers push --deploy
 ```
 
-### Specify Package
-
-If you are not in the provider directory, specify the package name:
-
-```bash
-pragma provider sync --package mycompany_provider
-```
-
-## Step 2: Build and Push
-
-Build your provider and push it to the platform:
-
-```bash
-pragma provider push
-```
-
-This uploads your code and builds a container image. The command waits for the build to complete by default.
+This:
+1. Uploads your provider code
+2. Builds the provider
+3. Extracts and registers resource type schemas
+4. Deploys the provider
 
 Example output:
 
@@ -67,7 +35,11 @@ Source directory: /path/to/mycompany-provider
 
 Created tarball: 12.3 KB
 Build started: build-mycompany-abc123
-Build successful: europe-west4-docker.pkg.dev/.../mycompany:v1
+Build successful!
+
+Deployment started: provider-mycompany
+Version: 20250115.120000
+Status: progressing
 ```
 
 ### Stream Build Logs
@@ -75,39 +47,51 @@ Build successful: europe-west4-docker.pkg.dev/.../mycompany:v1
 To see build output in real-time:
 
 ```bash
-pragma provider push --logs
+pragma providers push --logs --deploy
 ```
 
-### Run Build in Background
+### Build Without Deploying
 
-Start the build without waiting for completion:
+Build only (to verify the build succeeds before deploying):
 
 ```bash
-pragma provider push --no-wait
+pragma providers push
 ```
 
-## Step 3: Deploy
-
-Deploy the built image to make your provider active:
+Then deploy when ready:
 
 ```bash
-pragma provider push --deploy
+pragma providers deploy
 ```
 
-This combines building and deploying in a single command. The provider becomes available to handle resource lifecycle events once deployment completes.
+## Deploy a Specific Version
+
+Deploy a specific version (useful for rollbacks):
+
+```bash
+pragma providers deploy --version 20250114.120000
+```
+
+List available versions:
+
+```bash
+pragma providers builds mycompany
+```
+
+## Check Deployment Status
+
+```bash
+pragma providers status mycompany
+```
 
 Example output:
 
 ```
-Pushing provider: mycompany
-Source directory: /path/to/mycompany-provider
-
-Created tarball: 12.3 KB
-Build started: build-mycompany-abc123
-Build successful: europe-west4-docker.pkg.dev/.../mycompany:v1
-
-Deployment started: mycompany-deployment
-Status: RUNNING
+Provider: mycompany
+Deployment: provider-mycompany
+Status: available
+Replicas: 1/1 ready
+Version: 20250115.120000
 ```
 
 ## Verify Deployment
@@ -143,8 +127,7 @@ pragma resources get mycompany/database test-db
 Run commands from your provider directory, or specify the package explicitly:
 
 ```bash
-pragma provider sync --package mycompany_provider
-pragma provider push --package mycompany_provider
+pragma providers push --package mycompany_provider
 ```
 
 ### "Authentication required"
@@ -160,7 +143,7 @@ pragma auth login
 Check build logs for details:
 
 ```bash
-pragma provider push --logs
+pragma providers push --logs
 ```
 
 Common causes:
@@ -168,7 +151,7 @@ Common causes:
 - Syntax errors in provider code
 - Invalid resource schemas
 
-### Resource type not found after sync
+### Resource type not found
 
 Ensure your resources are properly decorated:
 
@@ -185,7 +168,7 @@ Resources must be exported from the package's `__init__.py` for discovery.
 Verify the provider is running:
 
 ```bash
-pragma resources get <provider>/<resource> <name>
+pragma providers status mycompany
 ```
 
 If resources remain in PENDING state, check:
@@ -201,24 +184,22 @@ Here is the typical workflow for deploying provider changes:
 # 1. Run local tests
 uv run pytest tests/
 
-# 2. Register resource type schemas
-pragma provider sync
+# 2. Build and deploy
+pragma providers push --deploy
 
-# 3. Build and deploy
-pragma provider push --deploy
-
-# 4. Verify deployment
+# 3. Verify deployment
+pragma providers status mycompany
 pragma resources list --provider mycompany
 ```
 
 For iterative development:
 
 ```bash
-# Build only (without deploying) to test the build
-pragma provider push
+# Build only (to verify the build succeeds)
+pragma providers push
 
 # When ready, deploy
-pragma provider push --deploy
+pragma providers deploy
 ```
 
 ## Next Steps
