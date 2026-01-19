@@ -34,7 +34,7 @@
           "auth"
         ],
         "summary": "Get Current User Info",
-        "description": "Return current authenticated user information.\n\nFetches user details from Clerk including email and organization name.\nRequires authentication via Clerk JWT token.\n\nReturns:\n    UserInfo with user ID, email, organization ID and name.\n\nRaises:\n    HTTPException: 500 if Clerk API call fails.",
+        "description": "Return current authenticated user information.\n\nReturns:\n    UserInfo with user ID, email, organization ID and name.\n\nRaises:\n    HTTPException: 500 if unable to fetch user information.",
         "operationId": "auth-get_current_user_info",
         "responses": {
           "200": {
@@ -1784,7 +1784,7 @@
           "organization_name"
         ],
         "title": "UserInfo",
-        "description": "User information response model.\n\nAttributes:\n    user_id: Unique identifier from Clerk authentication.\n    email: User's primary email address.\n    organization_id: Clerk organization identifier.\n    organization_name: Name of the user's organization."
+        "description": "User information response model.\n\nAttributes:\n    user_id: Unique user identifier.\n    email: User's primary email address.\n    organization_id: Organization identifier.\n    organization_name: Name of the user's organization."
       },
       "ValidationError": {
         "properties": {
