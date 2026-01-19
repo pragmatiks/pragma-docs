@@ -28,6 +28,28 @@
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Current User Info",
+        "description": "Return current authenticated user information.\n\nFetches user details from Clerk including email and organization name.\nRequires authentication via Clerk JWT token.\n\nReturns:\n    UserInfo with user ID, email, organization ID and name.\n\nRaises:\n    HTTPException: 500 if Clerk API call fails.",
+        "operationId": "auth-get_current_user_info",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ops/dead-letter": {
       "get": {
         "tags": [
@@ -64,7 +86,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DeadLetterEvent"
+                    "$ref": "#/components/schemas/DeadLetterEventResponse"
                   },
                   "title": "Response Ops-List Dead Letter Events"
                 }
@@ -181,7 +203,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeadLetterEvent"
+                  "$ref": "#/components/schemas/DeadLetterEventResponse"
                 }
               }
             }
@@ -258,7 +280,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutboxEvent"
+                  "$ref": "#/components/schemas/OutboxEventResponse"
                 }
               }
             }
@@ -302,13 +324,39 @@
         }
       }
     },
+    "/providers/": {
+      "get": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "List Providers",
+        "description": "List all providers for the current tenant.\n\nReturns providers with their deployment status. Providers that have\nbeen pushed but not deployed will have deployment_status=None.\n\nArgs:\n    service: Provider service for provider operations.\n\nReturns:\n    List of ProviderInfo with provider metadata and deployment status.",
+        "operationId": "providers-list_providers",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderInfo"
+                  },
+                  "type": "array",
+                  "title": "Response Providers-List Providers"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers/{provider_id}/push": {
       "post": {
         "tags": [
           "providers"
         ],
         "summary": "Push Provider",
-        "description": "Push provider code and trigger a build.\n\nUploads provider source code and starts a build process.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    code: Provider source code archive.\n\nReturns:\n    PushResponse with version and job name for tracking.\n\nRaises:\n    HTTPException: 400 if upload or build creation fails.",
+        "description": "Push provider code and trigger a Cloud Build.\n\nAccepts a tarball containing provider code and triggers a Cloud Build\nto create a container image. Returns a CalVer version for tracking.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    code: Tarball (tar.gz) containing provider source code.\n    service: Provider service for build orchestration.\n\nReturns:\n    PushResponse with CalVer version and Cloud Build ID for tracking.\n\nRaises:\n    HTTPException: 400 if build creation fails.",
         "operationId": "providers-push_provider",
         "parameters": [
           {
@@ -355,13 +403,13 @@
         }
       }
     },
-    "/providers/{provider_id}/builds/{job_name}": {
+    "/providers/{provider_id}/builds/{version}": {
       "get": {
         "tags": [
           "providers"
         ],
         "summary": "Get Build Status",
-        "description": "Get the status of a build job.\n\nArgs:\n    provider_id: Provider identifier.\n    job_name: Build job identifier.\n\nReturns:\n    BuildResult with current build state.\n\nRaises:\n    HTTPException: 404 if build job not found.",
+        "description": "Get the status of a build by version.\n\nArgs:\n    provider_id: Provider identifier.\n    version: CalVer version string (YYYYMMDD.HHMMSS).\n    service: Provider service for build operations.\n\nReturns:\n    BuildInfo with current build state.\n\nRaises:\n    HTTPException: 404 if build not found.",
         "operationId": "providers-get_build_status",
         "parameters": [
           {
@@ -374,12 +422,12 @@
             }
           },
           {
-            "name": "job_name",
+            "name": "version",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Job Name"
+              "title": "Version"
             }
           }
         ],
@@ -389,7 +437,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BuildResult"
+                  "$ref": "#/components/schemas/BuildInfo"
                 }
               }
             }
@@ -407,13 +455,13 @@
         }
       }
     },
-    "/providers/{provider_id}/builds/{job_name}/logs": {
+    "/providers/{provider_id}/builds/{version}/logs": {
       "get": {
         "tags": [
           "providers"
         ],
         "summary": "Get Build Logs",
-        "description": "Stream logs from a build job.\n\nReturns build logs as a streaming text response for real-time\nmonitoring of build progress.\n\nArgs:\n    provider_id: Provider identifier.\n    job_name: Build job identifier.\n\nReturns:\n    StreamingResponse with build logs.\n\nRaises:\n    HTTPException: 404 if build job not found, 500 if streaming fails.",
+        "description": "Stream logs from a build.\n\nReturns build logs as a streaming text response for real-time\nmonitoring of build progress.\n\nArgs:\n    provider_id: Provider identifier.\n    version: CalVer version string (YYYYMMDD.HHMMSS).\n    service: Provider service for build operations.\n\nReturns:\n    StreamingResponse with build logs.\n\nRaises:\n    HTTPException: 404 if build not found, 500 if streaming fails.",
         "operationId": "providers-get_build_logs",
         "parameters": [
           {
@@ -426,12 +474,12 @@
             }
           },
           {
-            "name": "job_name",
+            "name": "version",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Job Name"
+              "title": "Version"
             }
           }
         ],
@@ -463,7 +511,7 @@
           "providers"
         ],
         "summary": "Get Deployment Status",
-        "description": "Get the deployment status for a provider.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    service: Provider service for deployment operations.\n\nReturns:\n    DeploymentResult with current deployment state.\n\nRaises:\n    HTTPException: 404 if deployment not found.",
+        "description": "Get the deployment status for a provider.\n\nReturns a minimal status without internal K8s details like replica\ncounts, deployment names, or container images.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    service: Provider service for deployment operations.\n\nReturns:\n    ProviderStatus with status, version, updated_at, and healthy flag.\n\nRaises:\n    HTTPException: 404 if deployment not found.",
         "operationId": "providers-get_deployment_status",
         "parameters": [
           {
@@ -482,7 +530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeploymentResult"
+                  "$ref": "#/components/schemas/ProviderStatus"
                 }
               }
             }
@@ -506,7 +554,7 @@
           "providers"
         ],
         "summary": "Deploy Provider",
-        "description": "Deploy a provider to a specific version.\n\nDeploys the provider and activates its resource schemas.\nIf no version is specified, deploys the latest successful build.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    request: Deploy request containing the version to deploy.\n\nReturns:\n    DeploymentResult with deployment state.\n\nRaises:\n    HTTPException: 404 if version not found, 500 if deployment fails.",
+        "description": "Deploy a provider by version.\n\nDeploys the specified version or the latest successful build if no version\nis provided. Activates resource schemas from the build during deployment.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    request: Deploy request with optional version (defaults to latest successful).\n    service: Provider service for deployment orchestration.\n\nReturns:\n    ProviderStatus with status, version, updated_at, and healthy flag.\n\nRaises:\n    HTTPException: 404 if build not found or no successful build exists.\n    HTTPException: 400 if specified build is not deployable.\n    HTTPException: 500 if deployment fails.",
         "operationId": "providers-deploy_provider",
         "parameters": [
           {
@@ -535,7 +583,217 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeploymentResult"
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/{provider_id}/builds": {
+      "get": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "List Builds",
+        "description": "List builds for a provider.\n\nReturns the last 10 builds ordered by creation time (newest first).\nExcludes internal fields (image URL, cloud build ID).\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    service: Provider service for build operations.\n\nReturns:\n    List of BuildInfo for the provider's builds.",
+        "operationId": "providers-list_builds",
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuildInfo"
+                  },
+                  "title": "Response Providers-List Builds"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/{provider_id}/versions/{version}": {
+      "get": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Get Build By Version",
+        "description": "Get a specific build by CalVer version.\n\nSyncs build status from Cloud Build and returns the build info.\n\nArgs:\n    provider_id: Unique identifier for the provider.\n    version: CalVer version string (YYYYMMDD.HHMMSS).\n    service: Provider service for build operations.\n\nReturns:\n    BuildInfo for the requested build.\n\nRaises:\n    HTTPException: 404 if build not found.",
+        "operationId": "providers-get_build_by_version",
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/{provider_id}": {
+      "delete": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Delete Provider",
+        "description": "Delete a provider and all associated resources.\n\nRemoves the provider deployment, resource definitions, pending events,\nand NATS messages/consumers. By default, fails if the provider has any\nresources. Use cascade=true to delete all resources along with the provider.\n\nCleanup order:\n1. Kubernetes Deployment (if exists)\n2. Resources (if cascade=true)\n3. Resource definitions\n4. Outbox events\n5. Dead letter events\n6. NATS messages (purged from stream)\n7. NATS durable consumer\n\nArgs:\n    provider_id: Unique identifier for the provider to delete.\n    service: Provider service for deletion orchestration.\n    cascade: If true, delete all resources. If false (default), fail if resources exist.\n\nReturns:\n    ProviderDeleteResult with cleanup summary.\n\nRaises:\n    HTTPException: 409 if provider has resources and cascade=false.\n    HTTPException: 500 if deletion fails.",
+        "operationId": "providers-delete_provider",
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Id"
+            }
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Delete all resources for this provider (default: fail if resources exist)",
+              "default": false,
+              "title": "Cascade"
+            },
+            "description": "Delete all resources for this provider (default: fail if resources exist)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderDeleteResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/types": {
+      "get": {
+        "tags": [
+          "resources"
+        ],
+        "summary": "List Resource Types",
+        "description": "List available resource types for authenticated tenant.\n\nReturns resource definitions (types) that have been registered by deployed providers.\nUse this to discover what resource types are available to create.\n\nAuthentication required via Clerk JWT token. Resource definitions automatically scoped\nto user's organization namespace.\n\nReturns:\n    List of resource definitions, ordered by provider and resource name.",
+        "operationId": "resources-list_resource_types",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by provider name",
+              "title": "Provider"
+            },
+            "description": "Filter by provider name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourceDefinition"
+                  },
+                  "title": "Response Resources-List Resource Types"
                 }
               }
             }
@@ -695,7 +953,7 @@
           "resources"
         ],
         "summary": "Delete Resource",
-        "description": "Permanently delete resource from storage for authenticated tenant.\n\nIdempotent operation - succeeds even if resource doesn't exist.\n\nAuthentication required. Only deletes resources within user's organization namespace.\n\nRaises:\n    HTTPException: 400 if deletion fails for unexpected reason.",
+        "description": "Initiate resource deletion via provider lifecycle for authenticated tenant.\n\nTriggers the provider's on_delete() method. The resource is set to PENDING state\nand will be removed from the database when the provider confirms successful deletion.\n\nIdempotent: Returns 204 if resource doesn't exist (already deleted).\n\nAuthentication required. Only deletes resources within user's organization namespace.\n\nReturns:\n    Resource in PENDING state awaiting provider deletion.\n\nRaises:\n    HTTPException: 204 if resource not found (already deleted).\n        409 if resource is currently being processed.",
         "operationId": "resources-delete_resource",
         "parameters": [
           {
@@ -709,8 +967,58 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/{resource_id}/status": {
+      "get": {
+        "tags": [
+          "resources"
+        ],
+        "summary": "Get Resource Status",
+        "description": "Get resource lifecycle status for authenticated tenant.\n\nReturns only the lifecycle state information for a resource, useful for\npolling resource state without fetching full configuration.\n\nThe 5-state lifecycle:\n    - draft: Resource stored but not submitted for processing\n    - pending: Resource validated and queued for provider processing\n    - processing: Provider is actively processing the resource\n    - ready: Resource successfully provisioned and operational\n    - failed: Resource processing failed (check error field for details)\n\nAuthentication required. Only returns status for resources within user's\norganization namespace.\n\nReturns:\n    ResourceStatus with lifecycle_state and optional error message.\n\nRaises:\n    HTTPException: 404 if resource not found.",
+        "operationId": "resources-get_resource_status",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceStatus"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -766,93 +1074,6 @@
           }
         }
       }
-    },
-    "/resources/register": {
-      "post": {
-        "tags": [
-          "resources"
-        ],
-        "summary": "Register Resource",
-        "description": "Register a new resource.\n\nRegisters a resource so that resources of this type can be created.\nProviders use this to declare what resources they can manage.\n\nAuthentication required. Resource registered within user's organization namespace.\n\nReturns:\n    The registered resource type with server-populated timestamps.\n\nRaises:\n    HTTPException: 400 if registration fails.",
-        "operationId": "resources-register_resource",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResourceDefinition"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourceDefinition"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/resources/unregister/{provider}/{resource}": {
-      "delete": {
-        "tags": [
-          "resources"
-        ],
-        "summary": "Unregister Resource",
-        "description": "Unregister a resource.\n\nIdempotent operation - succeeds even if resource doesn't exist.\nRemoves a resource registration. Existing resources of this type\nwill no longer be manageable.\n\nAuthentication required. Only unregisters resource types within user's organization namespace.\n\nRaises:\n    HTTPException: 400 if unregistration fails for unexpected reason.",
-        "operationId": "resources-unregister_resource",
-        "parameters": [
-          {
-            "name": "provider",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Provider"
-            }
-          },
-          {
-            "name": "resource",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Resource"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -871,25 +1092,18 @@
         ],
         "title": "Body_providers-push_provider"
       },
-      "BuildResult": {
+      "BuildInfo": {
         "properties": {
-          "job_name": {
+          "provider_id": {
             "type": "string",
-            "title": "Job Name"
+            "title": "Provider Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
           },
           "status": {
             "$ref": "#/components/schemas/BuildStatus"
-          },
-          "image": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image"
           },
           "error_message": {
             "anyOf": [
@@ -902,25 +1116,21 @@
             ],
             "title": "Error Message"
           },
-          "build_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Build Id"
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
         "required": [
-          "job_name",
-          "status"
+          "provider_id",
+          "version",
+          "status",
+          "created_at"
         ],
-        "title": "BuildResult",
-        "description": "Result of a build status query.\n\nAttributes:\n    job_name: Unique identifier for the build job.\n    status: Current build status.\n    error_message: Error message (set on failure)."
+        "title": "BuildInfo",
+        "description": "Build information exposed via API.\n\nExcludes internal fields (image, cloud_build_id) that should not\nbe exposed to users."
       },
       "BuildStatus": {
         "type": "string",
@@ -931,17 +1141,13 @@
           "failed"
         ],
         "title": "BuildStatus",
-        "description": "Status of a provider build."
+        "description": "Status of a BuildKit build job."
       },
-      "DeadLetterEvent": {
+      "DeadLetterEventResponse": {
         "properties": {
           "event_id": {
             "type": "string",
             "title": "Event Id"
-          },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
           },
           "provider": {
             "type": "string",
@@ -980,53 +1186,21 @@
         "type": "object",
         "required": [
           "event_id",
-          "tenant_id",
           "provider",
           "resource_type",
           "resource_name",
           "event_type",
           "payload",
           "error_message",
-          "attempt_count"
+          "attempt_count",
+          "failed_at"
         ],
-        "title": "DeadLetterEvent",
-        "description": "Dead letter event for failed processing attempts.\n\nWhen a provider fails to process an event after exhausting retries,\nthe event is moved to the dead letter table for manual investigation.\n\nAttributes:\n    event_id: Original event ID.\n    tenant_id: Tenant/organization ID for multi-tenant isolation.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    error_message: Error message from last failed attempt.\n    attempt_count: Number of processing attempts before failure.\n    failed_at: When event was moved to dead letter."
+        "title": "DeadLetterEventResponse",
+        "description": "User-facing dead letter event response.\n\nExcludes tenant_id since users are authenticated and scoped to their tenant.\n\nAttributes:\n    event_id: Original event ID from outbox or NATS.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    error_message: Error message from last failed attempt.\n    attempt_count: Number of processing attempts before failure.\n    failed_at: When event was moved to dead letter."
       },
       "DeployRequest": {
         "properties": {
           "version": {
-            "anyOf": [
-              {"type": "string"},
-              {"type": "null"}
-            ],
-            "title": "Version",
-            "description": "Version to deploy (CalVer format). If omitted, deploys the latest successful build."
-          }
-        },
-        "type": "object",
-        "title": "DeployRequest",
-        "description": "Request to deploy a provider to a specific version."
-      },
-      "DeploymentResult": {
-        "properties": {
-          "deployment_name": {
-            "type": "string",
-            "title": "Deployment Name"
-          },
-          "status": {
-            "$ref": "#/components/schemas/DeploymentStatus"
-          },
-          "available_replicas": {
-            "type": "integer",
-            "title": "Available Replicas",
-            "default": 0
-          },
-          "ready_replicas": {
-            "type": "integer",
-            "title": "Ready Replicas",
-            "default": 0
-          },
-          "message": {
             "anyOf": [
               {
                 "type": "string"
@@ -1035,16 +1209,12 @@
                 "type": "null"
               }
             ],
-            "title": "Message"
+            "title": "Version"
           }
         },
         "type": "object",
-        "required": [
-          "deployment_name",
-          "status"
-        ],
-        "title": "DeploymentResult",
-        "description": "Result of a deployment status query.\n\nAttributes:\n    deployment_name: Unique identifier for the deployment.\n    status: Current deployment status.\n    available_replicas: Number of available instances.\n    ready_replicas: Number of ready instances.\n    version: Deployed version.\n    message: Status message or error details."
+        "title": "DeployRequest",
+        "description": "Request to deploy a provider.\n\nIf version is omitted, deploys the latest successful build."
       },
       "DeploymentStatus": {
         "type": "string",
@@ -1092,15 +1262,11 @@
         "title": "LifecycleState",
         "description": "Resource lifecycle states: DRAFT, PENDING, PROCESSING, READY, FAILED."
       },
-      "OutboxEvent": {
+      "OutboxEventResponse": {
         "properties": {
           "event_id": {
             "type": "string",
             "title": "Event Id"
-          },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
           },
           "provider": {
             "type": "string",
@@ -1163,16 +1329,16 @@
         "type": "object",
         "required": [
           "event_id",
-          "tenant_id",
           "provider",
           "resource_type",
           "resource_name",
           "event_type",
           "payload",
-          "correlation_id"
+          "correlation_id",
+          "created_at"
         ],
-        "title": "OutboxEvent",
-        "description": "Outbox event for reliable event processing.\n\nAttributes:\n    event_id: Unique identifier for this event.\n    tenant_id: Tenant/organization ID.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    previous_config: Previous configuration for UPDATE events.\n    correlation_id: Correlation ID for tracing.\n    status: Processing status (pending, published).\n    created_at: When event was created.\n    published_at: When event was processed."
+        "title": "OutboxEventResponse",
+        "description": "User-facing outbox event response.\n\nExcludes tenant_id since users are authenticated and scoped to their tenant.\n\nAttributes:\n    event_id: Unique identifier for this event.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    previous_config: Previous configuration for UPDATE events.\n    correlation_id: Correlation ID for tracing across systems.\n    status: Publishing status (pending, published).\n    created_at: When event was created in outbox.\n    published_at: When event was published to NATS."
       },
       "OutboxStatus": {
         "type": "string",
@@ -1181,17 +1347,159 @@
           "published"
         ],
         "title": "OutboxStatus",
-        "description": "Status of an outbox event.\n\nAttributes:\n    PENDING: Event created but not yet processed.\n    PUBLISHED: Event successfully processed."
+        "description": "Status of an outbox event.\n\nAttributes:\n    PENDING: Event created but not yet published to NATS.\n    PUBLISHED: Event successfully published to NATS."
+      },
+      "OwnerReference": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "resource",
+          "name"
+        ],
+        "title": "OwnerReference",
+        "description": "Reference to a resource that owns this resource for lifecycle coordination.\n\nUsed for cascading deletes and ownership tracking. When an owner resource\nis deleted, owned resources can be automatically cleaned up.\n\nA resource can have multiple owners (rare but valid for shared resources).\n\nAttributes:\n    provider: Provider that manages the owner resource.\n    resource: Resource type name.\n    name: Resource instance name."
+      },
+      "ProviderDeleteResult": {
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "deployment_deleted": {
+            "type": "boolean",
+            "title": "Deployment Deleted",
+            "default": false
+          },
+          "resources_deleted": {
+            "type": "integer",
+            "title": "Resources Deleted",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_id"
+        ],
+        "title": "ProviderDeleteResult",
+        "description": "User-facing result of a provider delete operation.\n\nMinimal representation without internal infrastructure details.\n\nAttributes:\n    provider_id: Provider that was deleted.\n    deployment_deleted: Whether the running deployment was removed.\n    resources_deleted: Number of resources deleted (if cascade was used)."
+      },
+      "ProviderInfo": {
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "deployment_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeploymentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_id"
+        ],
+        "title": "ProviderInfo",
+        "description": "Provider information exposed via API.\n\nCombines provider metadata with deployment status for listing.\n\nAttributes:\n    provider_id: Unique identifier for the provider.\n    current_version: CalVer of currently deployed build (None if never deployed).\n    deployment_status: Current deployment status (None if not deployed).\n    updated_at: Timestamp of last provider update (typically last deployment)."
+      },
+      "ProviderStatus": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/DeploymentStatus"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "healthy": {
+            "type": "boolean",
+            "title": "Healthy",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ProviderStatus",
+        "description": "User-facing provider deployment status.\n\nMinimal representation without internal K8s details like replica\ncounts, deployment names, or container images.\n\nAttributes:\n    status: Current deployment status.\n    version: CalVer version string of deployed build.\n    updated_at: Last update timestamp.\n    healthy: Whether the provider is healthy (available with ready replicas)."
       },
       "PushResponse": {
         "properties": {
-          "build_id": {
+          "version": {
             "type": "string",
-            "title": "Build Id"
-          },
-          "job_name": {
-            "type": "string",
-            "title": "Job Name"
+            "title": "Version"
           },
           "status": {
             "$ref": "#/components/schemas/BuildStatus"
@@ -1203,8 +1511,7 @@
         },
         "type": "object",
         "required": [
-          "build_id",
-          "job_name",
+          "version",
           "status",
           "message"
         ],
@@ -1247,6 +1554,14 @@
             },
             "type": "array",
             "title": "Dependencies",
+            "default": []
+          },
+          "owner_references": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerReference"
+            },
+            "type": "array",
+            "title": "Owner References",
             "default": []
           },
           "outputs": {
@@ -1303,7 +1618,7 @@
           "name"
         ],
         "title": "Resource",
-        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Resource configuration dictionary. May contain embedded resource\n        configurations if the provider schema defines fields as resource types.\n    dependencies: References to resources this resource depends on.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Resource configuration dictionary. May contain embedded resource\n        configurations if the provider schema defines fields as resource types.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "ResourceDefinition": {
         "properties": {
@@ -1398,6 +1713,78 @@
         ],
         "title": "ResourceReference",
         "description": "Reference to another resource for dependency tracking.\n\nUsed to express dependencies between resources. At commit time,\nthe API validates that all referenced resources exist and are READY.\n\nAttributes:\n    provider: Provider that manages the referenced resource.\n    resource: Resource type name.\n    name: Resource instance name."
+      },
+      "ResourceStatus": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "lifecycle_state": {
+            "$ref": "#/components/schemas/LifecycleState"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_id",
+          "lifecycle_state"
+        ],
+        "title": "ResourceStatus",
+        "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, pending, processing, ready, failed).\n    error: Error message if resource is in failed state."
+      },
+      "UserInfo": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "organization_id",
+          "organization_name"
+        ],
+        "title": "UserInfo",
+        "description": "User information response model.\n\nAttributes:\n    user_id: Unique identifier from Clerk authentication.\n    email: User's primary email address.\n    organization_id: Clerk organization identifier.\n    organization_name: Name of the user's organization."
       },
       "ValidationError": {
         "properties": {
