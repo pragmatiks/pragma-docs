@@ -100,14 +100,14 @@ Before building a provider, you need:
 - **Python 3.12+** - Providers use modern Python features
 - **uv** - Fast Python package manager (install via `curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - **pragma-sdk** - The SDK provides `Provider`, `Resource`, `Config`, and `Outputs` classes
-- **Pragmatiks CLI** - For initializing projects and deploying (`pragma provider init`)
+- **Pragmatiks CLI** - For initializing projects and deploying (`pragma providers init`)
 
 ## Project Structure
 
 Initialize a provider project:
 
 ```bash
-pragma provider init mycompany
+pragma providers init mycompany
 cd mycompany-provider
 ```
 
@@ -154,10 +154,10 @@ Once your provider is ready:
 
 ```bash
 # Register resource types with the platform
-pragma provider sync
+pragma providers sync
 
 # Build and deploy
-pragma provider push --deploy
+pragma providers push --deploy
 ```
 
 After deployment, users can create resources of your types:

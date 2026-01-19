@@ -42,7 +42,7 @@ Logged in as your-email@example.com
 Create a new provider project using the CLI:
 
 ```bash
-pragma provider init jsonstore
+pragma providers init jsonstore
 cd jsonstore-provider
 ```
 
@@ -452,7 +452,7 @@ tests/test_example.py::test_delete_idempotent PASSED
 Register your resource types with the platform:
 
 ```bash
-pragma provider sync
+pragma providers sync
 ```
 
 Expected output:
@@ -469,7 +469,7 @@ Registered 1 resource type(s)
 Use `--dry-run` to preview changes without applying them:
 
 ```bash
-pragma provider sync --dry-run
+pragma providers sync --dry-run
 ```
 
 ## Step 6: Deploy the Provider
@@ -477,7 +477,7 @@ pragma provider sync --dry-run
 Build and deploy your provider:
 
 ```bash
-pragma provider push --deploy
+pragma providers push --deploy
 ```
 
 Expected output:
@@ -548,7 +548,7 @@ You've built a complete provider that:
 1. **Defines** Config and Outputs schemas with validation
 2. **Implements** idempotent lifecycle methods (create, update, delete)
 3. **Tests** locally using `ProviderHarness`
-4. **Deploys** to the platform with `pragma provider push`
+4. **Deploys** to the platform with `pragma providers push`
 
 The same patterns apply to any integration. Replace the file operations with API calls to cloud services, databases, or internal tools.
 

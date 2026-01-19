@@ -8,13 +8,13 @@ description: "Build and deploy providers"
 Create a new provider project:
 
 ```bash
-pragma provider init mycompany
+pragma providers init mycompany
 ```
 
 With options:
 
 ```bash
-pragma provider init mycompany --output ./providers/mycompany --defaults
+pragma providers init mycompany --output ./providers/mycompany --defaults
 ```
 
 ## Update
@@ -22,7 +22,7 @@ pragma provider init mycompany --output ./providers/mycompany --defaults
 Update an existing project with template changes:
 
 ```bash
-pragma provider update
+pragma providers update
 ```
 
 ## Sync
@@ -30,13 +30,13 @@ pragma provider update
 Register resource types with the platform:
 
 ```bash
-pragma provider sync
+pragma providers sync
 ```
 
 Preview without making changes:
 
 ```bash
-pragma provider sync --dry-run
+pragma providers sync --dry-run
 ```
 
 ## Push
@@ -44,13 +44,13 @@ pragma provider sync --dry-run
 Build and upload your provider:
 
 ```bash
-pragma provider push
+pragma providers push
 ```
 
 Build and deploy:
 
 ```bash
-pragma provider push --deploy
+pragma providers push --deploy
 ```
 
 ## Next Steps
