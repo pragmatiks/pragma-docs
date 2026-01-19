@@ -137,6 +137,90 @@ class AppConfig(Config):
     log_level: str = "INFO"
 ```
 
+## Dependency for Whole-Resource Access
+
+When you need access to an entire resource (its config, outputs, and methods) rather than just a single field, use `Dependency[T]`:
+
+```python
+from pragma_sdk import Config, Dependency
+
+class AppConfig(Config):
+    name: str
+    database: Dependency[DatabaseResource]  # Access to full resource
+```
+
+### Resolving Dependencies
+
+In your lifecycle methods, call `resolve()` to get the typed resource instance:
+
+```python
+async def on_create(self) -> AppOutputs:
+    # Get the full database resource
+    db = await self.config.database.resolve()
+
+    # Access any field from config or outputs
+    print(f"Connecting to {db.config.name}")
+    print(f"URL: {db.outputs.connection_url}")
+
+    return AppOutputs(db_url=db.outputs.connection_url)
+```
+
+<Note>
+The runtime resolves dependencies before calling your lifecycle handler. The `resolve()` method returns the pre-resolved instance. If the dependent resource is not yet `READY`, it will raise a `RuntimeError`.
+</Note>
+
+### YAML Syntax
+
+Users specify whole-resource dependencies without a `field` key:
+
+```yaml
+provider: mycompany
+resource: app
+name: my-app
+config:
+  name: my-app
+  database:
+    provider: mycompany
+    resource: database
+    name: shared-db
+    # No "field" key - this is a whole-resource dependency
+```
+
+### Dependency vs FieldReference
+
+| Use Case | Type | YAML |
+|----------|------|------|
+| Need one output value | `Field[str]` | Include `field` key |
+| Need multiple outputs | `Dependency[T]` | Omit `field` key |
+| Need to call resource methods | `Dependency[T]` | Omit `field` key |
+| Simple string/int value | `Field[T]` | Include `field` key |
+
+**Example comparison:**
+
+```python
+class AppConfig(Config):
+    # FieldReference: just need the connection URL string
+    database_url: Field[str]
+
+    # Dependency: need multiple values or the full resource
+    database: Dependency[DatabaseResource]
+```
+
+```yaml
+# FieldReference usage (gets single value)
+database_url:
+  provider: mycompany
+  resource: database
+  name: shared-db
+  field: connection_url
+
+# Dependency usage (gets full resource)
+database:
+  provider: mycompany
+  resource: database
+  name: shared-db
+```
+
 ## Validation Patterns
 
 ### Field Constraints
