@@ -9,15 +9,29 @@ description: "Install the Pragma CLI"
 
 ## Install
 
-```bash
-pip install pragmatiks-cli
-```
+<Tabs>
+  <Tab title="uvx">
+    ```bash
+    uvx pragmatiks-cli
+    ```
 
-Or with pipx:
+    Or install globally:
 
-```bash
-pipx install pragmatiks-cli
-```
+    ```bash
+    uv tool install pragmatiks-cli
+    ```
+  </Tab>
+  <Tab title="pipx">
+    ```bash
+    pipx install pragmatiks-cli
+    ```
+  </Tab>
+  <Tab title="pip">
+    ```bash
+    pip install pragmatiks-cli
+    ```
+  </Tab>
+</Tabs>
 
 ## Verify
 
@@ -27,23 +41,23 @@ pragma --version
 
 ## Shell Completion
 
-### Bash
-
-```bash
-eval "$(pragma --show-completion bash)"
-```
-
-### Zsh
-
-```bash
-eval "$(pragma --show-completion zsh)"
-```
-
-### Fish
-
-```fish
-pragma --show-completion fish | source
-```
+<Tabs>
+  <Tab title="Bash">
+    ```bash
+    eval "$(pragma --show-completion bash)"
+    ```
+  </Tab>
+  <Tab title="Zsh">
+    ```bash
+    eval "$(pragma --show-completion zsh)"
+    ```
+  </Tab>
+  <Tab title="Fish">
+    ```fish
+    pragma --show-completion fish | source
+    ```
+  </Tab>
+</Tabs>
 
 ## Next Steps
 
