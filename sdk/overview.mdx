@@ -129,6 +129,27 @@ with PragmaClient() as client:
         print("API is unavailable")
 ```
 
+### Get Current User
+
+```python
+def get_me() -> UserInfo
+```
+
+Get information about the authenticated user.
+
+```python
+from pragma_sdk import PragmaClient, UserInfo
+
+with PragmaClient() as client:
+    user = client.get_me()
+    print(f"User: {user.email}")
+    print(f"Organization: {user.organization_name}")
+```
+
+**Returns:** `UserInfo` with `user_id`, `email`, `organization_id`, and `organization_name`.
+
+**Raises:** `httpx.HTTPStatusError` if not authenticated (401).
+
 ---
 
 ## Resource Operations
@@ -164,6 +185,29 @@ production = client.list_resources(tags=["env:production"])
 from myapp.models import Database
 databases = client.list_resources(provider="mycloud", resource="database", model=Database)
 ```
+
+### list_resource_types
+
+```python
+def list_resource_types(
+    provider: str | None = None,  # Filter by provider
+) -> list[dict[str, Any]]
+```
+
+List available resource types from deployed providers.
+
+```python
+# List all resource types
+types = client.list_resource_types()
+
+for rt in types:
+    print(f"{rt['provider']}/{rt['resource']}: {rt['description']}")
+
+# Filter by provider
+gcp_types = client.list_resource_types(provider="gcp")
+```
+
+**Returns:** List of resource definitions with `provider`, `resource`, `schema`, and `description`.
 
 ### get_resource
 
@@ -398,6 +442,49 @@ count = client.delete_dead_letter_events(all=True)
 ## Provider Deployment
 
 Deploy custom providers to the platform.
+
+### list_providers
+
+```python
+def list_providers() -> list[ProviderInfo]
+```
+
+List all providers for the current tenant.
+
+```python
+from pragma_sdk import PragmaClient
+
+with PragmaClient() as client:
+    providers = client.list_providers()
+
+    for p in providers:
+        print(f"{p.provider_id}: {p.deployment_status or 'not deployed'}")
+        if p.current_version:
+            print(f"  Version: {p.current_version}")
+```
+
+**Returns:** List of `ProviderInfo` with `provider_id`, `current_version`, `deployment_status`, and `updated_at`.
+
+### list_builds
+
+```python
+def list_builds(provider_id: str) -> list[BuildInfo]
+```
+
+List builds for a provider (newest first, up to 10).
+
+```python
+from pragma_sdk import BuildStatus
+
+builds = client.list_builds("my-provider")
+
+for build in builds:
+    print(f"{build.version}: {build.status}")
+    if build.status == BuildStatus.FAILED:
+        print(f"  Error: {build.error_message}")
+```
+
+**Returns:** List of `BuildInfo` with `provider_id`, `version`, `status`, `error_message`, and `created_at`.
 
 ### push_provider
 
