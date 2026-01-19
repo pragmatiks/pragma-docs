@@ -53,6 +53,20 @@ Filter by tags:
 pragma resources list --tag env:production
 ```
 
+## Types
+
+List available resource types from deployed providers:
+
+```bash
+pragma resources types
+```
+
+Filter by provider:
+
+```bash
+pragma resources types --provider gcp
+```
+
 ## Get
 
 Get resources by type:
@@ -65,6 +79,14 @@ Get a specific resource:
 
 ```bash
 pragma resources get gcp/storage my-bucket
+```
+
+## Describe
+
+Get detailed information about a resource, including full configuration and outputs:
+
+```bash
+pragma resources describe gcp/storage my-bucket
 ```
 
 ## Delete

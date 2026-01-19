@@ -53,6 +53,54 @@ Build and deploy:
 pragma providers push --deploy
 ```
 
+## List
+
+List all registered providers:
+
+```bash
+pragma providers list
+```
+
+## Status
+
+Check the deployment status of a provider:
+
+```bash
+pragma providers status mycompany
+```
+
+## Builds
+
+List build history for a provider:
+
+```bash
+pragma providers builds mycompany
+```
+
+Get details for a specific build:
+
+```bash
+pragma providers builds mycompany --version 2026.01.19.1
+```
+
+## Delete
+
+Delete a provider:
+
+```bash
+pragma providers delete mycompany
+```
+
+Delete a provider and all its resources:
+
+```bash
+pragma providers delete mycompany --cascade
+```
+
+<Warning>
+The `--cascade` flag will delete all resources managed by the provider. This action cannot be undone.
+</Warning>
+
 ## Next Steps
 
 <Card title="Building Providers" icon="hammer" href="/building-providers/overview">
