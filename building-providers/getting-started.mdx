@@ -19,7 +19,7 @@ This example uses local files to keep things simple. The same patterns apply whe
 
 Before starting, ensure you have:
 
-- **Python 3.12+** installed
+- **Python 3.13+** installed
 - **uv** package manager ([install instructions](https://docs.astral.sh/uv/getting-started/installation/))
 - **Pragmatiks CLI** authenticated (`pragma auth login`)
 
@@ -27,7 +27,7 @@ Verify your setup:
 
 ```bash
 uv --version
-pragma whoami
+pragma auth whoami
 ```
 
 Expected output:
@@ -447,32 +447,7 @@ tests/test_example.py::test_delete_idempotent PASSED
 ========================== 5 passed in 0.15s ===========================
 ```
 
-## Step 5: Sync Resource Types
-
-Register your resource types with the platform:
-
-```bash
-pragma providers sync
-```
-
-Expected output:
-
-```
-Syncing provider: jsonstore
-  Resource: config
-    Config schema: ConfigFileConfig (3 fields)
-    Output schema: ConfigFileOutputs (3 fields)
-
-Registered 1 resource type(s)
-```
-
-Use `--dry-run` to preview changes without applying them:
-
-```bash
-pragma providers sync --dry-run
-```
-
-## Step 6: Deploy the Provider
+## Step 5: Deploy the Provider
 
 Build and deploy your provider:
 
@@ -495,7 +470,7 @@ Deploying provider: jsonstore
 Provider deployed successfully!
 ```
 
-## Step 7: Create a Resource
+## Step 6: Create a Resource
 
 Now users can create resources using your provider. Create a file `my-config.yaml`:
 
@@ -517,7 +492,7 @@ config:
 Apply it:
 
 ```bash
-pragma apply my-config.yaml
+pragma resources apply my-config.yaml
 ```
 
 Expected output:
@@ -538,7 +513,7 @@ Applying resources...
 Check the resource status:
 
 ```bash
-pragma get jsonstore/config/my-app-settings
+pragma resources get jsonstore/config my-app-settings
 ```
 
 ## Summary

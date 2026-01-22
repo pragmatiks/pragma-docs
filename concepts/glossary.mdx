@@ -65,11 +65,9 @@ Resources move through these states as pragma-os manages them:
 |-------|-------------|
 | **DRAFT** | Resource defined but not queued for provisioning |
 | **PENDING** | Queued and waiting for dependencies to be ready |
-| **PROVISIONING** | Currently being created by the provider |
+| **PROCESSING** | Currently being processed by the provider (create, update, or delete) |
 | **READY** | Successfully provisioned and operational |
-| **UPDATING** | Configuration change in progress |
-| **DELETING** | Being removed |
-| **FAILED** | Provisioning or update failed |
+| **FAILED** | Operation failed |
 
 State transitions are managed by pragma-os based on provider responses and dependency status.
 

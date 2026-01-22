@@ -28,12 +28,12 @@ Resources move through several states during provisioning:
 | State | Meaning |
 |-------|---------|
 | **PENDING** | Queued and waiting - either for dependencies to be ready or for processing to begin |
-| **PROVISIONING** | Currently being created by the provider |
+| **PROCESSING** | Currently being processed by the provider |
 | **READY** | Successfully provisioned and operational |
 | **FAILED** | Something went wrong during provisioning |
 
 <Tip>
-A resource in PENDING state is normal immediately after applying. It should transition to PROVISIONING within a few seconds, then to READY once complete.
+A resource in PENDING state is normal immediately after applying. It should transition to PROCESSING within a few seconds, then to READY once complete.
 </Tip>
 
 ## Get Resource Details

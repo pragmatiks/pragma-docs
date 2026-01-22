@@ -17,6 +17,25 @@ The Pragma CLI provides declarative resource management for data infrastructure.
 
 ## Global Options
 
+These options can be used with any command.
+
+### Context and Authentication
+
+| Option | Environment Variable | Description |
+|--------|---------------------|-------------|
+| `--context` / `-c` | `PRAGMA_CONTEXT` | Use a specific configuration context |
+| `--token` / `-t` | - | Override authentication token for this command |
+
+```bash
+# Use production context for this command
+pragma resources list --context production
+
+# Or set via environment
+PRAGMA_CONTEXT=production pragma resources list
+```
+
+See [Authentication](/cli/authentication) for more on contexts.
+
 ### Output Format
 
 Many commands support the `--output` / `-o` flag for structured output:

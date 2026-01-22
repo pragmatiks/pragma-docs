@@ -25,7 +25,17 @@ pragma auth logout
 
 ## Contexts
 
-Contexts let you work with multiple environments.
+Contexts allow you to switch between different Pragmatiks environments—for example, development and production—each with its own API endpoint and credentials.
+
+Each context stores:
+- **API URL** - The endpoint for that environment
+- **Authentication token** - Your credentials for that environment
+
+This is useful when you need to work with multiple deployments or test against a local development server.
+
+<Note>
+You can override the current context for a single command using the `--context` / `-c` flag, or set the `PRAGMA_CONTEXT` environment variable.
+</Note>
 
 ### List Contexts
 
