@@ -3,9 +3,23 @@
   "theme": "mint",
   "name": "Pragmatiks",
   "colors": {
-    "primary": "#FF6611",
-    "light": "#FF8844",
-    "dark": "#DD5500"
+    "primary": "#1A1A1A",
+    "light": "#1A1A1A",
+    "dark": "#1A1A1A"
+  },
+  "background": {
+    "color": {
+      "light": "#F0F0F0",
+      "dark": "#0D0D0D"
+    }
+  },
+  "styling": {
+    "codeblocks": {
+      "theme": {
+        "light": "github-light",
+        "dark": "vesper"
+      }
+    }
   },
   "fonts": {
     "heading": {
