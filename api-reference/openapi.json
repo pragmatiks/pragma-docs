@@ -50,6 +50,21 @@
         }
       }
     },
+    "/events/stream": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Event Stream",
+        "description": "Stream resource state changes via Server-Sent Events.\n\nSubscribes to NATS state notifications for the authenticated tenant\nand forwards them as SSE events. Each event contains the full resource\nJSON after a state transition (READY, FAILED, PENDING, etc.).\n\nThe connection stays open until the client disconnects.\n\nReturns:\n    SSE stream of resource state change events.",
+        "operationId": "events-event_stream",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
     "/files/{name}/upload": {
       "post": {
         "tags": [
