@@ -2108,6 +2108,17 @@
             ],
             "title": "Pending Event Id"
           },
+          "pending_event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Event Type"
+          },
           "provisioned": {
             "type": "boolean",
             "title": "Provisioned",
