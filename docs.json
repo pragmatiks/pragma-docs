@@ -42,9 +42,18 @@
             "pages": [
               "index",
               "getting-started/prerequisites",
-              "quickstart",
+              {
+                "group": "Quickstart",
+                "pages": [
+                  "quickstart/index",
+                  "quickstart/amateur",
+                  "quickstart/professional",
+                  "quickstart/expert"
+                ]
+              },
               "getting-started/verify-setup",
-              "faq"
+              "faq",
+              "changelog"
             ]
           },
           {
@@ -60,13 +69,9 @@
           {
             "group": "Guides",
             "pages": [
-              "guides/error-recovery",
-              {
-                "group": "Migration",
-                "pages": [
-                  "guides/migration/from-terraform"
-                ]
-              }
+              "guides/reactive-pipelines",
+              "guides/file-uploads",
+              "guides/error-recovery"
             ]
           },
           {
@@ -132,6 +137,35 @@
             ]
           },
           {
+            "group": "Agno (AI Agents)",
+            "pages": [
+              "providers/agno/overview",
+              "providers/agno/agent",
+              "providers/agno/team",
+              "providers/agno/models",
+              "providers/agno/tools",
+              "providers/agno/knowledge",
+              "providers/agno/memory",
+              "providers/agno/storage",
+              "providers/agno/deployment"
+            ]
+          },
+          {
+            "group": "GCP",
+            "pages": [
+              "providers/gcp/overview",
+              "providers/gcp/secret",
+              "providers/gcp/cloudsql"
+            ]
+          },
+          {
+            "group": "Kubernetes",
+            "pages": [
+              "providers/kubernetes/overview",
+              "providers/kubernetes/deployment"
+            ]
+          },
+          {
             "group": "Building Providers",
             "pages": [
               "building-providers/overview",
@@ -169,7 +203,7 @@
               "api-reference/errors",
               "api-reference/examples"
             ],
-            "openapi": "api-reference/openapi.json"
+            "openapi": "https://api.pragmatiks.io/openapi.json"
           }
         ]
       }

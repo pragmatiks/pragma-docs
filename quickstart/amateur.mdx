@@ -1,0 +1,312 @@
+---
+title: "Deploy Your First AI Agent"
+description: "Go from zero to a running AI agent in 20 minutes"
+---
+
+In this quickstart, you'll deploy an AI agent powered by Claude. You'll create four resources that form a dependency chain: a **secret** stores your API key, a **model** references the secret, an **agent** uses the model, and a **runner** deploys the agent to Kubernetes.
+
+<Note>
+**Time estimate**: 20 minutes. You'll need an Anthropic API key and a GCP project.
+</Note>
+
+## What you'll build
+
+```mermaid
+graph LR
+    S[pragma/secret] --> M[agno/models/anthropic]
+    M --> A[agno/agent]
+    A --> R[agno/runner]
+    GKE[gcp/gke] --> R
+```
+
+Four resources, wired together. When you apply them, pragma-os resolves the dependency chain automatically — the secret provisions first, then the model, then the agent, then the runner.
+
+## Prerequisites
+
+- Python 3.13+
+- A [Pragmatiks account](https://pragmatiks.io)
+- An [Anthropic API key](https://console.anthropic.com/)
+- A GCP project with the [Kubernetes Engine API](https://console.cloud.google.com/apis/api/container.googleapis.com) enabled and a service account key
+
+### Install the CLI
+
+<Tabs>
+  <Tab title="uvx (recommended)">
+    ```bash
+    uv tool install pragmatiks-cli
+    ```
+  </Tab>
+  <Tab title="pipx">
+    ```bash
+    pipx install pragmatiks-cli
+    ```
+  </Tab>
+  <Tab title="pip">
+    ```bash
+    pip install pragmatiks-cli
+    ```
+  </Tab>
+</Tabs>
+
+### Authenticate
+
+```bash
+pragma auth login
+```
+
+This opens your browser. Sign in, and you're connected.
+
+## Build your agent
+
+<Steps>
+  <Step title="Create your secret">
+    Secrets store sensitive values like API keys. Create a file called `secret.yaml`:
+
+    ```yaml secret.yaml
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    config:
+      data:
+        ANTHROPIC_API_KEY: "sk-ant-your-key-here"
+    ```
+
+    Replace `sk-ant-your-key-here` with your actual Anthropic API key.
+
+    ```bash
+    pragma resources apply secret.yaml
+    ```
+  </Step>
+  <Step title="Create a model">
+    The model resource configures which LLM to use. It references your secret via a **field reference** — instead of hardcoding the API key, it pulls it from the secret's outputs.
+
+    Create `model.yaml`:
+
+    ```yaml model.yaml
+    provider: agno
+    resource: models/anthropic
+    name: claude
+    config:
+      id: claude-sonnet-4-5-20250929
+      api_key:
+        provider: pragma
+        resource: secret
+        name: anthropic-key
+        field: outputs.ANTHROPIC_API_KEY
+    ```
+
+    The `api_key` field uses a **field reference**: it points to the `ANTHROPIC_API_KEY` output of the `anthropic-key` secret. pragma-os resolves this automatically.
+
+    ```bash
+    pragma resources apply model.yaml
+    ```
+  </Step>
+  <Step title="Create an agent">
+    The agent resource defines the AI agent's behavior. It references the model as a **dependency** — a link to the entire resource, not just one field.
+
+    Create `agent.yaml`:
+
+    ```yaml agent.yaml
+    provider: agno
+    resource: agent
+    name: my-assistant
+    config:
+      model:
+        provider: agno
+        resource: models/anthropic
+        name: claude
+      instructions:
+        - "You are a helpful AI assistant."
+        - "Be concise and accurate in your responses."
+      markdown: true
+    ```
+
+    The `model` field is a **dependency**: it references the full `claude` model resource. When the model changes, the agent rebuilds automatically.
+
+    ```bash
+    pragma resources apply agent.yaml
+    ```
+  </Step>
+  <Step title="Deploy it">
+    The runner deploys your agent to a Kubernetes cluster. It needs two dependencies: the agent to deploy and a GKE cluster to deploy it on.
+
+    First, create the cluster. Create `cluster.yaml`:
+
+    ```yaml cluster.yaml
+    provider: gcp
+    resource: gke
+    name: my-cluster
+    config:
+      project_id: your-gcp-project-id
+      credentials:
+        type: service_account
+        project_id: your-gcp-project-id
+        private_key_id: "..."
+        private_key: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+        client_email: "sa@your-gcp-project-id.iam.gserviceaccount.com"
+        client_id: "..."
+        auth_uri: "https://accounts.google.com/o/oauth2/auth"
+        token_uri: "https://oauth2.googleapis.com/token"
+      location: europe-west4
+      name: my-cluster
+    ```
+
+    <Tip>
+    Paste your GCP service account JSON key into the `credentials` field. You can get one from the [GCP Console](https://console.cloud.google.com/iam-admin/serviceaccounts) under **Keys > Add Key > JSON**.
+    </Tip>
+
+    ```bash
+    pragma resources apply cluster.yaml
+    ```
+
+    <Note>
+    GKE cluster creation takes 5-10 minutes. Wait for it to reach READY state before continuing.
+    </Note>
+
+    Then deploy the agent. Create `runner.yaml`:
+
+    ```yaml runner.yaml
+    provider: agno
+    resource: runner
+    name: my-assistant
+    config:
+      agent:
+        provider: agno
+        resource: agent
+        name: my-assistant
+      cluster:
+        provider: gcp
+        resource: gke
+        name: my-cluster
+    ```
+
+    ```bash
+    pragma resources apply runner.yaml
+    ```
+  </Step>
+  <Step title="See it work">
+    Check the status of all your resources:
+
+    ```bash
+    pragma resources list
+    ```
+
+    You should see all five resources in `READY` state:
+
+    ```
+    PROVIDER   RESOURCE            NAME            STATUS
+    pragma     secret              anthropic-key   READY
+    agno       models/anthropic    claude          READY
+    agno       agent               my-assistant    READY
+    gcp        gke                 my-cluster      READY
+    agno       runner              my-assistant    READY
+    ```
+
+    Get details about your deployed agent:
+
+    ```bash
+    pragma resources describe agno/runner my-assistant
+    ```
+
+    This shows the runner's outputs including the service URL where your agent is running.
+  </Step>
+</Steps>
+
+## What just happened?
+
+You created a **dependency chain** of resources:
+
+1. **Secret** stores your API key securely
+2. **Model** references the secret via a field reference (`field: outputs.ANTHROPIC_API_KEY`)
+3. **Agent** depends on the model (whole-resource dependency)
+4. **Runner** depends on both the agent and the GKE cluster
+
+pragma-os resolved the entire chain automatically. It figured out the correct order, waited for each resource to become READY before processing its dependents, and wired the values through.
+
+If you update the secret with a new API key, pragma-os propagates the change: the model rebuilds with the new key, the agent rebuilds with the updated model, and the runner redeploys.
+
+## Full YAML
+
+Here's everything in a single multi-document file you can copy-paste. Create `agent-stack.yaml`:
+
+```yaml agent-stack.yaml
+provider: pragma
+resource: secret
+name: anthropic-key
+config:
+  data:
+    ANTHROPIC_API_KEY: "sk-ant-your-key-here"
+---
+provider: agno
+resource: models/anthropic
+name: claude
+config:
+  id: claude-sonnet-4-5-20250929
+  api_key:
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.ANTHROPIC_API_KEY
+---
+provider: agno
+resource: agent
+name: my-assistant
+config:
+  model:
+    provider: agno
+    resource: models/anthropic
+    name: claude
+  instructions:
+    - "You are a helpful AI assistant."
+    - "Be concise and accurate in your responses."
+  markdown: true
+---
+provider: gcp
+resource: gke
+name: my-cluster
+config:
+  project_id: your-gcp-project-id
+  credentials:
+    type: service_account
+    project_id: your-gcp-project-id
+    private_key_id: "your-key-id"
+    private_key: "-----BEGIN PRIVATE KEY-----\nyour-private-key\n-----END PRIVATE KEY-----\n"
+    client_email: "sa@your-gcp-project-id.iam.gserviceaccount.com"
+    client_id: "your-client-id"
+    auth_uri: "https://accounts.google.com/o/oauth2/auth"
+    token_uri: "https://oauth2.googleapis.com/token"
+  location: europe-west4
+  name: my-cluster
+---
+provider: agno
+resource: runner
+name: my-assistant
+config:
+  agent:
+    provider: agno
+    resource: agent
+    name: my-assistant
+  cluster:
+    provider: gcp
+    resource: gke
+    name: my-cluster
+```
+
+Apply everything at once:
+
+```bash
+pragma resources apply agent-stack.yaml
+```
+
+pragma-os resolves the dependency order automatically — you don't need to apply resources in sequence.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build a Reactive AI Pipeline" icon="diagram-project" href="/quickstart/professional">
+    Add tools, knowledge bases, and multi-agent teams.
+  </Card>
+  <Card title="Reactive Dependencies" icon="rotate" href="/concepts/reactive-dependencies">
+    Understand how change propagation works.
+  </Card>
+</CardGroup>

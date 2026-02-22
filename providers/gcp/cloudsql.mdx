@@ -1,0 +1,163 @@
+---
+title: "Cloud SQL"
+description: "Manage Cloud SQL instances, databases, and users"
+---
+
+> Provision and manage Cloud SQL database instances with databases and users on Google Cloud Platform.
+
+Cloud SQL resources form a hierarchy: Instance → Database → User.
+
+<Tabs>
+  <Tab title="Instance">
+
+## `gcp/cloudsql/database_instance`
+
+Creates a managed Cloud SQL instance (PostgreSQL, MySQL, or SQL Server).
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `project_id` | `string` | **Yes** | — | GCP project ID (immutable) |
+| `credentials` | `dict` or `string` | **Yes** | — | GCP service account credentials JSON |
+| `region` | `string` | **Yes** | — | GCP region, e.g., `europe-west4` (immutable) |
+| `instance_name` | `string` | **Yes** | — | Instance name, 1–98 chars, starts with letter (immutable) |
+| `database_version` | `string` | No | `"POSTGRES_15"` | Database version (immutable). Supported: `POSTGRES_*`, `MYSQL_*`, `SQLSERVER_*` |
+| `tier` | `string` | No | `"db-f1-micro"` | Machine tier (e.g., `db-custom-1-3840`) |
+| `availability_type` | `"ZONAL"` \| `"REGIONAL"` | No | `"ZONAL"` | Single zone or high availability |
+| `backup_enabled` | `boolean` | No | `true` | Enable automatic backups |
+| `deletion_protection` | `boolean` | No | `false` | Prevent accidental deletion |
+| `authorized_networks` | `list[string]` | No | `[]` | CIDR ranges allowed to connect |
+| `enable_public_ip` | `boolean` | No | `true` | Assign a public IP address |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `connection_name` | `string` | Cloud SQL connection name (`project:region:instance`) |
+| `public_ip` | `string` or `null` | Public IP address |
+| `private_ip` | `string` or `null` | Private IP address |
+| `ready` | `boolean` | Whether the instance is running |
+| `console_url` | `string` | URL to GCP Console |
+| `logs_url` | `string` | URL to Cloud Logging |
+
+### Example
+
+```yaml
+provider: gcp
+resource: cloudsql/database_instance
+name: main-db
+config:
+  project_id: my-project
+  credentials:
+    type: service_account
+    # ... service account JSON
+  region: europe-west4
+  instance_name: main-postgres
+  database_version: POSTGRES_15
+  tier: db-custom-1-3840
+  availability_type: ZONAL
+  backup_enabled: true
+  authorized_networks:
+    - "0.0.0.0/0"
+```
+
+  </Tab>
+  <Tab title="Database">
+
+## `gcp/cloudsql/database`
+
+Creates a database within a Cloud SQL instance.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` |
+| `database_name` | `string` | **Yes** | — | Database name (immutable) |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `database_name` | `string` | Name of the created database |
+| `instance_name` | `string` | Name of the hosting instance |
+| `host` | `string` | Database host (IP address) |
+| `port` | `integer` | Database port (5432 for PostgreSQL, 3306 for MySQL) |
+| `url` | `string` | Connection URL (without credentials) |
+
+### Example
+
+```yaml
+provider: gcp
+resource: cloudsql/database
+name: app-db
+config:
+  instance:
+    provider: gcp
+    resource: cloudsql/database_instance
+    name: main-db
+  database_name: myapp
+```
+
+  </Tab>
+  <Tab title="User">
+
+## `gcp/cloudsql/user`
+
+Creates a database user within a Cloud SQL instance.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` |
+| `username` | `string` | **Yes** | — | Username (immutable) |
+| `password` | `Field[string]` | **Yes** | — | Password. Supports FieldReferences for secret injection |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | Username of the created user |
+| `instance_name` | `string` | Name of the hosting instance |
+| `host` | `string` | Host pattern (`%` for all hosts) |
+
+### Example
+
+```yaml
+provider: gcp
+resource: cloudsql/user
+name: app-user
+config:
+  instance:
+    provider: gcp
+    resource: cloudsql/database_instance
+    name: main-db
+  username: appuser
+  password:
+    provider: pragma
+    resource: secret
+    name: db-password
+    field: outputs.DB_PASSWORD
+```
+
+  </Tab>
+</Tabs>
+
+## Dependencies
+
+```
+gcp/cloudsql/database_instance
+  ├─▶ gcp/cloudsql/database
+  └─▶ gcp/cloudsql/user
+```
+
+The database and user resources depend on an instance. Changing the instance on a database or user triggers replacement (delete from old, create in new).
+
+## Notes
+
+- Instance creation takes several minutes. The resource polls until the instance reaches `RUNNABLE` state.
+- Fields marked **(immutable)** cannot be changed after creation — you must delete and recreate the resource.
+- Password changes on users are applied in place without recreation.
+- All Cloud SQL resources are idempotent — creating an existing resource returns its current state.

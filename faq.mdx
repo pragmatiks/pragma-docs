@@ -9,7 +9,7 @@ description: "Frequently asked questions about pragma-os"
   </Accordion>
 
   <Accordion title="What cloud providers are supported?">
-    Currently, pragma-os supports **Google Cloud Platform (GCP)** resources including Cloud Storage, BigQuery datasets, and BigQuery tables. AWS and Azure support is on the roadmap. See the [Store](/providers/overview) for the full list of available resources.
+    pragma-os supports **Google Cloud Platform (GCP)** resources including Cloud Storage, CloudSQL, and Secret Manager. It also includes the **Agno** provider for AI agent infrastructure, a **Kubernetes** provider for container workloads, and built-in **Pragma** resources for secrets and file storage. AWS and Azure support is on the roadmap. See the [Store](/providers/overview) for the full list of available resources.
   </Accordion>
 
   <Accordion title="How does pragma-os handle authentication and security?">
@@ -17,11 +17,42 @@ description: "Frequently asked questions about pragma-os"
   </Accordion>
 
   <Accordion title="What happens if a resource fails?">
-    When a resource operation fails, pragma-os captures the failure details and moves the event to a dead letter queue after retries are exhausted. This prevents cascading failures while preserving context for debugging. You can inspect failures, fix the root cause, and retry. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
+    When a resource operation fails, pragma-os retries it automatically. If retries are exhausted, the failure details are preserved for debugging. You can inspect failures, fix the root cause, and retry. Resources stuck in `processing` state are automatically detected and recovered. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
+  </Accordion>
+
+  <Accordion title="What happens when I delete a resource that other resources depend on?">
+    Dependents are **detached**, not cascade-deleted. pragma-os removes the dependency reference from each dependent's config and sends them back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`. This prevents accidental cascade deletions while letting providers handle graceful degradation. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
+  </Accordion>
+
+  <Accordion title="Can I apply resources in any order?">
+    Yes. If a resource's dependencies aren't ready yet, pragma-os stores it in `pending` state and automatically processes it once all dependencies become available. You can define your entire infrastructure in a single YAML file and apply it at once — pragma-os resolves the dependency graph and processes resources in the correct order.
+  </Accordion>
+
+  <Accordion title="How do I deploy an AI agent?">
+    Define your agent in YAML with a model, instructions, and optional tools, then apply it. See the [Quickstart](/quickstart) for a step-by-step walkthrough.
+  </Accordion>
+
+  <Accordion title="What's the difference between a FieldReference and Dependency[T]?">
+    A **FieldReference** references a single output value from another resource (like a connection URL or API key). A **Dependency[T]** gives the provider access to the entire resolved resource — its config, outputs, and metadata. Use FieldReference for simple value passing; use Dependency[T] when the provider needs the full resource context. See [Reactive Dependencies](/concepts/reactive-dependencies) for details.
+  </Accordion>
+
+  <Accordion title="How do I upload files?">
+    Use the `@path` syntax in your YAML config to upload files inline:
+
+    ```yaml
+    provider: pragma
+    resource: file
+    name: my-document
+    config:
+      content: "@./document.pdf"
+      content_type: "application/pdf"
+    ```
+
+    Or use the SDK's `upload_file()` method for programmatic uploads. See the [File Uploads](/guides/file-uploads) guide.
   </Accordion>
 
   <Accordion title="Can I use pragma-os alongside Terraform?">
-    Yes. pragma-os and Terraform solve different problems and can coexist. Use Terraform for static infrastructure that rarely changes (VPCs, IAM, etc.) and pragma-os for dynamic data infrastructure with dependencies that need automatic propagation. See [How We Compare](/learn/how-we-compare) for more details on when to use each tool.
+    Yes. pragma-os and Terraform solve different problems and can coexist. Use Terraform for static infrastructure that rarely changes (VPCs, IAM, etc.) and pragma-os for dynamic data and AI infrastructure with dependencies that need automatic propagation. See [How We Compare](/learn/how-we-compare) for more details on when to use each tool.
   </Accordion>
 
   <Accordion title="How do I get support?">
@@ -30,10 +61,10 @@ description: "Frequently asked questions about pragma-os"
 
   <Accordion title="What's on the roadmap?">
     Key roadmap items include:
-    - **AWS and Azure providers** - Expanding beyond GCP
-    - **Vector database resources** - Pinecone, Weaviate, and Qdrant support
-    - **Pre-built RAG pipelines** - Full end-to-end AI infrastructure templates
-    - **Team workspaces** - Collaboration features for organizations
+    - **AWS and Azure providers** — Expanding beyond GCP
+    - **Pre-built AI pipeline templates** — Full end-to-end infrastructure templates
+    - **Team workspaces** — Collaboration features for organizations
+    - **Additional AI providers** — More LLM and vector database integrations
 
     Contact support@pragmatiks.io to share feature requests or learn more about upcoming releases.
   </Accordion>

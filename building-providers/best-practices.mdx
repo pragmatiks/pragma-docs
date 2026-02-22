@@ -119,11 +119,10 @@ name: analytics
 config:
   name: analytics
   credentials:
-    $ref:
-      provider: pragma
-      resource: secret
-      name: mycloud-creds
-      field: data
+    provider: pragma
+    resource: secret
+    name: mycloud-creds
+    field: outputs.credentials
 ```
 
 ### Never Log Credentials

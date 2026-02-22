@@ -1,0 +1,47 @@
+---
+title: "GCP Provider"
+description: "Manage Google Cloud Platform infrastructure resources"
+---
+
+The GCP provider lets you manage Google Cloud Platform resources declaratively. All resources use your own GCP service account credentials, supporting multi-tenant deployments where each user operates in their own GCP project.
+
+## Setup
+
+### Prerequisites
+
+1. A GCP project with billing enabled
+2. A service account with appropriate permissions
+3. Service account credentials JSON
+
+### Required Permissions
+
+| Resource | Required Roles |
+|----------|---------------|
+| `gcp/secret` | `roles/secretmanager.admin` |
+| `gcp/cloudsql/*` | `roles/cloudsql.admin` |
+| `gcp/gke` | `roles/container.admin` |
+
+### Credential Setup
+
+All GCP resources require a `credentials` field containing your service account JSON. Store credentials securely using a `gcp/secret` resource and reference them via FieldReferences.
+
+## Resources
+
+| Resource | Type | Description |
+|----------|------|-------------|
+| [Secret](/providers/gcp/secret) | `gcp/secret` | Secret Manager secrets for storing API keys and credentials |
+| [Cloud SQL](/providers/gcp/cloudsql) | `gcp/cloudsql/database_instance`, `gcp/cloudsql/database`, `gcp/cloudsql/user` | Managed PostgreSQL/MySQL databases |
+| GKE | `gcp/gke` | Google Kubernetes Engine clusters (Autopilot and Standard) |
+
+## Architecture
+
+GCP resources often form dependency chains:
+
+```
+Secret (credentials)
+  └─▶ GKE Cluster
+        └─▶ Kubernetes Deployments
+  └─▶ Cloud SQL Instance
+        ├─▶ Database
+        └─▶ User
+```

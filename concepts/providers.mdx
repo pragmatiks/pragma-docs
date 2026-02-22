@@ -13,10 +13,46 @@ Providers are the bridge between Pragmatiks and external tools. Each provider kn
 
 ## Available Providers
 
-| Provider | Resources |
-|----------|-----------|
-| GCP | Storage buckets, BigQuery datasets |
-| Pragma | Secrets, platform resources |
+### Agno — AI Agent Infrastructure
+
+| Resource | Description |
+|----------|-------------|
+| `agno/agent` | AI agents with instructions, tools, and model configuration |
+| `agno/team` | Multi-agent teams with coordination and delegation |
+| `agno/anthropic-model` | Anthropic language models (Claude) |
+| `agno/openai-model` | OpenAI language models (GPT) |
+| `agno/mcp-tool` | MCP server tool integration |
+| `agno/websearch-tool` | Web search capability for agents |
+| `agno/knowledge` | Knowledge bases with document ingestion and vector search |
+| `agno/memory` | Persistent agent memory |
+| `agno/storage` | Agent file storage |
+| `agno/postgres-db` | PostgreSQL databases for agent state |
+| `agno/runner` | Agent deployment and runtime management |
+
+### GCP — Google Cloud Platform
+
+| Resource | Description |
+|----------|-------------|
+| `gcp/storage` | Cloud Storage buckets |
+| `gcp/secret` | Secret Manager secrets |
+| `gcp/cloudsql` | Cloud SQL database instances |
+
+### Kubernetes
+
+| Resource | Description |
+|----------|-------------|
+| `kubernetes/deployment` | Kubernetes Deployments |
+
+### Pragma — Platform Resources
+
+| Resource | Description |
+|----------|-------------|
+| `pragma/secret` | Platform-managed secrets |
+| `pragma/file` | File uploads and storage |
+
+<Note>
+For detailed configuration schemas and examples for each resource type, see the [Provider Reference](/providers/overview) pages.
+</Note>
 
 ## Provider Configuration
 
@@ -29,7 +65,7 @@ name: gcp-credentials
 config:
   data:
     project_id: "my-project"
-    service_account_key: "..."
+    service_account_key: "@./service-account.json"
 ```
 
 ## Building Custom Providers
@@ -43,6 +79,6 @@ You can build providers for any tool. See the Building Providers guide for detai
     Create your own provider.
   </Card>
   <Card title="Provider Catalog" icon="list" href="/providers/overview">
-    Browse available providers.
+    Browse available providers and resource schemas.
   </Card>
 </CardGroup>

@@ -17,15 +17,31 @@ Output shows lifecycle states for all resources:
 
 ```
 gcp/storage/data-lake [READY]
-gcp/bigquery-dataset/analytics [FAILED]
-gcp/bigquery-table/events [PENDING]
+agno/agent/assistant [FAILED]
+agno/team/my-team [PENDING]
 ```
 
 To see details about a specific failed resource:
 
 ```bash
-pragma resources get gcp/bigquery-dataset analytics
+pragma resources describe agno/agent assistant
 ```
+
+## Automatic Recovery
+
+### Stuck Resource Detection
+
+pragma-os automatically detects resources stuck in `processing` state. If a provider fails to respond within the expected timeframe, the platform:
+
+1. Detects the unresponsive operation
+2. Retries the operation automatically
+3. If retries are exhausted, moves the resource to `failed` state with an error message
+
+You don't need to manually intervene for transient failures — the platform handles retries for you.
+
+### Idempotent Apply
+
+Re-applying a resource with the same configuration is safe. If the resource is already `ready` with identical config, pragma-os returns the existing resource without re-processing. This makes it safe to re-run `pragma resources apply` in scripts without side effects.
 
 ## Common Failure Scenarios
 
@@ -33,41 +49,43 @@ pragma resources get gcp/bigquery-dataset analytics
 
 The most common cause of failure is invalid configuration:
 
-- **Missing required fields** - A required config value is missing
-- **Invalid values** - A value doesn't match the expected format or constraints
-- **Permission errors** - The provider doesn't have access to create or modify the resource
+- **Missing required fields** — A required config value is missing
+- **Invalid values** — A value doesn't match the expected format or constraints
+- **Permission errors** — The provider doesn't have access to create or modify the resource
 
 **Recovery**: Fix the configuration in your YAML file and re-apply:
 
 ```bash
-pragma resources apply --pending fixed-resource.yaml
+pragma resources apply fixed-resource.yaml
 ```
 
 ### Dependency Failures
 
-A resource fails if its dependencies aren't satisfied:
+A resource can fail or wait if its dependencies aren't satisfied:
 
-- **Missing dependency** - A referenced resource doesn't exist
-- **Dependency not ready** - A dependency exists but isn't in READY state
-- **Invalid field reference** - A `${...}` reference points to a field that doesn't exist
+- **Missing dependency** — A referenced resource doesn't exist yet (resource waits in `pending`)
+- **Dependency failed** — A dependency exists but is in `failed` state
+- **Invalid field reference** — A FieldReference points to a field that doesn't exist in the dependency's outputs
 
-**Recovery**: Ensure all dependencies are in READY state first:
+**Recovery**: Ensure all dependencies are in `ready` state:
 
 ```bash
 # Check dependency status
-pragma resources get gcp/storage data-lake
+pragma resources describe agno/anthropic-model claude
 
-# If dependency is failed, fix it first
-pragma resources apply --pending data-lake.yaml
+# If dependency is failed, fix and re-apply
+pragma resources apply model.yaml
 ```
+
+Once the dependency reaches `ready`, pending dependents are automatically triggered.
 
 ### Provider Errors
 
-Sometimes the underlying provider (GCP, AWS, etc.) rejects the operation:
+Sometimes the underlying provider rejects the operation:
 
-- **Quota exceeded** - You've hit a service limit
-- **Resource conflicts** - A resource with that name already exists outside pragma
-- **Service unavailable** - Temporary provider outage
+- **Quota exceeded** — You've hit a service limit
+- **Resource conflicts** — A resource with that name already exists outside pragma
+- **Service unavailable** — Temporary provider outage
 
 **Recovery**: Address the provider-specific issue, then retry the resource.
 
@@ -87,14 +105,14 @@ Output shows a table with event details:
 
 ```
 Event ID    Provider   Resource Type   Resource Name   Error Message              Failed At
-evt_abc123  gcp        bigquery-dataset  analytics     Permission denied: ...     2025-01-15 10:30:00
-evt_def456  gcp        storage           backup        Quota exceeded: ...        2025-01-15 10:32:00
+evt_abc123  agno       agent           assistant       Permission denied: ...     2026-01-15 10:30:00
+evt_def456  gcp        storage         backup          Quota exceeded: ...        2026-01-15 10:32:00
 ```
 
 Filter by provider to focus on specific failures:
 
 ```bash
-pragma ops dead-letter list --provider gcp
+pragma ops dead-letter list --provider agno
 ```
 
 ### Inspect Event Details
@@ -144,21 +162,21 @@ pragma ops dead-letter delete --all
 
 When a resource fails, it affects downstream resources:
 
-1. **Failed resources stay failed** - They don't retry automatically
-2. **Dependent resources wait** - Resources that depend on a failed resource stay in PENDING
-3. **Changes don't propagate** - The dependency graph pauses until the failure is resolved
+1. **Failed resources stay failed** — They don't retry automatically (but stuck `processing` resources do get auto-detected)
+2. **Pending dependents wait** — Resources waiting for a failed dependency remain in `pending` until the dependency becomes `ready`
+3. **Ready dependents are notified** — When you fix a dependency and it reaches `ready`, all its dependents are automatically re-processed
 
 Consider this dependency chain:
 
 ```
-data-lake (READY) -> analytics (FAILED) -> reports (PENDING)
+secret (READY) → model (FAILED) → agent (PENDING)
 ```
 
-The `reports` resource can't proceed because `analytics` is failed. To recover:
+The `agent` resource can't proceed because `model` is failed. To recover:
 
-1. Fix the `analytics` configuration
-2. Re-apply with `--pending` to retry
-3. Once `analytics` reaches READY, `reports` will automatically proceed
+1. Fix the `model` configuration
+2. Re-apply to retry
+3. Once `model` reaches `ready`, `agent` automatically proceeds
 
 ## Recovery Workflow
 
@@ -173,7 +191,7 @@ When you encounter failures, follow this workflow:
   </Step>
   <Step title="Investigate root cause">
     ```bash
-    pragma resources get <provider>/<resource> <name>
+    pragma resources describe <provider>/<resource> <name>
     pragma ops dead-letter show <event-id>
     ```
   </Step>
@@ -182,15 +200,15 @@ When you encounter failures, follow this workflow:
   </Step>
   <Step title="Retry">
     ```bash
-    pragma resources apply --pending fixed-resource.yaml
+    pragma resources apply fixed-resource.yaml
     pragma ops dead-letter retry <event-id>
     ```
   </Step>
   <Step title="Verify">
     ```bash
-    pragma resources get <provider>/<resource> <name>
+    pragma resources describe <provider>/<resource> <name>
     ```
-    Confirm the resource reaches READY state.
+    Confirm the resource reaches `ready` state.
   </Step>
 </Steps>
 
@@ -198,10 +216,10 @@ When you encounter failures, follow this workflow:
 
 Reduce failures by:
 
-- **Validating configuration** before applying with `--pending`
-- **Checking dependencies** are READY before applying dependent resources
-- **Using draft mode** - Apply without `--pending` first to validate, then apply with `--pending`
-- **Monitoring dead letter queue** regularly for early warning of issues
+- **Using draft mode** — Apply with `--draft` first to validate configuration, then re-apply without `--draft` to deploy
+- **Checking dependencies** — Use `pragma resources describe` to verify dependencies are `ready`
+- **Applying in bulk** — Apply all resources in a single YAML file; pragma-os resolves the dependency order automatically
+- **Monitoring the dead letter queue** regularly for early warning of issues
 
 ## Next Steps
 

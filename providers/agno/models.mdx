@@ -1,0 +1,113 @@
+---
+title: "Models"
+description: "Configure Anthropic Claude and OpenAI GPT models for agents"
+---
+
+> Define LLM configurations that agents and teams use for inference.
+
+<Tabs>
+  <Tab title="Anthropic (Claude)">
+
+## `agno/models/anthropic`
+
+Configures an Anthropic Claude model.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | `string` | **Yes** | — | Model identifier (e.g., `claude-sonnet-4-20250514`) |
+| `api_key` | `Field[string]` | **Yes** | — | Anthropic API key. Use a FieldReference to inject from a secret |
+| `max_tokens` | `integer` | No | `8192` | Maximum tokens in responses |
+| `temperature` | `float` | No | — | Sampling temperature (0.0–1.0) |
+| `top_p` | `float` | No | — | Nucleus sampling parameter |
+| `top_k` | `integer` | No | — | Top-k sampling parameter |
+| `stop_sequences` | `list[string]` | No | — | Sequences that stop generation |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized model spec for runtime reconstruction |
+
+### Example
+
+```yaml
+provider: agno
+resource: models/anthropic
+name: claude
+config:
+  id: claude-sonnet-4-20250514
+  api_key:
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.ANTHROPIC_API_KEY
+  max_tokens: 4096
+  temperature: 0.7
+```
+
+  </Tab>
+  <Tab title="OpenAI (GPT)">
+
+## `agno/models/openai`
+
+Configures an OpenAI model.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | `string` | **Yes** | — | Model identifier (e.g., `gpt-4o`) |
+| `api_key` | `Field[string]` | **Yes** | — | OpenAI API key. Use a FieldReference to inject from a secret |
+| `max_tokens` | `integer` | No | — | Maximum tokens in responses |
+| `temperature` | `float` | No | — | Sampling temperature (0.0–2.0) |
+| `top_p` | `float` | No | — | Nucleus sampling parameter |
+| `frequency_penalty` | `float` | No | — | Frequency penalty (−2.0 to 2.0) |
+| `presence_penalty` | `float` | No | — | Presence penalty (−2.0 to 2.0) |
+| `seed` | `integer` | No | — | Random seed for deterministic outputs |
+| `stop` | `string` or `list[string]` | No | — | Stop sequences |
+| `timeout` | `float` | No | — | Request timeout in seconds |
+| `max_retries` | `integer` | No | — | Maximum retry attempts |
+| `organization` | `string` | No | — | OpenAI organization ID |
+| `base_url` | `string` | No | — | Custom base URL (for OpenAI-compatible APIs) |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized model spec for runtime reconstruction |
+
+### Example
+
+```yaml
+provider: agno
+resource: models/openai
+name: gpt4
+config:
+  id: gpt-4o
+  api_key:
+    provider: pragma
+    resource: secret
+    name: openai-key
+    field: outputs.OPENAI_API_KEY
+  temperature: 0.5
+```
+
+  </Tab>
+</Tabs>
+
+## Dependencies
+
+**Depends on:** Nothing directly, but `api_key` typically uses a FieldReference to a `pragma/secret` resource.
+
+**Depended on by:**
+- `agno/agent` — as the required model
+- `agno/team` — as the optional team lead model
+- `agno/memory/manager` — as the optional classification model
+
+## Notes
+
+- Both model types are **stateless** — they wrap configuration without making API calls during creation.
+- The `api_key` field supports FieldReferences for injecting secrets from a `pragma/secret` resource.
+- The `base_url` field on the OpenAI model allows you to use OpenAI-compatible APIs (e.g., Azure OpenAI, local models).

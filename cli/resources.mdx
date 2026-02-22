@@ -23,6 +23,36 @@ Create in draft state (skip provisioning):
 pragma resources apply --draft myresource.yaml
 ```
 
+<Note>
+Resources are deployed by default when you apply them. Use `--draft` to save a resource configuration without triggering provisioning.
+</Note>
+
+### File References
+
+For `pragma/secret` resources, use `@path` syntax to inline file contents:
+
+```yaml
+provider: pragma
+resource: secret
+name: gcp-credentials
+config:
+  data:
+    service_account_key: "@./service-account.json"
+```
+
+For `pragma/file` resources, use `@path` in the `content` field to upload a file:
+
+```yaml
+provider: pragma
+resource: file
+name: training-data
+config:
+  content: "@./data/training-set.jsonl"
+  content_type: "application/jsonl"
+```
+
+The file is uploaded to pragma-os storage, and the resource outputs include a URL for downloading it.
+
 ## List
 
 ```bash
@@ -83,10 +113,16 @@ pragma resources get gcp/storage my-bucket
 
 ## Describe
 
-Get detailed information about a resource, including full configuration and outputs:
+Get detailed information about a resource, including full configuration, resolved config, and outputs:
 
 ```bash
 pragma resources describe gcp/storage my-bucket
+```
+
+Output as JSON to inspect `resolved_config` for dependency debugging:
+
+```bash
+pragma resources describe agno/agent my-agent -o json
 ```
 
 ## Tags
@@ -98,20 +134,30 @@ Manage tags on existing resources:
 pragma resources tags list gcp/storage my-bucket
 
 # Add tags
-pragma resources tags add gcp/storage my-bucket env:prod cost-center:123
+pragma resources tags add gcp/storage my-bucket --tag env:prod --tag cost-center:123
 
 # Remove tags
-pragma resources tags remove gcp/storage my-bucket env:prod
+pragma resources tags remove gcp/storage my-bucket --tag env:prod
 ```
 
 ## Delete
+
+Delete a resource by type and name:
 
 ```bash
 pragma resources delete gcp/storage my-bucket
 ```
 
+Delete all resources defined in a YAML file:
+
+```bash
+pragma resources delete -f myresources.yaml
+```
+
+This reads the provider, resource, and name from each document in the YAML file and deletes the matching resources.
+
 ## Next Steps
 
 <Card title="Resource Concepts" icon="book" href="/concepts/resources">
-  Learn about resource lifecycle.
+  Learn about resource lifecycle, deletion behavior, and dependency resolution.
 </Card>

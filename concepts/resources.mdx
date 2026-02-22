@@ -3,7 +3,7 @@ title: "Resources"
 description: "Infrastructure components you declare and configure"
 ---
 
-Resources are the infrastructure components that pragma-os manages: storage buckets, datasets, secrets, and more. You declare resources in YAML, and pragma-os handles provisioning, state tracking, and lifecycle management.
+Resources are the infrastructure components that pragma-os manages: storage buckets, AI models, secrets, agents, and more. You declare resources in YAML, and pragma-os handles provisioning, state tracking, and lifecycle management.
 
 ## Resource Structure
 
@@ -11,24 +11,33 @@ Every resource has a consistent structure:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `provider` | The provider that manages this resource | `gcp` |
-| `resource` | The type of resource | `storage` |
-| `name` | A unique identifier you assign | `data-lake` |
-| `config` | Your settings for this resource | `location: EU` |
-| `depends_on` | What it connects to | Other resources |
-| `outputs` | What it exposes to other resources | URLs, IDs, secrets |
+| `provider` | The provider that manages this resource | `agno` |
+| `resource` | The type of resource | `agent` |
+| `name` | A unique identifier you assign | `my-assistant` |
+| `config` | Your settings for this resource | `model_id: claude-sonnet-4-5-20250929` |
+| `tags` | Optional metadata labels | `["env:prod", "team:ml"]` |
+| `depends_on` | Explicit dependencies (optional) | Other resources |
+| `owner_references` | Owner resources for cascade deletion (optional) | Parent resources |
+| `outputs` | What it exposes to other resources (set by provider) | URLs, IDs, secrets |
 
 ## Configuration Example
 
-Here's a GCP storage bucket resource:
+Here's an Agno AI model resource:
 
 ```yaml
-provider: gcp
-resource: storage
-name: data-lake
+provider: agno
+resource: anthropic-model
+name: claude
 config:
-  location: EU
-  storage_class: STANDARD
+  model_id: claude-sonnet-4-5-20250929
+  api_key:
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.api_key
+tags:
+  - env:production
+  - team:ai
 ```
 
 After provisioning, the resource exposes outputs that other resources can reference:
@@ -36,8 +45,8 @@ After provisioning, the resource exposes outputs that other resources can refere
 ```yaml
 # After provisioning, outputs become available:
 # outputs:
-#   bucket_url: "gs://pragma-data-lake-abc123"
-#   self_link: "https://www.googleapis.com/storage/v1/b/pragma-data-lake-abc123"
+#   model_name: "claude-sonnet-4-5-20250929"
+#   provider_type: "anthropic"
 ```
 
 ## Resource Lifecycle
@@ -50,50 +59,107 @@ stateDiagram-v2
     [*] --> draft: apply --draft
     draft --> pending: apply
     pending --> processing: provider starts
+    pending --> pending: waiting for deps
     processing --> ready: success
     processing --> failed: error
     ready --> pending: config change
+    ready --> pending: dependency updated
     failed --> pending: retry
     ready --> pending: delete request
 ```
 
 | State | Description |
 |-------|-------------|
-| `draft` | Created but not yet queued for processing (use `--draft` flag) |
-| `pending` | Queued for provider to handle (default behavior) |
+| `draft` | Created but not queued for processing (use `--draft` flag) |
+| `pending` | Queued for provider to handle. If dependencies aren't ready, the resource waits in this state until they are. |
 | `processing` | Currently being handled by the provider |
 | `ready` | Successfully provisioned and operational |
 | `failed` | Processing failed, error recorded |
 
 <Note>
-Updates and deletes reuse the same state flow: the resource transitions from `ready` → `pending` → `processing` → `ready` (or `failed`).
+A resource in `pending` state with unready dependencies has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, pragma-os resolves the config and submits the resource for processing.
 </Note>
 
-## Dependencies
+## Config vs Resolved Config
 
-Resources can depend on other resources. When you reference another resource's outputs, pragma automatically tracks the dependency:
+Each resource has two config representations:
 
-```yaml
-provider: gcp
-resource: bigquery_dataset
-name: analytics
-config:
-  location: EU
+- **`config`** — Your original declaration, including FieldReferences and Dependency markers as-is
+- **`resolved_config`** — The fully resolved version where all references have been replaced with actual values from dependency outputs
 
----
-provider: gcp
-resource: bigquery_table
-name: events
-config:
-  dataset: ${gcp.bigquery_dataset.analytics.dataset_id}
-  schema:
-    - name: event_id
-      type: STRING
-    - name: timestamp
-      type: TIMESTAMP
+The `resolved_config` is what gets sent to the provider. You can inspect both to debug dependency resolution:
+
+```bash
+pragma resources describe agno/agent my-agent -o json
 ```
 
-When the dataset changes, pragma knows to update the table.
+## Idempotent Apply
+
+Re-applying a resource with identical configuration is a no-op. If the resource is already `ready` and the normalized config matches, pragma-os returns the existing resource without re-processing. This makes it safe to run `pragma resources apply` repeatedly in scripts and CI/CD pipelines.
+
+## Deletion Behavior
+
+When you delete a resource, pragma-os handles its relationships:
+
+### Soft Detach (Dependencies)
+
+Resources that **depend on** the deleted resource are **detached**, not cascade-deleted. The dependency reference is removed from their config, and they are sent back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`.
+
+```
+# Before delete:
+secret (READY) ← model (READY) ← agent (READY)
+
+# After deleting secret:
+model (PENDING → re-processed without secret) ← agent (waits for model)
+```
+
+### Cascade Delete (Owner References)
+
+Resources with **owner references** follow cascade deletion. When the owner is deleted, all owned resources are deleted too. This is used for subresource patterns where child resources have no meaning without their parent.
+
+```yaml
+# Team owns its agents — deleting the team deletes the agents
+provider: agno
+resource: agent
+name: team-member
+config:
+  instructions: "..."
+owner_references:
+  - provider: agno
+    resource: team
+    name: my-team
+```
+
+If a resource has multiple owners, it's only deleted when the last owner is removed.
+
+## Resource Tags
+
+Tags are key-value labels for organizing and filtering resources:
+
+```yaml
+provider: agno
+resource: agent
+name: my-agent
+config:
+  instructions: "..."
+tags:
+  - env:production
+  - team:ai
+  - cost-center:123
+```
+
+Filter resources by tag:
+
+```bash
+pragma resources list --tag env:production
+```
+
+Manage tags on existing resources:
+
+```bash
+pragma resources tags add agno/agent my-agent --tag env:staging
+pragma resources tags remove agno/agent my-agent --tag env:production
+```
 
 ## Applying Resources
 

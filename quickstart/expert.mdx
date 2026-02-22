@@ -1,0 +1,263 @@
+---
+title: "Create a Custom Provider"
+description: "Build and deploy your own provider to extend pragma-os"
+---
+
+In this quickstart, you'll build a provider that manages webhook endpoints. You'll define a resource schema, implement lifecycle methods, test locally, and deploy to pragma-os.
+
+<Note>
+**Time estimate**: 60 minutes. Assumes familiarity with Python and the [provider model](/concepts/providers).
+</Note>
+
+## What you'll build
+
+A `webhooks` provider with a single resource type: `endpoint`. Users will be able to create webhook endpoints like this:
+
+```yaml
+provider: webhooks
+resource: endpoint
+name: deploy-notifications
+config:
+  url: "https://api.example.com/webhooks"
+  events:
+    - deployment.created
+    - deployment.failed
+  secret: "whsec_abc123"
+```
+
+## Step 1: Scaffold the project
+
+```bash
+pragma providers init webhooks
+cd webhooks-provider
+```
+
+This creates the project structure:
+
+```
+webhooks-provider/
+├── pyproject.toml
+├── src/webhooks_provider/
+│   ├── __init__.py
+│   └── resources/
+│       ├── __init__.py
+│       └── example.py
+└── tests/
+    └── test_example.py
+```
+
+## Step 2: Define the schema
+
+Replace `src/webhooks_provider/resources/example.py` with your resource definition:
+
+```python endpoint.py
+from __future__ import annotations
+
+import hashlib
+import time
+from typing import ClassVar
+
+from pragma_sdk import Config, Field, Outputs, Resource
+
+
+class EndpointConfig(Config):
+    """Configuration for a webhook endpoint."""
+
+    url: str
+    events: list[str]
+    secret: Field[str] | None = None
+    active: bool = True
+
+
+class EndpointOutputs(Outputs):
+    """Outputs exposed to other resources."""
+
+    endpoint_id: str
+    delivery_url: str
+    active: bool
+
+
+class Endpoint(Resource[EndpointConfig, EndpointOutputs]):
+    """Webhook endpoint resource."""
+
+    provider: ClassVar[str] = "webhooks"
+    resource: ClassVar[str] = "endpoint"
+
+    async def on_create(self) -> EndpointOutputs:
+        endpoint_id = hashlib.sha256(
+            f"{self.name}:{time.time()}".encode()
+        ).hexdigest()[:12]
+
+        # Register the webhook with the external service
+        # await http_client.post(self.config.url, ...)
+
+        return EndpointOutputs(
+            endpoint_id=endpoint_id,
+            delivery_url=f"{self.config.url}/{endpoint_id}",
+            active=self.config.active,
+        )
+
+    async def on_update(self, previous_config: EndpointConfig) -> EndpointOutputs:
+        # Update the webhook registration
+        # Re-register if URL or events changed
+        return EndpointOutputs(
+            endpoint_id="existing-id",
+            delivery_url=f"{self.config.url}/existing-id",
+            active=self.config.active,
+        )
+
+    async def on_delete(self) -> None:
+        # Deregister the webhook
+        pass
+```
+
+Key points:
+
+- **Config** defines what users provide. `Field[str]` means a field that accepts either a direct value or a field reference from another resource.
+- **Outputs** defines what this resource exposes. Other resources can reference `endpoint_id` or `delivery_url` via field references.
+- **Lifecycle methods** must be idempotent — calling `on_create` twice with the same input should produce the same result.
+
+## Step 3: Register the resource
+
+Update `src/webhooks_provider/resources/__init__.py` to export your resource:
+
+```python __init__.py
+from webhooks_provider.resources.endpoint import (
+    Endpoint,
+    EndpointConfig,
+    EndpointOutputs,
+)
+
+__all__ = ["Endpoint", "EndpointConfig", "EndpointOutputs"]
+```
+
+Update `src/webhooks_provider/__init__.py` to register it with the provider:
+
+```python __init__.py
+from pragma_sdk import Provider
+
+from webhooks_provider.resources.endpoint import Endpoint
+
+provider = Provider(name="webhooks")
+provider.register(Endpoint)
+```
+
+## Step 4: Test locally
+
+Write a test using `ProviderHarness`. Replace `tests/test_example.py`:
+
+```python test_endpoint.py
+import pytest
+from pragma_sdk.provider import ProviderHarness
+
+from webhooks_provider.resources.endpoint import Endpoint, EndpointConfig
+
+
+@pytest.mark.asyncio
+async def test_create_endpoint():
+    harness = ProviderHarness()
+
+    result = await harness.invoke_create(
+        Endpoint,
+        name="test-webhook",
+        config=EndpointConfig(
+            url="https://api.example.com/webhooks",
+            events=["deploy.created"],
+        ),
+    )
+
+    assert result.success
+    assert result.outputs.endpoint_id
+    assert "api.example.com" in result.outputs.delivery_url
+    assert result.outputs.active is True
+
+
+@pytest.mark.asyncio
+async def test_delete_endpoint():
+    harness = ProviderHarness()
+
+    result = await harness.invoke_delete(
+        Endpoint,
+        name="test-webhook",
+        config=EndpointConfig(
+            url="https://api.example.com/webhooks",
+            events=["deploy.created"],
+        ),
+    )
+
+    assert result.success
+```
+
+Run the tests:
+
+```bash
+task test
+```
+
+## Step 5: Deploy
+
+Sync your resource schemas with the platform, then build and deploy:
+
+```bash
+# Register resource types
+pragma providers sync
+
+# Build and deploy
+pragma providers push --deploy
+```
+
+## Step 6: Use it
+
+Now users can create webhook endpoints as pragma-os resources:
+
+```yaml webhook.yaml
+provider: webhooks
+resource: endpoint
+name: deploy-notifications
+config:
+  url: "https://api.example.com/webhooks"
+  events:
+    - deployment.created
+    - deployment.failed
+  secret:
+    provider: pragma
+    resource: secret
+    name: webhook-secret
+    field: outputs.WEBHOOK_SECRET
+```
+
+The `secret` field uses a field reference — it pulls the value from a `pragma/secret` resource instead of hardcoding it. Other resources can reference this webhook's outputs:
+
+```yaml
+config:
+  notification_url:
+    provider: webhooks
+    resource: endpoint
+    name: deploy-notifications
+    field: outputs.delivery_url
+```
+
+## Deep dive
+
+The [Building Providers](/building-providers/overview) guide covers everything in detail:
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/building-providers/getting-started">
+    Full walkthrough of building a provider from scratch.
+  </Card>
+  <Card title="Config and Outputs" icon="sliders" href="/building-providers/config-outputs">
+    Schema design with validation, dependencies, and field references.
+  </Card>
+  <Card title="Lifecycle Methods" icon="rotate" href="/building-providers/lifecycle">
+    Implementing idempotent create, update, and delete handlers.
+  </Card>
+  <Card title="Testing" icon="flask-vial" href="/building-providers/testing">
+    Testing with ProviderHarness and mocking external services.
+  </Card>
+  <Card title="Deployment" icon="cloud-arrow-up" href="/building-providers/deployment">
+    Building, pushing, and deploying your provider.
+  </Card>
+  <Card title="Best Practices" icon="lightbulb" href="/building-providers/best-practices">
+    Idempotency patterns, error handling, and production readiness.
+  </Card>
+</CardGroup>

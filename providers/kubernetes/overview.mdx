@@ -1,0 +1,39 @@
+---
+title: "Kubernetes Provider"
+description: "Manage Kubernetes workloads and configuration on GKE clusters"
+---
+
+The Kubernetes provider manages core Kubernetes resources — Deployments, StatefulSets, Services, ConfigMaps, and Secrets — on GKE clusters using your GCP credentials.
+
+## Setup
+
+The Kubernetes provider connects to GKE clusters via the `gcp/gke` resource. All Kubernetes resources require a `cluster` dependency pointing to a GKE cluster.
+
+## Resources
+
+| Resource | Type | Description |
+|----------|------|-------------|
+| [Deployment](/providers/kubernetes/deployment) | `kubernetes/deployment` | Stateless workloads with rolling updates |
+| StatefulSet | `kubernetes/statefulset` | Stateful workloads with persistent storage |
+| Service | `kubernetes/service` | Network exposure for pods (ClusterIP, LoadBalancer, NodePort) |
+| ConfigMap | `kubernetes/configmap` | Configuration key-value storage |
+| Secret | `kubernetes/secret` | Sensitive data storage with base64 encoding |
+
+## Architecture
+
+Kubernetes resources depend on a GKE cluster:
+
+```
+gcp/gke (cluster)
+  ├─▶ kubernetes/deployment
+  ├─▶ kubernetes/statefulset
+  ├─▶ kubernetes/service
+  ├─▶ kubernetes/configmap
+  └─▶ kubernetes/secret
+```
+
+## Notes
+
+- All Kubernetes resources use server-side apply for idempotent create/update operations.
+- The `cluster` and `namespace` fields are immutable on all resources — changing them requires recreation.
+- Workload resources (Deployment, StatefulSet) wait for all replicas to be ready before reporting success.

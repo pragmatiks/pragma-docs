@@ -1,0 +1,104 @@
+---
+title: "Runner"
+description: "Deploy agents and teams to Kubernetes"
+---
+
+> Deploys an Agno agent or team as a Kubernetes Deployment with a Service, providing a REST API endpoint.
+
+## `agno/runner`
+
+The runner is the **only Agno resource that creates infrastructure**. It takes an agent or team definition and deploys it as a containerized service on Kubernetes.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `agent` | `Dependency` | Conditional | — | Reference to `agno/agent`. Mutually exclusive with `team` |
+| `team` | `Dependency` | Conditional | — | Reference to `agno/team`. Mutually exclusive with `agent` |
+| `cluster` | `Dependency` | **Yes** | — | Reference to `gcp/gke` providing Kubernetes credentials |
+| `namespace` | `string` | No | `"default"` | Kubernetes namespace |
+| `replicas` | `integer` | No | `1` | Number of pod replicas |
+| `image` | `string` | No | `"ghcr.io/pragmatiks/agno-runner:latest"` | Container image for running the agent/team |
+| `security_key` | `string` | No | — | Bearer token for API authentication |
+| `jwt_verification_key` | `string` | No | — | Public key for JWT-based authentication |
+| `public` | `boolean` | No | `false` | Expose via LoadBalancer (true) or ClusterIP (false) |
+| `cpu` | `string` | No | `"200m"` | CPU resource request |
+| `memory` | `string` | No | `"1Gi"` | Memory resource request |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Runner specification with deployment details |
+| `url` | `string` | In-cluster service URL (`http://<name>.<namespace>.svc.cluster.local`) |
+| `ready` | `boolean` | Whether the runner is ready and serving |
+
+## Dependencies
+
+**Depends on:**
+- `agno/agent` or `agno/team` (exactly one required) — the agent or team to deploy
+- `gcp/gke` (required) — Kubernetes cluster for deployment
+
+**Depended on by:** Nothing — this is typically a leaf resource.
+
+## Example — Deploy an agent
+
+```yaml
+provider: agno
+resource: runner
+name: my-agent
+config:
+  agent:
+    provider: agno
+    resource: agent
+    name: assistant
+  cluster:
+    provider: gcp
+    resource: gke
+    name: my-cluster
+  namespace: agents
+  replicas: 2
+  public: false
+  cpu: "500m"
+  memory: "2Gi"
+```
+
+## Example — Deploy a team with authentication
+
+```yaml
+provider: agno
+resource: runner
+name: research-team
+config:
+  team:
+    provider: agno
+    resource: team
+    name: research-team
+  cluster:
+    provider: gcp
+    resource: gke
+    name: my-cluster
+  namespace: agents
+  security_key: "my-secret-key"
+  public: true
+```
+
+## Authentication
+
+The runner supports two authentication modes:
+
+| Mode | Config Field | Use Case |
+|------|-------------|----------|
+| **Bearer token** | `security_key` | Simple authentication for development |
+| **JWT** | `jwt_verification_key` | Production authentication with RBAC |
+
+When `jwt_verification_key` is set, it takes priority over `security_key`.
+
+## Notes
+
+- You must provide exactly one of `agent` or `team`.
+- The `cluster` and `namespace` fields are **immutable** — changing them requires deleting and recreating the runner.
+- The runner creates a Kubernetes Deployment and Service as child resources. These are automatically managed.
+- When `public: true`, a LoadBalancer Service is created, providing an external IP. Otherwise, the service is only accessible within the cluster.
+- The container receives the agent/team spec as environment variables and reconstructs it at startup.
+- The runner includes health checks (startup, liveness, readiness probes) on `/health`.

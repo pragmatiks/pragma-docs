@@ -110,7 +110,7 @@ config:
     provider: mycompany
     resource: database
     name: shared-db
-    field: connection_url
+    field: outputs.connection_url
 ```
 
 ### How FieldReference Works
@@ -212,7 +212,7 @@ database_url:
   provider: mycompany
   resource: database
   name: shared-db
-  field: connection_url
+  field: outputs.connection_url
 
 # Dependency usage (gets full resource)
 database:

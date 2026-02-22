@@ -1,0 +1,84 @@
+---
+title: "Team"
+description: "Define a multi-agent team with coordinated members"
+---
+
+> Configures a team of Agno agents that collaborate to handle complex tasks, with an optional lead model for coordination.
+
+## Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | No | Resource name | Display name for the team |
+| `description` | `string` | No | — | Team description |
+| `role` | `string` | No | — | Team role description |
+| `members` | `list[Dependency]` | **Yes** | — | References to `agno/agent` resources (at least one) |
+| `model` | `Dependency` | No | — | Optional lead model (`agno/models/anthropic` or `agno/models/openai`) |
+| `instructions` | `list[string]` | No | — | System instructions for the team coordinator |
+| `prompt` | `Dependency` | No | — | Reference to `agno/prompt` for reusable instructions |
+| `tools` | `list[Dependency]` | No | `[]` | Team-level tools (`agno/tools/mcp` or `agno/tools/websearch`) |
+| `knowledge` | `Dependency` | No | — | Team-level knowledge base (`agno/knowledge`) |
+| `db` | `Dependency` | No | — | Team-level database (`agno/db/postgres`) |
+| `memory` | `Dependency` | No | — | Team-level memory (`agno/memory/manager`) |
+| `respond_directly` | `boolean` | No | `false` | Allow team to respond without delegating to members |
+| `delegate_to_all_members` | `boolean` | No | `false` | Delegate tasks to all members simultaneously |
+| `markdown` | `boolean` | No | `false` | Format responses as Markdown |
+| `add_datetime_to_context` | `boolean` | No | `false` | Include current datetime in context |
+| `read_chat_history` | `boolean` | No | Auto | Read chat history (auto-enabled when `db` is set) |
+| `add_history_to_context` | `boolean` | No | Auto | Add history to context (auto-enabled when `db` is set) |
+| `num_history_runs` | `integer` | No | — | Number of previous runs to include |
+| `enable_agentic_memory` | `boolean` | No | `false` | Enable agentic memory |
+| `update_memory_on_run` | `boolean` | No | `false` | Update memory after each run |
+| `add_memories_to_context` | `boolean` | No | — | Add stored memories to context |
+| `enable_session_summaries` | `boolean` | No | `false` | Enable session summaries |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized team specification for runtime reconstruction |
+| `member_count` | `integer` | Number of member agents |
+| `pip_dependencies` | `list[string]` | Python packages required by the team and all members |
+
+## Dependencies
+
+**Depends on:**
+- `agno/agent` (required, one or more) — member agents
+- `agno/models/anthropic` or `agno/models/openai` (optional) — team lead model
+- `agno/tools/mcp` or `agno/tools/websearch` (optional) — team-level tools
+- `agno/knowledge` (optional) — team-level knowledge base
+- `agno/memory/manager` (optional) — team-level memory
+- `agno/db/postgres` (optional) — team-level database
+- `agno/prompt` (optional) — reusable prompt template
+
+**Depended on by:**
+- `agno/runner` — for deployment to Kubernetes
+
+## Example
+
+```yaml
+provider: agno
+resource: team
+name: research-team
+config:
+  description: "A research team with a writer and reviewer"
+  members:
+    - provider: agno
+      resource: agent
+      name: researcher
+    - provider: agno
+      resource: agent
+      name: writer
+  model:
+    provider: agno
+    resource: models/anthropic
+    name: claude
+  delegate_to_all_members: true
+  markdown: true
+```
+
+## Notes
+
+- The `members` list must contain at least one agent.
+- Team-level dependencies (model, tools, knowledge, etc.) are shared across all members but do not override member-specific configurations.
+- Pip dependencies are aggregated from all members and team-level tools/knowledge.

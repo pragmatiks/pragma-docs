@@ -3,19 +3,43 @@ title: "Welcome"
 description: "The operating system for AI infrastructure"
 ---
 
-Welcome to pragma-os. Get started with the resources below.
+pragma-os lets you define AI agents, models, tools, and cloud infrastructure as YAML resources. Apply them with a single command, and the platform handles provisioning, dependency resolution, and automatic change propagation.
+
+## Get started
+
+<CardGroup cols={3}>
+  <Card title="Deploy Your First AI Agent" icon="rocket" href="/quickstart/amateur">
+    Zero to a running AI agent in 20 minutes. Create a secret, configure a model, define an agent, and deploy it.
+  </Card>
+  <Card title="Build a Reactive AI Pipeline" icon="diagram-project" href="/quickstart/professional">
+    Multi-agent teams with tools, knowledge bases, and reactive dependencies. 45 minutes.
+  </Card>
+  <Card title="Create a Custom Provider" icon="plug" href="/quickstart/expert">
+    Extend pragma-os with your own resource types. 60 minutes.
+  </Card>
+</CardGroup>
+
+## Why pragma-os
+
+**Reactive dependencies** — Resources reference each other. When an upstream resource changes, dependents rebuild automatically. Swap a model, and every agent using it redeploys.
+
+**Provider model** — Providers encapsulate lifecycle logic for any service. The platform ships with providers for GCP, Kubernetes, and Agno. Build your own in Python.
+
+**Real-time visibility** — A web UI shows your dependency graph, resource states, and live event feeds. Watch changes propagate through your infrastructure.
+
+## Learn more
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Install your first resource in 5 minutes.
-  </Card>
-  <Card title="What is pragma-os" icon="lightbulb" href="/learn">
-    Learn what pragma-os does and why it exists.
-  </Card>
-  <Card title="Concepts" icon="book" href="/concepts/how-it-works">
+  <Card title="How It Works" icon="lightbulb" href="/concepts/how-it-works">
     Understand the pragma-os model.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/cli/overview">
     Complete command reference.
+  </Card>
+  <Card title="Resource Catalog" icon="cube" href="/providers/overview">
+    Browse available providers and resource types.
+  </Card>
+  <Card title="Build a Provider" icon="code" href="/building-providers/overview">
+    Create custom providers for any service.
   </Card>
 </CardGroup>

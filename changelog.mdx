@@ -1,0 +1,72 @@
+---
+title: "Changelog"
+description: "Platform updates and new features"
+---
+
+## February 2026
+
+### Agno Provider — Full AI Agent Support
+
+The Agno provider now supports the complete AI agent lifecycle:
+
+- **Agents and Teams** — Deploy AI agents with instructions, tools, and multi-agent teams with coordination
+- **Language Models** — Configure Anthropic (Claude) and OpenAI (GPT) models as managed resources
+- **Tools** — Integrate MCP servers and web search capabilities into agents
+- **Knowledge Bases** — Document ingestion with vector search for RAG pipelines
+- **Memory and Storage** — Persistent agent memory and file storage
+- **Database** — Managed PostgreSQL instances for agent state
+- **Runner** — Agent deployment and runtime management
+
+### Soft Detach Deletion
+
+Deleting a resource no longer cascade-deletes its dependents. Instead, dependents are **detached** — their dependency references are removed and they are sent back to the provider for update. Providers decide whether resources can continue without the deleted dependency.
+
+Owner references still follow cascade deletion for parent-child resource relationships.
+
+### Web UI Graph Editor
+
+The web interface now includes a real-time graph editor with:
+- Live resource state updates via server-sent events
+- Visual dependency graph with interactive navigation
+- Inline resource editing and configuration
+
+---
+
+## January 2026
+
+### Reactive Dependencies
+
+Resources can now reference other resources' outputs through **FieldReferences** and **Dependency[T]** declarations. When a dependency updates, all dependents are automatically re-processed.
+
+- **FieldReference** — Reference a single output field from another resource
+- **Dependency[T]** — Provider receives the entire resolved resource
+- **Order-independent apply** — Resources can be applied in any order; pending dependencies resolve automatically
+- **Change propagation** — Updates cascade through the dependency graph
+
+### File Resources
+
+New built-in `pragma/file` resource type for uploading and managing files:
+- `@path` CLI syntax for inline file uploads in YAML configs
+- `upload_file()` SDK method for programmatic uploads
+- File outputs include download URLs, checksums, and metadata
+
+### GCP CloudSQL Provider
+
+New `gcp/cloudsql` resource for managing Cloud SQL database instances.
+
+### Kubernetes Deployment Provider
+
+New `kubernetes/deployment` resource for managing Kubernetes Deployments.
+
+### CLI Improvements
+
+- **`--draft` flag** — Resources are deployed by default; use `--draft` to save without provisioning (replaces previous `--pending` flag)
+- **`delete -f`** — Delete resources defined in a YAML file
+- **`tags` command** — Add, remove, and list tags on resources
+- **Idempotent apply** — Re-applying identical configuration is a no-op
+
+### SDK Updates
+
+- `upload_file()` method for file uploads
+- `Dependency[T]` and `FieldReference` types for provider authoring
+- `owner_references` support for cascade deletion patterns

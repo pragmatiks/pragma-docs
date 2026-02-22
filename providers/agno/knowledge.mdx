@@ -1,0 +1,184 @@
+---
+title: "Knowledge"
+description: "Add semantic search and RAG capabilities to agents"
+---
+
+> Build knowledge bases with vector storage, embeddings, and content ingestion for retrieval-augmented generation (RAG).
+
+Knowledge in Agno is composed of several resources that work together:
+
+```
+Content (URLs, text)
+  └─▶ Knowledge
+        ├─▶ VectorDB (Qdrant)
+        │     └─▶ Embedder (OpenAI)
+        └─▶ Contents DB (Postgres, optional)
+```
+
+## `agno/knowledge`
+
+The central knowledge base resource that connects a vector database with optional embedder and content storage.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `vector_db` | `Dependency` | **Yes** | — | Reference to `agno/vectordb/qdrant` |
+| `contents_db` | `Dependency` | No | — | Reference to `agno/db/postgres` for content metadata storage |
+| `embedder` | `Dependency` | No | — | Reference to `agno/knowledge/embedder/openai` for custom embeddings |
+| `max_results` | `integer` | No | `10` | Maximum search results to return |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pip_dependencies` | `list[string]` | Required Python packages |
+| `spec` | `object` | Serialized knowledge spec for runtime reconstruction |
+
+---
+
+## `agno/vectordb/qdrant`
+
+Configures a Qdrant vector database for storing embeddings.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `url` | `Field[string]` | **Yes** | — | Qdrant server URL. Supports FieldReferences |
+| `collection` | `Field[string]` | **Yes** | — | Collection name. Supports FieldReferences |
+| `api_key` | `Field[string]` | No | — | API key for authentication |
+| `search_type` | `"vector"` \| `"keyword"` \| `"hybrid"` | No | `"hybrid"` | Search strategy |
+| `embedder` | `Dependency` | No | — | Reference to `agno/knowledge/embedder/openai` |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized Qdrant config for runtime reconstruction |
+| `pip_dependencies` | `list[string]` | Required packages (includes `fastembed` for hybrid/keyword search) |
+
+---
+
+## `agno/knowledge/embedder/openai`
+
+Configures an OpenAI embedding model for generating vector embeddings.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | `string` | No | `"text-embedding-3-small"` | Embedding model identifier |
+| `api_key` | `Field[string]` | **Yes** | — | OpenAI API key |
+| `dimensions` | `integer` | No | — | Override embedding dimensions (only for `text-embedding-3-*` models) |
+| `encoding_format` | `"float"` \| `"base64"` | No | `"float"` | Response encoding format |
+| `organization` | `string` | No | — | OpenAI organization ID |
+| `base_url` | `string` | No | — | Custom base URL for OpenAI-compatible APIs |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pip_dependencies` | `list[string]` | Required Python packages |
+| `spec` | `object` | Serialized embedder spec for runtime reconstruction |
+
+---
+
+## `agno/knowledge/content`
+
+Represents a content source to ingest into a knowledge base. Supports URLs and inline text.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `knowledge` | `Dependency` | **Yes** | — | Reference to `agno/knowledge` |
+| `url` | `string` | Conditional | — | URL to fetch (website, PDF, remote file). Mutually exclusive with `text_content` |
+| `text_content` | `string` | Conditional | — | Inline text content. Mutually exclusive with `url` |
+| `name` | `string` | No | Resource name | Content identifier |
+| `description` | `string` | No | — | Content description |
+| `metadata` | `dict[string, string]` | No | — | Custom metadata key-value pairs |
+| `topics` | `list[string]` | No | — | Topic tags for categorization |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Content specification |
+| `pip_dependencies` | `list[string]` | Reader packages (`pypdf`, `beautifulsoup4`, `python-docx`, etc.) |
+
+## Example
+
+A complete knowledge base setup:
+
+```yaml
+# 1. Embedder
+provider: agno
+resource: knowledge/embedder/openai
+name: embedder
+config:
+  id: text-embedding-3-small
+  api_key:
+    provider: pragma
+    resource: secret
+    name: openai-key
+    field: outputs.OPENAI_API_KEY
+---
+# 2. Vector database
+provider: agno
+resource: vectordb/qdrant
+name: vectors
+config:
+  url:
+    provider: qdrant
+    resource: database
+    name: main
+    field: outputs.url
+  collection:
+    provider: qdrant
+    resource: collection
+    name: docs
+    field: outputs.name
+  api_key:
+    provider: qdrant
+    resource: database
+    name: main
+    field: outputs.api_key
+  search_type: hybrid
+  embedder:
+    provider: agno
+    resource: knowledge/embedder/openai
+    name: embedder
+---
+# 3. Knowledge base
+provider: agno
+resource: knowledge
+name: docs-kb
+config:
+  vector_db:
+    provider: agno
+    resource: vectordb/qdrant
+    name: vectors
+  max_results: 5
+---
+# 4. Content source
+provider: agno
+resource: knowledge/content
+name: user-guide
+config:
+  knowledge:
+    provider: agno
+    resource: knowledge
+    name: docs-kb
+  url: "https://docs.example.com/guide.pdf"
+  topics:
+    - documentation
+    - user-guide
+```
+
+## Notes
+
+- You must provide exactly one of `url` or `text_content` in content resources.
+- Content supports URLs to PDFs, web pages, documents (DOCX, PPTX), arxiv papers, YouTube transcripts, and Wikipedia articles.
+- The `search_type: hybrid` option combines vector and keyword search for better results but requires the `fastembed` package.
+- Content resources are **stateful** — they insert into and delete from the vector database during lifecycle events.

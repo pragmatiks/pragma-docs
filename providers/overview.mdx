@@ -19,15 +19,50 @@ Resources are built and maintained by providers. We categorize them into three t
 
 All resources below are first-party, built and maintained by Pragmatiks.
 
-### GCP Provider
+### Agno Provider
 
-Google Cloud Platform infrastructure resources.
+AI agent framework for building and deploying agents and teams. [View documentation →](/providers/agno/overview)
 
 | Resource | Description |
 |----------|-------------|
-| `gcp/storage` | Cloud Storage buckets |
-| `gcp/gke` | GKE Autopilot clusters |
-| `gcp/secret` | Secret Manager secrets |
+| [`agno/agent`](/providers/agno/agent) | AI agent definition with model, tools, and knowledge |
+| [`agno/team`](/providers/agno/team) | Multi-agent team with coordinated members |
+| [`agno/models/anthropic`](/providers/agno/models) | Anthropic Claude model configuration |
+| [`agno/models/openai`](/providers/agno/models) | OpenAI GPT model configuration |
+| [`agno/tools/mcp`](/providers/agno/tools) | MCP server tool integration |
+| [`agno/tools/websearch`](/providers/agno/tools) | Web search tool |
+| [`agno/knowledge`](/providers/agno/knowledge) | Semantic search knowledge base |
+| [`agno/vectordb/qdrant`](/providers/agno/knowledge) | Qdrant vector database for Agno |
+| [`agno/knowledge/embedder/openai`](/providers/agno/knowledge) | OpenAI embedding model |
+| [`agno/knowledge/content`](/providers/agno/knowledge) | Content ingestion (URLs, text) |
+| [`agno/memory/manager`](/providers/agno/memory) | Persistent agent memory |
+| [`agno/db/postgres`](/providers/agno/storage) | PostgreSQL storage for sessions and memory |
+| [`agno/prompt`](/providers/agno/agent) | Reusable prompt templates |
+| [`agno/runner`](/providers/agno/deployment) | Deploy agents/teams to Kubernetes |
+
+### GCP Provider
+
+Google Cloud Platform infrastructure resources. [View documentation →](/providers/gcp/overview)
+
+| Resource | Description |
+|----------|-------------|
+| [`gcp/secret`](/providers/gcp/secret) | Secret Manager secrets |
+| [`gcp/cloudsql/database_instance`](/providers/gcp/cloudsql) | Cloud SQL managed database instances |
+| [`gcp/cloudsql/database`](/providers/gcp/cloudsql) | Databases within Cloud SQL instances |
+| [`gcp/cloudsql/user`](/providers/gcp/cloudsql) | Database users for Cloud SQL |
+| `gcp/gke` | GKE clusters (Autopilot and Standard) |
+
+### Kubernetes Provider
+
+Core Kubernetes resources for workloads and configuration. [View documentation →](/providers/kubernetes/overview)
+
+| Resource | Description |
+|----------|-------------|
+| [`kubernetes/deployment`](/providers/kubernetes/deployment) | Stateless workloads with rolling updates |
+| `kubernetes/statefulset` | Stateful workloads with persistent storage |
+| `kubernetes/service` | Network exposure (ClusterIP, LoadBalancer, NodePort) |
+| `kubernetes/configmap` | Configuration key-value storage |
+| `kubernetes/secret` | Sensitive data storage |
 
 ### Anthropic Provider
 
@@ -62,14 +97,6 @@ Vector database for similarity search.
 |----------|-------------|
 | `qdrant/database` | Deploy Qdrant to GKE via Helm |
 | `qdrant/collection` | Manage vector collections |
-
-### Agno Provider
-
-AI agent deployment.
-
-| Resource | Description |
-|----------|-------------|
-| `agno/agent` | Deploy AI agents to GKE |
 
 ### Pragma Provider
 

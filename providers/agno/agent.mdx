@@ -1,0 +1,79 @@
+---
+title: "Agent"
+description: "Define an AI agent with a model, tools, knowledge, and memory"
+---
+
+> Configures an Agno AI agent with all its dependencies — model, tools, knowledge base, memory, and storage.
+
+## Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | No | Resource name | Display name for the agent |
+| `description` | `string` | No | — | Agent description |
+| `role` | `string` | No | — | Agent role description |
+| `model` | `Dependency` | **Yes** | — | Reference to `agno/models/anthropic` or `agno/models/openai` |
+| `instructions` | `list[string]` | No | — | System instructions for the agent |
+| `prompt` | `Dependency` | No | — | Reference to `agno/prompt` for reusable instructions |
+| `tools` | `list[Dependency]` | No | `[]` | References to `agno/tools/mcp` or `agno/tools/websearch` |
+| `knowledge` | `Dependency` | No | — | Reference to `agno/knowledge` |
+| `db` | `Dependency` | No | — | Reference to `agno/db/postgres` for session storage |
+| `memory` | `Dependency` | No | — | Reference to `agno/memory/manager` |
+| `markdown` | `boolean` | No | `false` | Format responses as Markdown |
+| `add_datetime_to_context` | `boolean` | No | `false` | Include current datetime in context |
+| `read_chat_history` | `boolean` | No | Auto | Read chat history from DB (auto-enabled when `db` is set) |
+| `add_history_to_context` | `boolean` | No | Auto | Add history to context (auto-enabled when `db` is set) |
+| `num_history_runs` | `integer` | No | — | Number of previous runs to include in history |
+| `enable_agentic_memory` | `boolean` | No | `false` | Enable agentic memory capabilities |
+| `update_memory_on_run` | `boolean` | No | `false` | Update memory after each run |
+| `add_memories_to_context` | `boolean` | No | — | Add stored memories to context |
+| `enable_session_summaries` | `boolean` | No | `false` | Enable session summary generation |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized agent specification for runtime reconstruction |
+| `pip_dependencies` | `list[string]` | Python packages required by agent tools and knowledge |
+
+## Dependencies
+
+**Depends on:**
+- `agno/models/anthropic` or `agno/models/openai` (required) — the LLM powering the agent
+- `agno/tools/mcp` or `agno/tools/websearch` (optional) — tool integrations
+- `agno/knowledge` (optional) — semantic search knowledge base
+- `agno/memory/manager` (optional) — persistent memory
+- `agno/db/postgres` (optional) — session and chat history storage
+- `agno/prompt` (optional) — reusable prompt template
+
+**Depended on by:**
+- `agno/team` — as a team member
+- `agno/runner` — for deployment to Kubernetes
+
+## Example
+
+```yaml
+provider: agno
+resource: agent
+name: my-assistant
+config:
+  description: "A helpful AI assistant"
+  model:
+    provider: agno
+    resource: models/anthropic
+    name: claude
+  instructions:
+    - "You are a helpful assistant."
+    - "Always respond concisely."
+  tools:
+    - provider: agno
+      resource: tools/websearch
+      name: search
+  markdown: true
+```
+
+## Notes
+
+- The agent resource is **stateless** — it produces a serializable spec used by `agno/runner` for deployment.
+- When `db` is set, `read_chat_history` and `add_history_to_context` are automatically enabled unless explicitly overridden.
+- Updating a dependency (e.g., changing the model) triggers the agent to rebuild automatically.

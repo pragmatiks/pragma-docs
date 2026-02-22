@@ -1,0 +1,115 @@
+---
+title: "Deployment"
+description: "Manage Kubernetes Deployments for stateless workloads"
+---
+
+> Creates and manages Kubernetes Deployments with rolling updates, health probes, and resource limits.
+
+## Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `cluster` | `Dependency` | **Yes** | — | Reference to `gcp/gke` providing Kubernetes credentials |
+| `namespace` | `string` | No | `"default"` | Kubernetes namespace (immutable) |
+| `replicas` | `integer` | No | `1` | Number of pod replicas |
+| `selector` | `dict[string, string]` | **Yes** | — | Label selector for pods (immutable) |
+| `labels` | `dict[string, string]` | No | Same as `selector` | Pod labels |
+| `containers` | `list[Container]` | **Yes** | — | Container specifications (see below) |
+| `strategy` | `"RollingUpdate"` \| `"Recreate"` | No | `"RollingUpdate"` | Deployment strategy |
+
+### Container Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | **Yes** | — | Container name |
+| `image` | `string` | **Yes** | — | Container image |
+| `ports` | `list[Port]` | No | — | Port configurations |
+| `env` | `dict[string, string]` | No | — | Environment variables |
+| `env_from_secret` | `dict[string, string]` | No | — | Env vars from Kubernetes Secrets (`env_name: "secret_name.key"`) |
+| `command` | `list[string]` | No | — | Container command |
+| `args` | `list[string]` | No | — | Container arguments |
+| `resources` | `Resources` | No | — | CPU/memory requests and limits |
+| `liveness_probe` | `Probe` | No | — | Liveness probe configuration |
+| `readiness_probe` | `Probe` | No | — | Readiness probe configuration |
+| `startup_probe` | `Probe` | No | — | Startup probe configuration |
+
+### Probe Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `http_get.path` | `string` | **Yes** | — | HTTP path to probe |
+| `http_get.port` | `integer` | **Yes** | — | Port to probe |
+| `initial_delay_seconds` | `integer` | No | `0` | Delay before first probe |
+| `period_seconds` | `integer` | No | `10` | Probe interval |
+| `timeout_seconds` | `integer` | No | `1` | Probe timeout |
+| `failure_threshold` | `integer` | No | `3` | Failures before unhealthy |
+
+### Resource Requirements
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `cpu` | `string` | No | — | CPU request (e.g., `"500m"`) |
+| `memory` | `string` | No | — | Memory request (e.g., `"1Gi"`) |
+| `cpu_limit` | `string` | No | — | CPU limit |
+| `memory_limit` | `string` | No | — | Memory limit |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Deployment name |
+| `namespace` | `string` | Kubernetes namespace |
+| `replicas` | `integer` | Desired replica count |
+| `ready_replicas` | `integer` | Currently ready replicas |
+| `available_replicas` | `integer` | Currently available replicas |
+
+## Dependencies
+
+**Depends on:**
+- `gcp/gke` (required) — Kubernetes cluster
+
+**Depended on by:**
+- `agno/runner` creates Kubernetes Deployments internally
+
+## Example
+
+```yaml
+provider: kubernetes
+resource: deployment
+name: my-app
+config:
+  cluster:
+    provider: gcp
+    resource: gke
+    name: my-cluster
+  namespace: production
+  replicas: 3
+  selector:
+    app: my-app
+  containers:
+    - name: app
+      image: gcr.io/my-project/my-app:latest
+      ports:
+        - container_port: 8080
+          name: http
+      env:
+        APP_ENV: production
+      resources:
+        cpu: "500m"
+        memory: "512Mi"
+        cpu_limit: "1"
+        memory_limit: "1Gi"
+      readiness_probe:
+        http_get:
+          path: /health
+          port: 8080
+        period_seconds: 5
+  strategy: RollingUpdate
+```
+
+## Notes
+
+- The deployment waits up to 5 minutes for all replicas to become ready before timing out.
+- The `cluster`, `namespace`, and `selector` fields are **immutable** — changing them requires deleting and recreating the resource.
+- Environment variables from Kubernetes Secrets use the format `"secret_name.key"` in `env_from_secret`.
+- Rolling updates use 25% max surge and 25% max unavailable by default.

@@ -17,10 +17,35 @@ Re-authenticate with `pragma auth login`.
 
 ### Resource stuck in PENDING
 
-Check if dependencies are in READY state:
+Check if dependencies are in `ready` state:
 
 ```bash
-pragma resources get <provider>/<resource> <name>
+pragma resources describe <provider>/<resource> <name>
+```
+
+If dependencies are listed, verify each one is `ready`. A resource with unready dependencies waits in `pending` until all dependencies are satisfied.
+
+If all dependencies are `ready` but the resource is still `pending`, re-apply it:
+
+```bash
+pragma resources apply resource.yaml
+```
+
+### Resource stuck in PROCESSING
+
+Resources in `processing` state are being handled by a provider. If a resource stays in this state longer than expected:
+
+1. **Wait** — pragma-os automatically detects stuck resources and retries them
+2. **Check the dead letter queue** — If retries are exhausted, the resource moves to `failed`:
+
+```bash
+pragma ops dead-letter list
+```
+
+3. **Re-apply** — Force a new processing attempt:
+
+```bash
+pragma resources apply resource.yaml
 ```
 
 ### Resource failed
@@ -28,10 +53,72 @@ pragma resources get <provider>/<resource> <name>
 Check the error message:
 
 ```bash
-pragma resources get <provider>/<resource> <name>
+pragma resources describe <provider>/<resource> <name>
 ```
 
-Fix the configuration and re-apply with `--pending`.
+Fix the configuration and re-apply:
+
+```bash
+pragma resources apply fixed-resource.yaml
+```
+
+### Resource not updating after dependency change
+
+If a resource isn't updating after its dependency changed, check the `resolved_config`:
+
+```bash
+pragma resources describe <provider>/<resource> <name> -o json
+```
+
+Compare `config` (your declaration) with `resolved_config` (what the provider received). If `resolved_config` still shows old values, the dependency change may not have propagated yet — verify the dependency is in `ready` state.
+
+### Deletion not working
+
+If a resource won't delete:
+
+- **Resource in `failed` state** — Failed resources can still be deleted. Check for errors:
+
+```bash
+pragma resources describe <provider>/<resource> <name>
+```
+
+- **Resource in `processing` state** — Wait for the current operation to complete, then try deleting again.
+
+- **Delete from YAML** — Use the file-based delete to remove multiple resources:
+
+```bash
+pragma resources delete -f resources.yaml
+```
+
+## File Uploads
+
+### File upload fails
+
+When using `@path` syntax for `pragma/file` resources:
+
+- Verify the file exists at the specified path (relative to the YAML file's directory)
+- Ensure `content_type` is specified in the config — it's required for file uploads
+- Check the file size is within the platform's limits
+
+```yaml
+provider: pragma
+resource: file
+name: my-document
+config:
+  content: "@./document.pdf"
+  content_type: "application/pdf"
+```
+
+### File resource stuck in FAILED
+
+If a `pragma/file` resource fails with "File content not uploaded":
+
+1. The file resource was created but the file content wasn't uploaded yet
+2. Re-apply the resource with the `@path` syntax to trigger the upload:
+
+```bash
+pragma resources apply file-resource.yaml
+```
 
 ## Dead Letter Events
 
@@ -47,6 +134,14 @@ Investigate individual events:
 
 ```bash
 pragma ops dead-letter show <event-id>
+```
+
+### Bulk cleanup
+
+Clear all dead letter events for a provider after resolving the issues:
+
+```bash
+pragma ops dead-letter delete --provider <provider-name>
 ```
 
 ## Provider Development

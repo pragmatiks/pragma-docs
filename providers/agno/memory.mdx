@@ -1,0 +1,65 @@
+---
+title: "Memory"
+description: "Enable persistent memory for agents across conversations"
+---
+
+> Configures a memory manager that stores and retrieves memories across agent conversations.
+
+## `agno/memory/manager`
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `db` | `Dependency` | **Yes** | — | Reference to `agno/db/postgres` for memory storage |
+| `model` | `Dependency` | No | — | Reference to `agno/models/anthropic` or `agno/models/openai` for memory classification |
+| `system_message` | `string` | No | — | System message for memory classification |
+| `memory_capture_instructions` | `string` | No | — | Instructions for what to capture as memories |
+| `additional_instructions` | `string` | No | — | Additional instructions for memory processing |
+| `add_memories` | `boolean` | No | `true` | Allow creating new memories |
+| `update_memories` | `boolean` | No | `true` | Allow updating existing memories |
+| `delete_memories` | `boolean` | No | `false` | Allow deleting memories |
+| `clear_memories` | `boolean` | No | `false` | Allow clearing all memories |
+| `debug_mode` | `boolean` | No | `false` | Enable debug logging |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized memory manager spec for runtime reconstruction |
+
+## Dependencies
+
+**Depends on:**
+- `agno/db/postgres` (required) — database for memory storage
+- `agno/models/anthropic` or `agno/models/openai` (optional) — model for memory classification
+
+**Depended on by:**
+- `agno/agent` — in the `memory` field
+- `agno/team` — in the `memory` field
+
+## Example
+
+```yaml
+provider: agno
+resource: memory/manager
+name: agent-memory
+config:
+  db:
+    provider: agno
+    resource: db/postgres
+    name: agent-db
+  model:
+    provider: agno
+    resource: models/openai
+    name: gpt4
+  add_memories: true
+  update_memories: true
+  memory_capture_instructions: "Remember user preferences and important facts."
+```
+
+## Notes
+
+- The memory manager stores memories in the PostgreSQL database configured via `db`.
+- When a `model` is provided, it is used to classify and process memories. Without a model, memories are stored as-is.
+- To use memory with an agent, you also need to enable `enable_agentic_memory: true` on the agent config.

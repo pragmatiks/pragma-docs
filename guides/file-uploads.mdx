@@ -1,0 +1,134 @@
+---
+title: "File Uploads"
+description: "Upload and manage files with pragma-os"
+---
+
+pragma-os provides a built-in `pragma/file` resource for uploading and managing files. Files are stored in platform storage and expose download URLs that other resources can reference.
+
+## Prerequisites
+
+- pragma CLI installed and authenticated (`pragma auth login`)
+
+## Using the CLI
+
+### Upload with @path syntax
+
+The simplest way to upload a file is using the `@path` syntax in your YAML config:
+
+```yaml
+provider: pragma
+resource: file
+name: training-data
+config:
+  content: "@./data/training-set.jsonl"
+  content_type: "application/jsonl"
+```
+
+```bash
+pragma resources apply training-data.yaml
+```
+
+The CLI:
+1. Reads the file from the local path (relative to the YAML file's directory)
+2. Uploads the file content to pragma-os storage
+3. Creates the `pragma/file` resource to track it
+
+### File Outputs
+
+After the file resource reaches `ready` state, it exposes these outputs:
+
+| Output | Description |
+|--------|-------------|
+| `url` | Internal storage URL |
+| `public_url` | Public download URL |
+| `size` | File size in bytes |
+| `content_type` | MIME type |
+| `checksum` | Content checksum for integrity verification |
+| `uploaded_at` | Upload timestamp |
+
+View the outputs:
+
+```bash
+pragma resources describe pragma/file training-data
+```
+
+## Using the SDK
+
+### Upload programmatically
+
+```python
+from pragma_sdk import PragmaClient
+
+with PragmaClient() as client:
+    # Upload the file content
+    with open("training-data.jsonl", "rb") as f:
+        result = client.upload_file(
+            name="training-data",
+            content=f.read(),
+            content_type="application/jsonl",
+        )
+
+    print(f"Uploaded: {result['public_url']}")
+
+    # Create the file resource to track it
+    client.apply_resource({
+        "provider": "pragma",
+        "resource": "file",
+        "name": "training-data",
+        "lifecycle_state": "pending",
+        "config": {
+            "content_type": "application/jsonl",
+        },
+    })
+```
+
+## Referencing Files from Other Resources
+
+File outputs can be referenced by other resources using FieldReferences. For example, to use an uploaded document as a knowledge source for an AI agent:
+
+```yaml
+# Upload the document
+provider: pragma
+resource: file
+name: product-docs
+config:
+  content: "@./docs/product-manual.pdf"
+  content_type: "application/pdf"
+---
+# Knowledge base references the file's URL
+provider: agno
+resource: knowledge
+name: product-knowledge
+config:
+  source_url:
+    provider: pragma
+    resource: file
+    name: product-docs
+    field: outputs.public_url
+```
+
+When the file is updated (re-uploaded with new content), the knowledge base automatically receives the new URL and can re-ingest the document.
+
+## Supported Content Types
+
+Any MIME type is supported. Common examples:
+
+| Content Type | Use Case |
+|-------------|----------|
+| `application/pdf` | Documents, manuals |
+| `application/json` | Configuration files, datasets |
+| `application/jsonl` | Training data, log files |
+| `text/plain` | Text documents, CSV files |
+| `text/csv` | Tabular data |
+| `image/png`, `image/jpeg` | Images |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Reactive Pipelines" icon="diagram-project" href="/guides/reactive-pipelines">
+    Build pipelines where file changes automatically propagate.
+  </Card>
+  <Card title="CLI Resources" icon="terminal" href="/cli/resources">
+    Full resource management commands.
+  </Card>
+</CardGroup>

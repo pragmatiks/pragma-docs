@@ -1,0 +1,116 @@
+---
+title: "Storage"
+description: "Configure PostgreSQL storage for agent sessions and memory"
+---
+
+> Provides PostgreSQL database configuration for agent session history, chat storage, and memory persistence.
+
+## `agno/db/postgres`
+
+### Config
+
+Supports two connection patterns:
+
+**Option 1 — Connection URL:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `connection_url` | `Field[string]` | **Yes** | — | Full PostgreSQL connection URL. Supports FieldReferences |
+| `username` | `Field[string]` | No | — | Username to inject into the URL (if not already in URL) |
+| `password` | `Field[string]` | No | — | Password to inject into the URL (if not already in URL) |
+
+**Option 2 — Separate fields:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `host` | `Field[string]` | **Yes** | — | Database host (IP or hostname) |
+| `port` | `integer` | No | `5432` | Database port |
+| `database` | `Field[string]` | **Yes** | — | Database name |
+| `username` | `Field[string]` | **Yes** | — | Database username |
+| `password` | `Field[string]` | **Yes** | — | Database password |
+
+**Common fields:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `db_schema` | `string` | No | `"ai"` | Database schema for Agno tables |
+| `session_table` | `string` | No | — | Custom table name for sessions |
+| `memory_table` | `string` | No | — | Custom table name for memories |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized database spec for runtime reconstruction |
+
+## Dependencies
+
+**Depends on:** Nothing directly, but fields support FieldReferences (e.g., from `gcp/cloudsql` outputs).
+
+**Depended on by:**
+- `agno/agent` — in the `db` field
+- `agno/team` — in the `db` field
+- `agno/memory/manager` — in the `db` field
+- `agno/knowledge` — in the `contents_db` field
+
+## Example — Using Cloud SQL outputs
+
+```yaml
+provider: agno
+resource: db/postgres
+name: agent-db
+config:
+  host:
+    provider: gcp
+    resource: cloudsql/database
+    name: app-db
+    field: outputs.host
+  port: 5432
+  database:
+    provider: gcp
+    resource: cloudsql/database
+    name: app-db
+    field: outputs.database_name
+  username:
+    provider: gcp
+    resource: cloudsql/user
+    name: agent-user
+    field: outputs.username
+  password:
+    provider: pragma
+    resource: secret
+    name: db-password
+    field: outputs.DB_PASSWORD
+  db_schema: ai
+```
+
+## Example — Using connection URL
+
+```yaml
+provider: agno
+resource: db/postgres
+name: agent-db
+config:
+  connection_url:
+    provider: gcp
+    resource: cloudsql/database
+    name: app-db
+    field: outputs.url
+  username:
+    provider: gcp
+    resource: cloudsql/user
+    name: agent-user
+    field: outputs.username
+  password:
+    provider: pragma
+    resource: secret
+    name: db-password
+    field: outputs.DB_PASSWORD
+```
+
+## Notes
+
+- You must provide either `connection_url` or `host` + `database`. When using separate fields, `username` and `password` are also required.
+- Credentials in the URL take precedence — if the URL already contains credentials, the separate `username`/`password` fields are ignored.
+- The `db_schema` defaults to `"ai"`. Agno creates tables within this schema automatically at runtime.
+- This resource is **stateless** — it does not create the database itself. Use `gcp/cloudsql/database` to provision the actual database.

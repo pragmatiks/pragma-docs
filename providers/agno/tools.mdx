@@ -1,0 +1,125 @@
+---
+title: "Tools"
+description: "Add MCP server and web search capabilities to agents"
+---
+
+> Integrate external tools into your agents via Model Context Protocol (MCP) servers or web search.
+
+<Tabs>
+  <Tab title="MCP Server">
+
+## `agno/tools/mcp`
+
+Connects to a Model Context Protocol (MCP) server, giving agents access to external tools.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `command` | `string` | Conditional | — | Command to run the MCP server (for `stdio` transport). Mutually exclusive with `url` |
+| `url` | `string` | Conditional | — | URL for SSE or streamable-http transport. Mutually exclusive with `command` |
+| `transport` | `"stdio"` \| `"sse"` \| `"streamable-http"` | No | Auto-detected | Transport protocol. Inferred from `command` (stdio) or `url` (sse) if not set |
+| `env` | `dict[string, Field[string]]` | No | — | Environment variables for the server process |
+| `headers` | `dict[string, Field[string]]` | No | — | Static HTTP headers for remote transports |
+| `include_run_context_headers` | `boolean` | No | `false` | Forward agent run context as headers (`X-User-ID`, `X-Session-ID`, `X-Run-ID`) |
+| `timeout_seconds` | `integer` | No | `10` | Connection timeout in seconds |
+| `include_tools` | `list[string]` | No | — | Only include these tool names |
+| `exclude_tools` | `list[string]` | No | — | Exclude these tool names |
+| `tool_name_prefix` | `string` | No | — | Prefix added to all tool names (avoids collisions) |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Serialized MCP tools spec for runtime reconstruction |
+
+### Example — Remote MCP server
+
+```yaml
+provider: agno
+resource: tools/mcp
+name: my-tools
+config:
+  url: "https://mcp.example.com/sse"
+  headers:
+    Authorization:
+      provider: pragma
+      resource: secret
+      name: mcp-token
+      field: outputs.TOKEN
+  include_run_context_headers: true
+  timeout_seconds: 30
+```
+
+### Example — Local stdio server
+
+```yaml
+provider: agno
+resource: tools/mcp
+name: local-tools
+config:
+  command: "npx -y @modelcontextprotocol/server-filesystem /data"
+  env:
+    API_KEY:
+      provider: pragma
+      resource: secret
+      name: api-key
+      field: outputs.API_KEY
+```
+
+  </Tab>
+  <Tab title="Web Search">
+
+## `agno/tools/websearch`
+
+Adds web search capabilities to agents.
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `enable_search` | `boolean` | No | `true` | Enable web search |
+| `enable_news` | `boolean` | No | `true` | Enable news search |
+| `backend` | `string` | No | `"auto"` | Search backend: `auto`, `duckduckgo`, `google`, `bing`, `brave`, `yandex`, `yahoo` |
+| `modifier` | `string` | No | — | Text prepended to all queries (e.g., `"site:example.com"`) |
+| `fixed_max_results` | `integer` | No | — | Override default max results |
+| `proxy` | `string` | No | — | Proxy URL for requests |
+| `timeout` | `integer` | No | `10` | Request timeout in seconds |
+| `verify_ssl` | `boolean` | No | `true` | Verify SSL certificates |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pip_dependencies` | `list[string]` | Required Python packages (`ddgs>=8.0.0`) |
+| `spec` | `object` | Serialized web search spec for runtime reconstruction |
+
+### Example
+
+```yaml
+provider: agno
+resource: tools/websearch
+name: search
+config:
+  enable_search: true
+  enable_news: true
+  backend: duckduckgo
+```
+
+  </Tab>
+</Tabs>
+
+## Dependencies
+
+**Depends on:** Nothing directly, but `env` and `headers` fields on MCP tools support FieldReferences.
+
+**Depended on by:**
+- `agno/agent` — in the `tools` list
+- `agno/team` — in the `tools` list
+
+## Notes
+
+- For MCP tools, you must provide exactly one of `command` or `url`.
+- The `transport` type is auto-detected if not specified: `command` implies `stdio`, `url` implies `sse`.
+- The `include_run_context_headers` option forwards the agent's user ID, session ID, and run ID as HTTP headers to the MCP server.
+- Web search requires the `ddgs` package, which is automatically included as a pip dependency.

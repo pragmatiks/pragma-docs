@@ -1,0 +1,47 @@
+---
+title: "Quickstart"
+description: "Choose your path to start building with pragma-os"
+---
+
+Pick the quickstart that matches your experience level. Each builds on the previous one, so you can progress through all three.
+
+<CardGroup cols={3}>
+  <Card title="Deploy Your First AI Agent" icon="rocket" href="/quickstart/amateur">
+    Go from zero to a running AI agent. Create a secret, configure a model, define an agent, and deploy it.
+
+    **20 minutes** · Beginner
+  </Card>
+  <Card title="Build a Reactive AI Pipeline" icon="diagram-project" href="/quickstart/professional">
+    Build a multi-agent team with tools, knowledge bases, and reactive dependencies. See automatic change propagation in action.
+
+    **45 minutes** · Intermediate
+  </Card>
+  <Card title="Create a Custom Provider" icon="plug" href="/quickstart/expert">
+    Extend pragma-os by building and deploying your own provider. Define resource types, implement lifecycle methods, and ship it.
+
+    **60 minutes** · Advanced
+  </Card>
+</CardGroup>
+
+## How pragma-os Works
+
+You define resources in YAML. pragma-os provisions them, tracks their state, and propagates changes through dependency chains automatically.
+
+```yaml
+provider: agno
+resource: agent
+name: my-agent
+config:
+  model:
+    provider: agno
+    resource: models/anthropic
+    name: claude
+  instructions:
+    - "You are a helpful assistant."
+```
+
+```bash
+pragma resources apply agent.yaml
+```
+
+Resources reference each other through **dependencies** and **field references**. When an upstream resource changes, all dependents rebuild automatically.

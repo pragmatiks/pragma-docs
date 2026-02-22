@@ -1,0 +1,211 @@
+---
+title: "Reactive Pipelines"
+description: "Build multi-resource pipelines with automatic change propagation"
+---
+
+This guide walks through building a reactive AI pipeline where changing one resource automatically propagates updates through the entire dependency chain.
+
+## What You'll Build
+
+A three-layer pipeline where:
+1. A **secret** stores an API key
+2. A **model** references the secret
+3. An **agent** depends on the model
+
+When you change the secret, the model and agent automatically rebuild.
+
+## Prerequisites
+
+- pragma CLI installed and authenticated
+- Agno provider deployed (`pragma providers list` to verify)
+
+## Step 1: Define the Pipeline
+
+Create a file called `pipeline.yaml` with all three resources:
+
+```yaml
+# Layer 1: Secret stores the API key
+provider: pragma
+resource: secret
+name: anthropic-key
+config:
+  data:
+    api_key: "sk-ant-your-key-here"
+---
+# Layer 2: Model references the secret's output
+provider: agno
+resource: anthropic-model
+name: claude
+config:
+  model_id: claude-sonnet-4-5-20250929
+  api_key:
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.api_key
+---
+# Layer 3: Agent depends on the model
+provider: agno
+resource: agent
+name: assistant
+config:
+  model:
+    provider: agno
+    resource: anthropic-model
+    name: claude
+  instructions: "You are a helpful coding assistant."
+```
+
+## Step 2: Apply Everything at Once
+
+```bash
+pragma resources apply pipeline.yaml
+```
+
+pragma-os resolves the dependency order automatically:
+1. The secret is processed first (no dependencies)
+2. Once the secret is `ready`, the model's FieldReference resolves and the model is processed
+3. Once the model is `ready`, the agent's Dependency resolves and the agent is processed
+
+Watch the progress:
+
+```bash
+pragma resources list
+```
+
+```
+pragma/secret/anthropic-key [READY]
+agno/anthropic-model/claude [PROCESSING]
+agno/agent/assistant [PENDING]
+```
+
+After a few moments:
+
+```
+pragma/secret/anthropic-key [READY]
+agno/anthropic-model/claude [READY]
+agno/agent/assistant [READY]
+```
+
+## Step 3: Trigger a Change
+
+Now swap the model. Update `pipeline.yaml` to use a different model ID:
+
+```yaml
+provider: agno
+resource: anthropic-model
+name: claude
+config:
+  model_id: claude-opus-4-6
+  api_key:
+    provider: pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.api_key
+```
+
+Apply just the model:
+
+```bash
+pragma resources apply pipeline.yaml
+```
+
+Since only the model's config changed, pragma-os:
+1. Re-processes the model with the new `model_id`
+2. Detects that `assistant` depends on `claude`
+3. Automatically re-processes the agent with the updated model data
+
+The agent rebuilds without you touching it.
+
+## Step 4: Inspect the Resolution
+
+To see how pragma-os resolved the dependencies, inspect the resolved config:
+
+```bash
+pragma resources describe agno/agent assistant -o json
+```
+
+The output shows:
+- **`config`** — Your original YAML with Dependency markers
+- **`resolved_config`** — The fully resolved version with actual model data embedded
+
+## FieldReference Patterns
+
+### Single Value References
+
+Reference a specific output field:
+
+```yaml
+config:
+  api_key:
+    provider: pragma
+    resource: secret
+    name: my-secret
+    field: outputs.api_key
+```
+
+### Multiple References
+
+A single resource can reference multiple dependencies:
+
+```yaml
+provider: agno
+resource: agent
+name: multi-tool-agent
+config:
+  model:
+    provider: agno
+    resource: anthropic-model
+    name: claude
+  tools:
+    - provider: agno
+      resource: mcp-tool
+      name: code-tool
+    - provider: agno
+      resource: websearch-tool
+      name: search
+  instructions: "You have access to coding and search tools."
+```
+
+## Debugging Tips
+
+### Check dependency states
+
+If a resource is stuck in `pending`, its dependencies might not be ready:
+
+```bash
+pragma resources describe agno/agent assistant
+```
+
+Look at the **Dependencies** section to see what it's waiting on.
+
+### Compare config vs resolved_config
+
+```bash
+pragma resources describe agno/agent assistant -o json
+```
+
+- If `resolved_config` is `null`, the resource is waiting for dependencies
+- If `resolved_config` has values, the resource has been submitted to the provider
+- Compare the two to verify references resolved correctly
+
+### Force re-processing
+
+If a resource should have updated but didn't, re-apply it:
+
+```bash
+pragma resources apply pipeline.yaml
+```
+
+Idempotent apply means unchanged resources are skipped, and only modified resources are re-processed.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Reactive Dependencies" icon="arrows-rotate" href="/concepts/reactive-dependencies">
+    Deep dive into the dependency resolution system.
+  </Card>
+  <Card title="File Uploads" icon="file-arrow-up" href="/guides/file-uploads">
+    Add file resources to your pipelines.
+  </Card>
+</CardGroup>

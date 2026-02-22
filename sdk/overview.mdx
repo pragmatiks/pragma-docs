@@ -790,6 +790,128 @@ def apply_with_retry(client, resource, max_retries=3):
 
 ---
 
+## File Uploads
+
+Upload files to pragma-os storage programmatically:
+
+```python
+# Upload a file
+with open("training-data.jsonl", "rb") as f:
+    result = client.upload_file(
+        name="training-data",
+        content=f.read(),
+        content_type="application/jsonl",
+    )
+
+print(result["url"])          # Storage URL
+print(result["public_url"])   # Public download URL
+print(result["size"])         # File size in bytes
+print(result["checksum"])     # Content checksum
+```
+
+After uploading, create a `pragma/file` resource to track the file:
+
+```python
+client.apply_resource({
+    "provider": "pragma",
+    "resource": "file",
+    "name": "training-data",
+    "lifecycle_state": "pending",
+    "config": {
+        "content_type": "application/jsonl",
+    },
+})
+```
+
+---
+
+## Dependencies and Field References
+
+### FieldReference
+
+Reference a specific output field from another resource:
+
+```python
+from pragma_sdk import FieldReference
+
+# In a resource config, a FieldReference points to another resource's output
+resource = {
+    "provider": "agno",
+    "resource": "anthropic-model",
+    "name": "claude",
+    "lifecycle_state": "pending",
+    "config": {
+        "model_id": "claude-sonnet-4-5-20250929",
+        "api_key": {
+            "provider": "pragma",
+            "resource": "secret",
+            "name": "anthropic-key",
+            "field": "outputs.api_key",
+        },
+    },
+}
+client.apply_resource(resource)
+```
+
+### Dependency[T]
+
+For provider authors, declare whole-resource dependencies with typed access:
+
+```python
+from pragma_sdk import Resource, Config, Outputs, Dependency
+
+class ModelConfig(Config):
+    model_id: str
+    api_key: str
+
+class ModelOutputs(Outputs):
+    model_name: str
+
+class Model(Resource[ModelConfig, ModelOutputs]):
+    provider = "agno"
+    resource = "anthropic-model"
+
+class AgentConfig(Config):
+    model: Dependency[Model]
+    instructions: str
+
+class AgentOutputs(Outputs):
+    agent_id: str
+
+@mycloud.resource("agent")
+class Agent(Resource[AgentConfig, AgentOutputs]):
+    async def on_create(self) -> AgentOutputs:
+        model = await self.config.model.resolve()
+        # Access typed config and outputs
+        model_name = model.outputs.model_name
+        return AgentOutputs(agent_id=f"agent-using-{model_name}")
+```
+
+### Owner References
+
+Establish parent-child relationships for cascade deletion:
+
+```python
+result = client.apply_resource({
+    "provider": "agno",
+    "resource": "agent",
+    "name": "team-member",
+    "lifecycle_state": "pending",
+    "config": {"instructions": "You are a team member."},
+    "owner_references": [
+        {
+            "provider": "agno",
+            "resource": "team",
+            "name": "my-team",
+        }
+    ],
+})
+```
+
+When the owner resource (`my-team`) is deleted, owned resources (`team-member`) are automatically cascade-deleted.
+
+---
+
 ## Provider Authoring
 
 The SDK also provides utilities for building providers. See [Building Providers](/building-providers/overview) for complete documentation.

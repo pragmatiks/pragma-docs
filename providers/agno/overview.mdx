@@ -1,0 +1,54 @@
+---
+title: "Agno Provider"
+description: "Deploy and manage AI agents, teams, and their dependencies on Kubernetes"
+---
+
+The Agno provider integrates the [Agno](https://agno.com) AI agent framework with Pragmatiks, enabling you to define, configure, and deploy AI agents and multi-agent teams as declarative resources.
+
+## What is Agno?
+
+Agno is a Python framework for building AI agents with support for models, tools, knowledge bases, and memory. The Agno provider lets you manage the full agent lifecycle declaratively — from model configuration to Kubernetes deployment.
+
+## Setup
+
+The Agno provider is a first-party provider maintained by Pragmatiks. Install it with:
+
+```bash
+pragma providers push --deploy
+```
+
+## Resources
+
+| Resource | Type | Description |
+|----------|------|-------------|
+| [Agent](/providers/agno/agent) | `agno/agent` | AI agent definition with model, tools, and knowledge |
+| [Team](/providers/agno/team) | `agno/team` | Multi-agent team with coordinated members |
+| [Models](/providers/agno/models) | `agno/models/anthropic`, `agno/models/openai` | LLM configuration (Claude, GPT) |
+| [Tools](/providers/agno/tools) | `agno/tools/mcp`, `agno/tools/websearch` | Agent tool integrations |
+| [Knowledge](/providers/agno/knowledge) | `agno/knowledge`, `agno/vectordb/qdrant`, `agno/knowledge/embedder/openai`, `agno/knowledge/content` | Semantic search and RAG |
+| [Memory](/providers/agno/memory) | `agno/memory/manager` | Persistent agent memory |
+| [Storage](/providers/agno/storage) | `agno/db/postgres` | PostgreSQL storage for sessions and memory |
+| [Deployment](/providers/agno/deployment) | `agno/runner` | Deploy agents/teams to Kubernetes |
+
+## Architecture
+
+Resources form a dependency graph. A typical deployment looks like:
+
+```
+Secret (API key)
+  └─▶ Model (Claude/GPT)
+        └─▶ Agent
+              ├─▶ Tools (MCP, WebSearch)
+              ├─▶ Knowledge (VectorDB + Embedder + Content)
+              ├─▶ Memory (Manager + DB)
+              └─▶ Runner (Kubernetes Deployment)
+```
+
+Changes propagate automatically. Updating a model triggers the agent and runner to rebuild.
+
+## Dependencies
+
+The Agno provider depends on:
+
+- **GCP provider** — for `gcp/gke` clusters (required by `agno/runner`)
+- **GCP provider** — for `gcp/secret` (commonly used for API keys)
