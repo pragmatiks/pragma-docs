@@ -1261,9 +1261,9 @@
         "tags": [
           "resources"
         ],
-        "summary": "Delete Resource",
-        "description": "Delete a resource.\n\nTriggers the provider's deletion handler. The resource is set to PENDING state\nand will be removed when the provider confirms successful deletion.\n\nIdempotent: Returns 204 if resource doesn't exist (already deleted).\n\nReturns:\n    Resource in PENDING state awaiting provider deletion.\n\nRaises:\n    HTTPException: 204 if resource already deleted.",
-        "operationId": "resources-delete_resource",
+        "summary": "Remove Resource",
+        "description": "Remove a resource from the graph (hard delete).\n\nOnly available for DRAFT and WAITING resources. For active resources,\nuse deactivate first.\n\nReturns:\n    The deleted resource.\n\nRaises:\n    HTTPException: 204 if resource not found.",
+        "operationId": "resources-remove_resource",
         "parameters": [
           {
             "name": "resource_id",
@@ -1305,7 +1305,7 @@
           "resources"
         ],
         "summary": "Get Resource Status",
-        "description": "Get resource lifecycle status.\n\nReturns only the lifecycle state, useful for polling without fetching full configuration.\n\nLifecycle states:\n    - draft: Stored but not submitted for processing\n    - pending: Validated and queued for provider\n    - processing: Provider is actively processing\n    - ready: Successfully provisioned and operational\n    - failed: Processing failed (check error field)\n\nReturns:\n    ResourceStatus with lifecycle_state and optional error message.",
+        "description": "Get resource lifecycle status.\n\nReturns only the lifecycle state, useful for polling without fetching full configuration.\n\nLifecycle states:\n    - draft: Stored but not submitted for processing\n    - waiting: Dependencies not yet ready\n    - pending: Validated and queued for provider\n    - processing: Provider is actively processing\n    - ready: Successfully provisioned and operational\n    - failed: Processing failed (check error field)\n    - deleting: Provider teardown in progress\n\nReturns:\n    ResourceStatus with lifecycle_state and optional error message.",
         "operationId": "resources-get_resource_status",
         "parameters": [
           {
@@ -1360,6 +1360,49 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/{resource_id}/deactivate": {
+      "post": {
+        "tags": [
+          "resources"
+        ],
+        "summary": "Deactivate Resource",
+        "description": "Deactivate a resource (soft delete).\n\nTriggers provider teardown. Resource returns to DRAFT state when complete.\nOnly available for READY and FAILED resources.\n\nReturns:\n    Resource in DELETING state awaiting provider teardown.",
+        "operationId": "resources-deactivate_resource",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1754,10 +1797,12 @@
         "type": "string",
         "enum": [
           "draft",
+          "waiting",
           "pending",
           "processing",
           "ready",
-          "failed"
+          "failed",
+          "deleting"
         ],
         "title": "LifecycleState",
         "description": "Lifecycle states for resources."
@@ -2312,7 +2357,7 @@
           "lifecycle_state"
         ],
         "title": "ResourceStatus",
-        "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, pending, processing, ready, failed).\n    error: Error message if resource is in failed state."
+        "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, waiting, pending, processing, ready, failed, deleting).\n    error: Error message if resource is in failed state."
       },
       "SignedUrlResponse": {
         "properties": {
