@@ -2169,6 +2169,11 @@
             "title": "Provisioned",
             "default": false
           },
+          "reconcile_count": {
+            "type": "integer",
+            "title": "Reconcile Count",
+            "default": 0
+          },
           "tags": {
             "anyOf": [
               {
