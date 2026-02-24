@@ -1704,7 +1704,166 @@
         }
       }
     },
+    "/store/providers": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "List Providers",
+        "description": "List store providers with search and filtering.\n\nPublic endpoint for browsing the provider catalog. Supports text search\nacross name, display_name, and description, plus filtering by trust tier\nand tags.\n\nArgs:\n    q: Text search query.\n    trust_tier: Filter by trust tier.\n    tags: Filter by tags (matches any).\n    limit: Maximum results per page.\n    offset: Number of results to skip.\n    surreal: Shared SurrealDB client.\n\nReturns:\n    Paginated list of provider summaries.",
+        "operationId": "store-list_providers",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search query",
+              "title": "Q"
+            },
+            "description": "Search query"
+          },
+          {
+            "name": "trust_tier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TrustTier"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by trust tier",
+              "title": "Trust Tier"
+            },
+            "description": "Filter by trust tier"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by tags",
+              "title": "Tags"
+            },
+            "description": "Filter by tags"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Page size"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_StoreProviderSummary_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/store/providers/{provider_name}": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Get Provider Detail",
+        "description": "Get full detail for a store provider including all versions.\n\nPublic endpoint. Raises 404 if provider not found.\n\nArgs:\n    provider_name: Unique provider name.\n    surreal: Shared SurrealDB client.\n\nReturns:\n    Provider detail with versions list.",
+        "operationId": "store-get_provider_detail",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProviderDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "tags": [
           "store"
@@ -1740,6 +1899,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StoreProvider"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/providers/{provider_name}/versions/{version}": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Get Version Detail",
+        "description": "Get detail for a specific provider version.\n\nPublic endpoint. Raises 404 if version not found.\n\nArgs:\n    provider_name: Unique provider name.\n    version: Semantic version string.\n    surreal: Shared SurrealDB client.\n\nReturns:\n    Version detail.\n\nRaises:\n    StoreVersionNotFoundError: If version not found.",
+        "operationId": "store-get_version_detail",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreVersionDetail"
                 }
               }
             }
@@ -1845,6 +2056,175 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StoreVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/installed": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "List Installed Providers",
+        "description": "List installed providers for the authenticated tenant.\n\nReturns installed providers enriched with upgrade availability status\nby comparing installed versions against the latest store versions.\n\nArgs:\n    tenant_context: Authenticated tenant context.\n    store_service: Store service with tenant-scoped dependencies.\n\nReturns:\n    List of installed provider summaries with upgrade_available flags.",
+        "operationId": "store-list_installed_providers",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InstalledProviderSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Store-List Installed Providers"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/install": {
+      "post": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Install Provider",
+        "description": "Install a store provider for the authenticated tenant.\n\nDeploys a pre-built image from the store (no build step). Creates\nInstalledProvider + tenant Provider records, activates resource schemas,\nand increments the store provider's install_count.\n\nArgs:\n    request: Install parameters (provider name, version, tier, policy).\n    context: Authenticated tenant context.\n    store_service: Store service with tenant-scoped dependencies.\n\nReturns:\n    InstalledProvider record with installation details.\n\nRaises:\n    HTTPException: 404 if provider or version not found.\n    HTTPException: 409 if provider already installed.\n    HTTPException: 400 if version is not published.",
+        "operationId": "store-install_provider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledProvider"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/installed/{provider_name}": {
+      "delete": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Uninstall Provider",
+        "description": "Uninstall a store provider for the authenticated tenant.\n\nPerforms full cleanup: removes Kubernetes deployment, NATS resources,\nschemas, database records, and decrements the store install count.\n\nArgs:\n    provider_name: Store provider name to uninstall.\n    cascade: If true, also delete tenant resources managed by this provider.\n    context: Authenticated tenant context.\n    store_service: Store service with tenant-scoped dependencies.\n\nRaises:\n    HTTPException: 404 if provider is not installed.\n    HTTPException: 409 if provider has resources and cascade is false.",
+        "operationId": "store-uninstall_provider",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also delete tenant resources managed by this provider",
+              "default": false,
+              "title": "Cascade"
+            },
+            "description": "Also delete tenant resources managed by this provider"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/installed/{provider_name}/upgrade": {
+      "post": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Upgrade Provider",
+        "description": "Upgrade an installed store provider to a new version.\n\nDeploys a new pre-built image via rolling Kubernetes update, replaces\nresource schemas from the new version, and updates the InstalledProvider\nrecord with the new version.\n\nArgs:\n    provider_name: Store provider name to upgrade.\n    request: Upgrade parameters (optional target version).\n    context: Authenticated tenant context.\n    store_service: Store service with tenant-scoped dependencies.\n\nReturns:\n    Updated InstalledProvider record.\n\nRaises:\n    HTTPException: 404 if provider not installed or version not found.\n    HTTPException: 400 if version is not published.\n    HTTPException: 409 if already on the target version.",
+        "operationId": "store-upgrade_provider",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeProviderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledProvider"
                 }
               }
             }
@@ -2126,6 +2506,134 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InstallProviderRequest": {
+        "properties": {
+          "provider_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "title": "Provider Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "resource_tier": {
+            "$ref": "#/components/schemas/ResourceTier",
+            "default": "standard"
+          },
+          "upgrade_policy": {
+            "$ref": "#/components/schemas/UpgradePolicy",
+            "default": "manual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_name"
+        ],
+        "title": "InstallProviderRequest",
+        "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install.\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled."
+      },
+      "InstalledProvider": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "store_provider_name": {
+            "type": "string",
+            "title": "Store Provider Name"
+          },
+          "installed_version": {
+            "type": "string",
+            "title": "Installed Version"
+          },
+          "upgrade_policy": {
+            "$ref": "#/components/schemas/UpgradePolicy",
+            "default": "manual"
+          },
+          "resource_tier": {
+            "$ref": "#/components/schemas/ResourceTier",
+            "default": "standard"
+          },
+          "installed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Installed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "store_provider_name",
+          "installed_version",
+          "installed_at"
+        ],
+        "title": "InstalledProvider",
+        "description": "Tenant-scoped record of an installed store provider.\n\nIdentity fields (frozen):\n    store_provider_name: Name of the store provider (used as SurrealDB record ID).\n\nConfiguration:\n    installed_version: Semver string of the currently installed version.\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n\nState (system-managed):\n    installed_at: Timestamp when the provider was first installed."
+      },
+      "InstalledProviderSummary": {
+        "properties": {
+          "store_provider_name": {
+            "type": "string",
+            "title": "Store Provider Name"
+          },
+          "installed_version": {
+            "type": "string",
+            "title": "Installed Version"
+          },
+          "upgrade_policy": {
+            "$ref": "#/components/schemas/UpgradePolicy"
+          },
+          "resource_tier": {
+            "$ref": "#/components/schemas/ResourceTier"
+          },
+          "installed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Installed At"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "upgrade_available": {
+            "type": "boolean",
+            "title": "Upgrade Available",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "store_provider_name",
+          "installed_version",
+          "upgrade_policy",
+          "resource_tier",
+          "installed_at"
+        ],
+        "title": "InstalledProviderSummary",
+        "description": "Installed provider with upgrade status.\n\nAttributes:\n    store_provider_name: Name of the installed store provider.\n    installed_version: Currently installed semver string.\n    upgrade_policy: How upgrades are handled (auto/manual).\n    resource_tier: Resource allocation tier.\n    installed_at: Timestamp of initial installation.\n    latest_version: Latest published version from the store (None if store provider deleted).\n    upgrade_available: True if latest_version differs from installed_version."
+      },
       "LifecycleState": {
         "type": "string",
         "enum": [
@@ -2260,6 +2768,37 @@
         ],
         "title": "OwnerReference",
         "description": "Reference to a resource that owns this resource for lifecycle coordination.\n\nUsed for cascading deletes and ownership tracking. When an owner resource\nis deleted, owned resources can be automatically cleaned up.\n\nA resource can have multiple owners (rare but valid for shared resources).\n\nAttributes:\n    provider: Provider that manages the owner resource.\n    resource: Resource type name.\n    name: Resource instance name."
+      },
+      "PaginatedResponse_StoreProviderSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StoreProviderSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "PaginatedResponse[StoreProviderSummary]"
       },
       "ProviderDeleteResult": {
         "properties": {
@@ -2697,6 +3236,16 @@
         "title": "ResourceStatus",
         "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, waiting, pending, processing, ready, failed, deleting).\n    error: Error message if resource is in failed state."
       },
+      "ResourceTier": {
+        "type": "string",
+        "enum": [
+          "free",
+          "standard",
+          "performance"
+        ],
+        "title": "ResourceTier",
+        "description": "Resource allocation tier for an installed provider."
+      },
       "RuntimeVersion": {
         "properties": {
           "created_at": {
@@ -2898,6 +3447,96 @@
         "title": "StoreProviderAuthor",
         "description": "Author metadata for a store provider.\n\nAttributes:\n    tenant_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
       },
+      "StoreProviderDetail": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/StoreProvider"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/StoreVersion"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "versions"
+        ],
+        "title": "StoreProviderDetail",
+        "description": "Full provider detail with versions list."
+      },
+      "StoreProviderSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "author": {
+            "$ref": "#/components/schemas/StoreProviderAuthor"
+          },
+          "trust_tier": {
+            "$ref": "#/components/schemas/TrustTier"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "install_count": {
+            "type": "integer",
+            "title": "Install Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "description",
+          "author",
+          "trust_tier",
+          "icon_url",
+          "tags",
+          "latest_version",
+          "install_count"
+        ],
+        "title": "StoreProviderSummary",
+        "description": "Summary for catalog listing."
+      },
       "StoreVersion": {
         "properties": {
           "created_at": {
@@ -3018,6 +3657,19 @@
         "title": "StoreVersion",
         "description": "A published version of a store provider.\n\nIdentity fields (frozen):\n    provider_name: Globally unique provider name this version belongs to.\n    version: Semantic version string (e.g., \"1.0.0\").\n\nBuild metadata:\n    runtime_version: Pinned runtime version used to build the image.\n    image_url: Built container image URL (set after build completes).\n    source_hash: SHA-256 of the source tarball.\n\nProvider introspection:\n    schemas: Resource type schemas extracted from the provider.\n\nState (system-managed):\n    status: Build/publish lifecycle status.\n    published_at: Timestamp when version was published.\n    error_message: Error details when build fails."
       },
+      "StoreVersionDetail": {
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/StoreVersion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "StoreVersionDetail",
+        "description": "Single version detail."
+      },
       "TrustTier": {
         "type": "string",
         "enum": [
@@ -3097,6 +3749,33 @@
         "type": "object",
         "title": "UpdateStoreProviderRequest",
         "description": "Request model for updating store provider metadata.\n\nOnly provided (non-None) fields are updated. Trust tier is intentionally\nexcluded \u2014 it is admin-only and managed separately.\n\nAttributes:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n    icon_url: URL to provider icon image."
+      },
+      "UpgradePolicy": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "manual"
+        ],
+        "title": "UpgradePolicy",
+        "description": "How a tenant wants installed providers to be upgraded."
+      },
+      "UpgradeProviderRequest": {
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "title": "UpgradeProviderRequest",
+        "description": "Request model for upgrading an installed store provider.\n\nAttributes:\n    version: Target version to upgrade to (None = upgrade to latest published)."
       },
       "UserInfo": {
         "properties": {
