@@ -1563,6 +1563,93 @@
           }
         }
       }
+    },
+    "/runtime/versions": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "List Runtime Versions",
+        "description": "List all runtime versions, most recent first.\n\nReturns paginated list of runtime image versions sorted by release date.\n\nReturns:\n    List of runtime versions.",
+        "operationId": "runtime-list_runtime_versions",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Maximum number of versions to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of versions to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of versions to skip",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of versions to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeVersion"
+                  },
+                  "title": "Response Runtime-List Runtime Versions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runtime/versions/latest": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Get Latest Runtime Version",
+        "description": "Get the latest runtime version.\n\nReturns the most recently released runtime image version.\n\nReturns:\n    Latest runtime version.\n\nRaises:\n    HTTPException: 404 if no versions exist.",
+        "operationId": "runtime-get_latest_runtime_version",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeVersion"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2363,6 +2450,52 @@
         ],
         "title": "ResourceStatus",
         "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, waiting, pending, processing, ready, failed, deleting).\n    error: Error message if resource is in failed state."
+      },
+      "RuntimeVersion": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "image_url": {
+            "type": "string",
+            "title": "Image Url"
+          },
+          "released_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Released At"
+          },
+          "changelog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changelog"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "image_url",
+          "released_at"
+        ],
+        "title": "RuntimeVersion",
+        "description": "A tracked runtime image version.\n\nIdentity fields (frozen):\n    version: Semver string (e.g., \"0.39.0\"), used as SurrealDB record ID.\n\nMetadata:\n    image_url: Full container image URL for this runtime version.\n    released_at: Timestamp when this version was released.\n    changelog: Optional release notes in markdown."
       },
       "SignedUrlResponse": {
         "properties": {
