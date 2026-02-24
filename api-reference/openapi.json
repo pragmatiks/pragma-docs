@@ -359,6 +359,59 @@
         }
       }
     },
+    "/internal/runtime/versions": {
+      "post": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Register Runtime Version",
+        "description": "Register a new runtime image version.\n\nCalled by CI/CD after building and pushing a runtime image to the\ncontainer registry. Creates or updates the version record in SurrealDB.\n\nRequires a Bearer token matching the INTERNAL_API_KEY setting.\n\nArgs:\n    body: Runtime version registration payload.\n    service: RuntimeVersionStorageService for persistence.\n    authorization: Bearer token from Authorization header.\n\nReturns:\n    The persisted RuntimeVersion record.\n\nRaises:\n    HTTPException: 401 if API key is missing or invalid.",
+        "operationId": "internal-register_runtime_version",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ops/dead-letter": {
       "get": {
         "tags": [
@@ -1650,6 +1703,164 @@
           }
         }
       }
+    },
+    "/store/providers/{provider_name}": {
+      "patch": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Update Store Provider Metadata",
+        "description": "Update metadata for a store provider.\n\nOnly the provider's author (matching tenant) can update metadata.\nTrust tier is not updatable via this endpoint.\n\nArgs:\n    provider_name: Unique provider name.\n    request: Partial metadata update fields.\n    context: Authenticated tenant context for author validation.\n    service: Store provider storage service.\n\nReturns:\n    Updated StoreProvider.\n\nRaises:\n    HTTPException: 404 if provider not found, 403 if caller is not the author.",
+        "operationId": "store-update_store_provider_metadata",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreProviderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProvider"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/providers/{provider_name}/publish": {
+      "post": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Publish Version",
+        "description": "Publish a new version of a store provider.\n\nAccepts a source tarball and version metadata, validates ownership,\nchecks for duplicate content, and triggers a Cloud Build with the\nlatest pinned runtime version.\n\nThe client should poll the version status endpoint for build progress.\n\nArgs:\n    provider_name: Unique provider name in the store.\n    code: Tarball (tar.gz) containing provider source code.\n    version: Semantic version string (e.g., \"1.0.0\").\n    context: Authenticated tenant context for the publisher.\n    store_service: Store service for publish orchestration.\n    changelog: Optional release notes for this version.\n    force: If true, bypass content hash deduplication check.\n\nReturns:\n    StoreVersion in BUILDING state with cloud_build_id for tracking.\n\nRaises:\n    HTTPException: 403 if publisher is not the author.\n    HTTPException: 404 if provider not found.\n    HTTPException: 409 if duplicate source hash (and force=false).\n    HTTPException: 503 if no runtime versions available.",
+        "operationId": "store-publish_version",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_store-publish_version"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/providers/{provider_name}/versions/{version}/status": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Get Version Build Status",
+        "description": "Poll build status for a store version.\n\nIf the version is still BUILDING, queries Cloud Build for current status\nand transitions the version on completion. Already-finalized versions\nare returned as-is without querying Cloud Build.\n\nArgs:\n    provider_name: Unique provider name in the store.\n    version: Semantic version string (e.g., \"1.0.0\").\n    store_service: Store service for status orchestration.\n\nReturns:\n    StoreVersion with current build/publish status.\n\nRaises:\n    HTTPException: 404 if version or provider not found.",
+        "operationId": "store-get_version_build_status",
+        "parameters": [
+          {
+            "name": "provider_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Name"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1681,6 +1892,41 @@
           "code"
         ],
         "title": "Body_providers-push_provider"
+      },
+      "Body_store-publish_version": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "binary",
+            "title": "Code"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "changelog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changelog"
+          },
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "version"
+        ],
+        "title": "Body_store-publish_version"
       },
       "BuildInfo": {
         "properties": {
@@ -2497,6 +2743,36 @@
         "title": "RuntimeVersion",
         "description": "A tracked runtime image version.\n\nIdentity fields (frozen):\n    version: Semver string (e.g., \"0.39.0\"), used as SurrealDB record ID.\n\nMetadata:\n    image_url: Full container image URL for this runtime version.\n    released_at: Timestamp when this version was released.\n    changelog: Optional release notes in markdown."
       },
+      "RuntimeVersionCreate": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "image_url": {
+            "type": "string",
+            "title": "Image Url"
+          },
+          "changelog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changelog"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "image_url"
+        ],
+        "title": "RuntimeVersionCreate",
+        "description": "Request body for registering a new runtime version.\n\nAttributes:\n    version: Semver version string (e.g., \"0.40.0\").\n    image_url: Full container image URL for this runtime version.\n    changelog: Optional release notes in markdown."
+      },
       "SignedUrlResponse": {
         "properties": {
           "url": {
@@ -2515,6 +2791,312 @@
         ],
         "title": "SignedUrlResponse",
         "description": "Response containing a signed download URL."
+      },
+      "StoreProvider": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "author": {
+            "$ref": "#/components/schemas/StoreProviderAuthor"
+          },
+          "trust_tier": {
+            "$ref": "#/components/schemas/TrustTier",
+            "default": "community"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
+          },
+          "readme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readme"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "install_count": {
+            "type": "integer",
+            "title": "Install Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "description",
+          "author"
+        ],
+        "title": "StoreProvider",
+        "description": "Provider listing in the store.\n\nIdentity fields (frozen):\n    name: Globally unique provider name (used as SurrealDB record ID).\n\nMetadata:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    author: Publishing organization metadata.\n    trust_tier: Trust level (Official/Verified/Community).\n    icon_url: URL to provider icon image.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n\nState (system-managed):\n    latest_version: CalVer of the most recent published version.\n    install_count: Total number of tenant installations."
+      },
+      "StoreProviderAuthor": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "org_name": {
+            "type": "string",
+            "title": "Org Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "org_name"
+        ],
+        "title": "StoreProviderAuthor",
+        "description": "Author metadata for a store provider.\n\nAttributes:\n    tenant_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
+      },
+      "StoreVersion": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "provider_name": {
+            "type": "string",
+            "title": "Provider Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "runtime_version": {
+            "type": "string",
+            "title": "Runtime Version"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
+          },
+          "cloud_build_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cloud Build Id"
+          },
+          "schemas": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schemas"
+          },
+          "changelog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changelog"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VersionStatus",
+            "default": "building"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_name",
+          "version",
+          "runtime_version"
+        ],
+        "title": "StoreVersion",
+        "description": "A published version of a store provider.\n\nIdentity fields (frozen):\n    provider_name: Globally unique provider name this version belongs to.\n    version: Semantic version string (e.g., \"1.0.0\").\n\nBuild metadata:\n    runtime_version: Pinned runtime version used to build the image.\n    image_url: Built container image URL (set after build completes).\n    source_hash: SHA-256 of the source tarball.\n\nProvider introspection:\n    schemas: Resource type schemas extracted from the provider.\n\nState (system-managed):\n    status: Build/publish lifecycle status.\n    published_at: Timestamp when version was published.\n    error_message: Error details when build fails."
+      },
+      "TrustTier": {
+        "type": "string",
+        "enum": [
+          "official",
+          "verified",
+          "community"
+        ],
+        "title": "TrustTier",
+        "description": "Trust level assigned to store providers."
+      },
+      "UpdateStoreProviderRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "readme": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readme"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
+          }
+        },
+        "type": "object",
+        "title": "UpdateStoreProviderRequest",
+        "description": "Request model for updating store provider metadata.\n\nOnly provided (non-None) fields are updated. Trust tier is intentionally\nexcluded \u2014 it is admin-only and managed separately.\n\nAttributes:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n    icon_url: URL to provider icon image."
       },
       "UserInfo": {
         "properties": {
@@ -2591,6 +3173,17 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VersionStatus": {
+        "type": "string",
+        "enum": [
+          "building",
+          "published",
+          "failed",
+          "yanked"
+        ],
+        "title": "VersionStatus",
+        "description": "Build/publish status for a store provider version."
       }
     }
   }
