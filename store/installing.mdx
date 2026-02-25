@@ -1,0 +1,130 @@
+---
+title: "Installing Providers"
+description: "Install providers from the store into your workspace"
+---
+
+Installing a provider from the store deploys it into your workspace and makes all its resource types available.
+
+## Prerequisites
+
+- Authenticated with the platform: `pragma auth login`
+- Active workspace context: `pragma config current-context`
+
+## Install via CLI
+
+### Basic Install
+
+Install the latest version with default settings:
+
+```bash
+pragma store install qdrant
+```
+
+```
+Provider: Qdrant (qdrant)
+Version:  1.2.0
+Tier:     standard
+
+Install this provider? [y/N]: y
+Installed: qdrant v1.2.0
+```
+
+### Install a Specific Version
+
+```bash
+pragma store install qdrant 1.1.0
+```
+
+### Choose a Resource Tier
+
+The resource tier controls how much compute is allocated to the provider's deployment. Choose based on your workload:
+
+```bash
+# Minimal resources for testing
+pragma store install qdrant --tier free
+
+# Balanced for production (default)
+pragma store install qdrant --tier standard
+
+# Maximum resources for high-throughput workloads
+pragma store install qdrant --tier performance
+```
+
+See [Resource Tiers](/store/resource-tiers) for details on what each tier provides.
+
+### Set an Upgrade Policy
+
+Control how future updates are applied:
+
+```bash
+# Manual upgrades (default) — you control when to upgrade
+pragma store install qdrant --upgrade-policy manual
+
+# Auto upgrades — new versions deploy automatically
+pragma store install redis --upgrade-policy auto
+```
+
+See [Upgrade Policies](/store/upgrade-policies) for details.
+
+### Skip Confirmation
+
+Use `-y` to skip the confirmation prompt (useful in scripts):
+
+```bash
+pragma store install qdrant -y
+```
+
+### Full Example
+
+```bash
+pragma store install redis 1.0.0 --tier performance --upgrade-policy auto -y
+```
+
+## Install via Web UI
+
+In the Pragmatiks dashboard, navigate to the **Store** tab, select a provider, choose your resource tier and upgrade policy, and click **Install**.
+
+## Verify Installation
+
+After installing, verify the provider is available:
+
+```bash
+# List all installed providers
+pragma store installed
+```
+
+```
+Provider   Version   Tier       Upgrade Policy   Installed At          Upgrade Available
+qdrant     1.2.0     standard   manual           2026-02-20 14:30:00   -
+redis      1.0.0     performance auto            2026-02-20 14:35:00   -
+```
+
+You can also verify that the provider's resource types are available:
+
+```bash
+pragma resources types
+```
+
+## What Happens During Install
+
+When you install a provider:
+
+1. The platform pulls the provider image for the selected version
+2. A deployment is created in your workspace with the resource allocation matching your chosen tier
+3. The provider connects and begins listening for resource events
+4. All resource types from the provider become available in your workspace
+
+<Note>
+If the provider was previously installed and has active resources, you will receive a conflict error. Uninstall the existing provider first, or upgrade to a new version instead.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upgrading & Uninstalling" icon="arrows-rotate" href="/store/upgrading">
+    Manage installed provider versions.
+  </Card>
+  <Card title="Resource Tiers" icon="gauge" href="/store/resource-tiers">
+    Understand compute allocation for providers.
+  </Card>
+</CardGroup>

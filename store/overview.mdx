@@ -1,0 +1,87 @@
+---
+title: "Provider Store"
+description: "Browse, install, and manage providers from the Pragmatiks store"
+---
+
+The Provider Store is the marketplace for Pragmatiks providers. Browse available providers, install them into your workspace, and start using their resource types immediately.
+
+## How It Works
+
+1. **Browse** providers in the store via the web UI or CLI
+2. **Install** a provider into your workspace with a single command
+3. **Use** the provider's resource types in your YAML configurations
+
+When you install a provider, the platform deploys it into your workspace. All the resource types it exposes become available for you to create, update, and delete like any other Pragma resource.
+
+## Key Concepts
+
+### Trust Tiers
+
+Every provider in the store has a trust tier indicating its verification level:
+
+| Tier | Description |
+|------|-------------|
+| **Official** | Built and maintained by the Pragmatiks team |
+| **Verified** | Third-party, reviewed and verified by Pragmatiks |
+| **Community** | Published by any user in the community |
+
+Learn more in [Trust Tiers](/store/trust-tiers).
+
+### Resource Tiers
+
+When installing a provider, you choose a resource tier that controls the compute allocation for the provider's deployment:
+
+| Tier | Use Case |
+|------|----------|
+| **Free** | Testing and development |
+| **Standard** | Production workloads (default) |
+| **Performance** | High-throughput production |
+
+Learn more in [Resource Tiers](/store/resource-tiers).
+
+### Upgrade Policies
+
+Control how provider updates are applied to your workspace:
+
+| Policy | Behavior |
+|--------|----------|
+| **Manual** | You decide when to upgrade (default) |
+| **Auto** | New versions deploy automatically |
+
+Learn more in [Upgrade Policies](/store/upgrade-policies).
+
+## Quick Start
+
+```bash
+# Browse available providers
+pragma store list
+
+# Search for a specific provider
+pragma store search "vector database"
+
+# Get details about a provider
+pragma store info qdrant
+
+# Install a provider
+pragma store install qdrant
+
+# See what you have installed
+pragma store installed
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Browsing Providers" icon="magnifying-glass" href="/store/browsing">
+    Find and explore providers in the store.
+  </Card>
+  <Card title="Installing Providers" icon="download" href="/store/installing">
+    Install providers into your workspace.
+  </Card>
+  <Card title="Upgrading & Uninstalling" icon="arrows-rotate" href="/store/upgrading">
+    Manage provider versions and lifecycle.
+  </Card>
+  <Card title="Publishing Providers" icon="cloud-arrow-up" href="/store/publishing">
+    Publish your own provider to the store.
+  </Card>
+</CardGroup>

@@ -1,0 +1,68 @@
+---
+title: "Upgrade Policies"
+description: "Control how provider updates are applied"
+---
+
+Upgrade policies determine how new provider versions are deployed to your workspace. You choose a policy when installing a provider.
+
+## Policies
+
+### Manual (Default)
+
+With the manual policy, you control exactly when upgrades happen. New versions are not deployed until you explicitly run the upgrade command or trigger an upgrade from the web UI.
+
+```bash
+pragma store install qdrant --upgrade-policy manual
+```
+
+To upgrade:
+
+```bash
+pragma store upgrade qdrant
+```
+
+Manual upgrades give you full control over when changes are applied, which is useful when you need to coordinate upgrades with other changes in your environment.
+
+### Auto
+
+With the auto policy, new versions are deployed automatically when published to the store. The platform periodically checks for updates and performs rolling upgrades with zero downtime.
+
+```bash
+pragma store install redis --upgrade-policy auto
+```
+
+Auto-upgrade is useful for providers where you want to stay on the latest version without manual intervention.
+
+## Choosing a Policy
+
+| Scenario | Recommended Policy |
+|----------|-------------------|
+| Production workloads requiring stability | Manual |
+| Development and testing environments | Auto |
+| Providers you want to keep current | Auto |
+| Regulated environments with change control | Manual |
+
+## Viewing Current Policy
+
+```bash
+pragma store installed
+```
+
+```
+Provider   Version   Tier       Upgrade Policy   Installed At          Upgrade Available
+qdrant     1.2.0     standard   manual           2026-02-20 14:30:00   -
+redis      1.0.0     standard   auto             2026-02-20 14:35:00   -
+```
+
+## Changing a Policy
+
+To change the upgrade policy of an installed provider, uninstall and reinstall with the desired policy:
+
+```bash
+pragma store uninstall qdrant
+pragma store install qdrant --upgrade-policy auto
+```
+
+<Note>
+If the provider has active resources, uninstall will fail. Use `--cascade` to delete all managed resources first. See [Uninstalling a Provider](/store/upgrading#uninstalling-a-provider) for details.
+</Note>

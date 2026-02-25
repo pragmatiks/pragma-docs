@@ -1,0 +1,158 @@
+---
+title: "Publishing Providers"
+description: "Publish your provider to the Pragmatiks store"
+---
+
+Once you have built and tested a provider, you can publish it to the Pragmatiks Provider Store to make it available to other users.
+
+## Prerequisites
+
+- A Pragmatiks account with an authenticated CLI: `pragma auth login`
+- A working provider project (see [Building Providers](/building-providers/overview))
+- A `pyproject.toml` with provider metadata configured
+
+## Provider Metadata
+
+Before publishing, configure the `[tool.pragma]` section in your `pyproject.toml` with store metadata:
+
+```toml
+[tool.pragma]
+display_name = "My Database Provider"
+description = "Manage database instances and users"
+tags = ["database", "sql"]
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `display_name` | Yes | Human-readable name shown in the store |
+| `description` | Yes | Short description of what the provider does |
+| `tags` | No | Searchable tags for categorization |
+
+## Publishing
+
+### Publish a Version
+
+Run the publish command from your provider project directory:
+
+```bash
+pragma providers publish --version 1.0.0
+```
+
+```
+Publishing provider: mydb
+Version: 1.0.0
+Source directory: /path/to/mydb-provider
+
+Created tarball: 12.3 KB
+Published: mydb v1.0.0
+Building... (building)
+Build successful: mydb v1.0.0
+```
+
+The command:
+1. Creates a tarball of your provider source code
+2. Uploads it to the store with the specified version
+3. Waits for the build to complete (by default)
+
+### Add a Changelog
+
+Include release notes with each version:
+
+```bash
+pragma providers publish --version 1.1.0 --changelog "Added connection pooling support"
+```
+
+### Skip Build Wait
+
+If you do not want to wait for the build to finish:
+
+```bash
+pragma providers publish --version 1.0.0 --no-wait
+```
+
+### Force Republish
+
+If a version with the same source code already exists, use `--force` to publish anyway:
+
+```bash
+pragma providers publish --version 1.0.1 --force
+```
+
+### Specify Source Directory
+
+Publish from a different directory:
+
+```bash
+pragma providers publish --version 1.0.0 --directory ./my-provider
+```
+
+### Specify Package Name
+
+If auto-detection fails, specify the package explicitly:
+
+```bash
+pragma providers publish --version 1.0.0 --package mydb_provider
+```
+
+## Versioning
+
+Provider versions follow [Semantic Versioning](https://semver.org/) (semver):
+
+- **Major** (2.0.0) — Breaking changes to resource schemas or behavior
+- **Minor** (1.1.0) — New resource types or backward-compatible features
+- **Patch** (1.0.1) — Bug fixes and minor improvements
+
+Each version must be a valid semver string (e.g., `1.0.0`, `1.2.3-beta.1`).
+
+## Build Process
+
+After you publish, the platform builds your provider into a deployable image. You can monitor build status:
+
+```bash
+pragma store info mydb
+```
+
+The version table shows the build status for each version:
+
+```
+Version   Status      Runtime Version   Published
+1.1.0     building    0.39.0            2026-02-25
+1.0.0     published   0.38.0            2026-02-01
+```
+
+Version statuses:
+- **building** — Build in progress
+- **published** — Build succeeded, available for installation
+- **failed** — Build failed (check error logs)
+- **yanked** — Version withdrawn from the store
+
+## Updating Metadata
+
+To update your provider's store metadata (display name, description, tags), update `pyproject.toml` and publish a new version. Metadata is extracted during the build process.
+
+## Complete Workflow
+
+```bash
+# 1. Test your provider locally
+task test
+
+# 2. Publish to the store
+pragma providers publish --version 1.0.0 --changelog "Initial release"
+
+# 3. Verify in the store
+pragma store info mydb
+
+# 4. Test installation
+pragma store install mydb --tier free
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Building Providers" icon="hammer" href="/building-providers/overview">
+    Learn how to build a provider from scratch.
+  </Card>
+  <Card title="Best Practices" icon="lightbulb" href="/building-providers/best-practices">
+    Guidelines for production-quality providers.
+  </Card>
+</CardGroup>

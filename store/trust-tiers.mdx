@@ -1,0 +1,65 @@
+---
+title: "Trust Tiers"
+description: "Understanding provider trust and verification levels"
+---
+
+Every provider in the store is assigned a trust tier that indicates its level of verification and support. Trust tiers help you assess the reliability of a provider before installing it.
+
+## Tiers
+
+### Official
+
+Built and maintained by the Pragmatiks team. Official providers receive the highest level of testing and long-term support.
+
+- Thoroughly tested against each platform release
+- Guaranteed compatibility with the latest runtime version
+- Backed by the Pragmatiks team for bug fixes and updates
+- Examples: `agno`, `gcp`, `kubernetes`
+
+### Verified
+
+Third-party providers that have been reviewed and verified by Pragmatiks. Verified providers meet quality and security standards but are maintained by their respective authors.
+
+- Code reviewed by the Pragmatiks team
+- Security audit passed
+- Author has a verified organization account
+- Pragmatiks monitors for critical issues
+
+### Community
+
+Community-contributed providers published by any user. Community providers are not reviewed by Pragmatiks.
+
+- Published by any authenticated user
+- No review or verification by Pragmatiks
+- Quality and maintenance depend on the author
+- Use at your own discretion
+
+<Note>
+Community providers can apply for Verified status by submitting their provider for review. See [Publishing Providers](/store/publishing) for details.
+</Note>
+
+## Filtering by Trust Tier
+
+You can filter the store catalog by trust tier:
+
+```bash
+# Show only official providers
+pragma store list --trust-tier official
+
+# Show only verified providers
+pragma store search database --trust-tier verified
+```
+
+In the web UI, use the trust tier filter in the store sidebar.
+
+## Trust Tier in Provider Details
+
+The trust tier is displayed in provider listings and detail views:
+
+```bash
+pragma store info qdrant
+```
+
+```
+Trust Tier:   official
+```
