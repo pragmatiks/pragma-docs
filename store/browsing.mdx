@@ -1,0 +1,123 @@
+---
+title: "Browsing Providers"
+description: "Find and explore providers in the Pragmatiks store"
+---
+
+You can browse the provider store through the web UI or the CLI. Both give you access to the full catalog with filtering by trust tier and tags.
+
+## Browsing via CLI
+
+### List All Providers
+
+```bash
+pragma store list
+```
+
+```
+Name           Display Name       Trust Tier   Latest Version   Installs   Tags
+qdrant         Qdrant             official     1.2.0            42         vector,database
+agno           Agno               official     2.1.0            128        ai,agents
+gcp            Google Cloud       official     1.5.0            87         cloud,gcp
+postgres       PostgreSQL         verified     1.0.0            34         database,sql
+redis          Redis              community    0.3.0            12         cache,database
+
+Showing 1-5 of 12 providers
+```
+
+### Filter by Trust Tier
+
+Show only providers at a specific trust level:
+
+```bash
+pragma store list --trust-tier official
+```
+
+### Filter by Tags
+
+Filter providers by comma-separated tags:
+
+```bash
+pragma store list --tags vector,database
+```
+
+### Combine Filters
+
+```bash
+pragma store list --trust-tier verified --tags ml --limit 10
+```
+
+### Search
+
+Search providers by name or description:
+
+```bash
+pragma store search "vector database"
+```
+
+```
+Name           Display Name       Trust Tier   Latest Version   Installs   Tags
+qdrant         Qdrant             official     1.2.0            42         vector,database
+```
+
+Search supports the same filters as `list`:
+
+```bash
+pragma store search postgres --trust-tier official
+```
+
+### Get Provider Details
+
+View detailed information about a specific provider, including its version history:
+
+```bash
+pragma store info qdrant
+```
+
+```
+╭─────────── qdrant ───────────╮
+│ Name:         qdrant         │
+│ Display Name: Qdrant         │
+│ Author:       Pragmatiks     │
+│ Trust Tier:   official       │
+│ Description:  Vector datab…  │
+│ Tags:         vector, db     │
+│ Installs:     42             │
+│ Created:      2026-01-15     │
+│ Updated:      2026-02-20     │
+╰──────────────────────────────╯
+
+Version   Status      Runtime Version   Published
+1.2.0     published   0.39.0            2026-02-20
+1.1.0     published   0.38.0            2026-02-01
+1.0.0     published   0.37.0            2026-01-15
+```
+
+## Structured Output
+
+All store commands support structured output for scripting:
+
+```bash
+# JSON output
+pragma store list -o json
+
+# YAML output
+pragma store info qdrant -o yaml
+
+# Pipe to jq
+pragma store list -o json | jq '.[].name'
+```
+
+## Browsing via Web UI
+
+The web UI provides a visual store experience with the same filtering capabilities. Navigate to the **Store** tab in the Pragmatiks dashboard to browse, search, and install providers.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installing Providers" icon="download" href="/store/installing">
+    Install a provider into your workspace.
+  </Card>
+  <Card title="Trust Tiers" icon="shield-halved" href="/store/trust-tiers">
+    Understand provider verification levels.
+  </Card>
+</CardGroup>

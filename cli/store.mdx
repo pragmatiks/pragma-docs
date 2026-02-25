@@ -1,0 +1,259 @@
+---
+title: "Store Commands"
+description: "CLI reference for the pragma store command group"
+---
+
+The `pragma store` command group manages the Provider Store. Browse, install, upgrade, and uninstall providers.
+
+## pragma store list
+
+List available providers in the store.
+
+```bash
+pragma store list [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--trust-tier` | — | Filter by trust tier (`official`, `verified`, `community`) |
+| `--tags` | — | Filter by tags (comma-separated) |
+| `--limit` | `20` | Maximum number of results |
+| `--offset` | `0` | Offset for pagination |
+| `-o`, `--output` | `table` | Output format (`table`, `json`, `yaml`) |
+
+**Examples:**
+
+```bash
+# List all providers
+pragma store list
+
+# Filter by trust tier
+pragma store list --trust-tier official
+
+# Filter by tags
+pragma store list --tags vector,database
+
+# Paginate results
+pragma store list --limit 10 --offset 20
+
+# JSON output
+pragma store list -o json
+```
+
+## pragma store search
+
+Search for providers by name or description.
+
+```bash
+pragma store search <QUERY> [OPTIONS]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `QUERY` | Yes | Search query string |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--trust-tier` | — | Filter by trust tier (`official`, `verified`, `community`) |
+| `--tags` | — | Filter by tags (comma-separated) |
+| `--limit` | `20` | Maximum number of results |
+| `--offset` | `0` | Offset for pagination |
+| `-o`, `--output` | `table` | Output format (`table`, `json`, `yaml`) |
+
+**Examples:**
+
+```bash
+# Search by keyword
+pragma store search postgres
+
+# Search with filters
+pragma store search "vector database" --trust-tier official
+
+# Combine search and tags
+pragma store search ml --tags embeddings -o json
+```
+
+## pragma store info
+
+Show detailed information about a provider, including version history.
+
+```bash
+pragma store info <NAME> [OPTIONS]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `NAME` | Yes | Provider name |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o`, `--output` | `table` | Output format (`table`, `json`, `yaml`) |
+
+**Examples:**
+
+```bash
+pragma store info qdrant
+pragma store info postgres -o json
+```
+
+## pragma store install
+
+Install a provider from the store into your workspace.
+
+```bash
+pragma store install <NAME> [VERSION] [OPTIONS]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `NAME` | Yes | Provider name to install |
+| `VERSION` | No | Version to install (default: latest) |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--tier` | `standard` | Resource tier (`free`, `standard`, `performance`) |
+| `--upgrade-policy` | `manual` | Upgrade policy (`auto`, `manual`) |
+| `-y`, `--yes` | — | Skip confirmation prompt |
+
+**Examples:**
+
+```bash
+# Install latest version with defaults
+pragma store install qdrant
+
+# Install specific version
+pragma store install postgres 1.2.0
+
+# Install with options
+pragma store install redis --tier performance --upgrade-policy auto
+
+# Skip confirmation
+pragma store install qdrant -y
+```
+
+## pragma store uninstall
+
+Uninstall a provider from your workspace.
+
+```bash
+pragma store uninstall <NAME> [OPTIONS]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `NAME` | Yes | Provider name to uninstall |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--cascade` | `false` | Delete all resources created by this provider |
+| `--force`, `-f` | `false` | Skip confirmation prompt |
+
+**Examples:**
+
+```bash
+# Uninstall with confirmation
+pragma store uninstall qdrant
+
+# Uninstall and delete all resources
+pragma store uninstall postgres --cascade
+
+# Skip confirmation
+pragma store uninstall redis --force
+
+# Cascade and force
+pragma store uninstall qdrant --cascade --force
+```
+
+<Warning>
+Without `--cascade`, uninstalling a provider that has active resources will fail. Either delete the resources first or use `--cascade`.
+</Warning>
+
+## pragma store upgrade
+
+Upgrade an installed provider to a newer version.
+
+```bash
+pragma store upgrade <NAME> [VERSION] [OPTIONS]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `NAME` | Yes | Provider name to upgrade |
+| `VERSION` | No | Target version (default: latest) |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-y`, `--yes` | — | Skip confirmation prompt |
+
+**Examples:**
+
+```bash
+# Upgrade to latest
+pragma store upgrade qdrant
+
+# Upgrade to specific version
+pragma store upgrade postgres 2.0.0
+
+# Skip confirmation
+pragma store upgrade redis -y
+```
+
+## pragma store installed
+
+List all providers installed from the store.
+
+```bash
+pragma store installed [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o`, `--output` | `table` | Output format (`table`, `json`, `yaml`) |
+
+**Examples:**
+
+```bash
+# Table output
+pragma store installed
+
+# JSON output
+pragma store installed -o json
+```
+
+---
+
+## pragma providers publish
+
+Publish a provider to the store. This command is under the `providers` group, not `store`.
+
+```bash
+pragma providers publish [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--version`, `-v` | — | Semantic version for this release (**required**) |
+| `--changelog` | — | Changelog text for this version |
+| `--force` | `false` | Force publish even if source hash already exists |
+| `--directory`, `-d` | `.` | Provider source directory |
+| `--package`, `-p` | — | Provider package name (auto-detected if not specified) |
+| `--wait/--no-wait` | `--wait` | Wait for build to complete |
+
+**Examples:**
+
+```bash
+# Publish a version
+pragma providers publish --version 1.0.0
+
+# Publish with changelog
+pragma providers publish --version 1.1.0 --changelog "Added new resources"
+
+# Force republish
+pragma providers publish --version 2.0.0 --force
+
+# Don't wait for build
+pragma providers publish --version 1.0.0 --no-wait
+
+# Specify directory and package
+pragma providers publish --version 1.0.0 -d ./my-provider -p mydb_provider
+```

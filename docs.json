@@ -111,6 +111,7 @@
               "cli/authentication",
               "cli/resources",
               "cli/providers",
+              "cli/store",
               "cli/operations"
             ]
           }
@@ -130,6 +131,23 @@
       {
         "tab": "Store",
         "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "store/overview",
+              "store/browsing",
+              "store/installing",
+              "store/upgrading"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "store/trust-tiers",
+              "store/resource-tiers",
+              "store/upgrade-policies"
+            ]
+          },
           {
             "group": "Resource Catalog",
             "pages": [
@@ -175,7 +193,8 @@
               "building-providers/examples",
               "building-providers/testing",
               "building-providers/deployment",
-              "building-providers/best-practices"
+              "building-providers/best-practices",
+              "store/publishing"
             ]
           }
         ]

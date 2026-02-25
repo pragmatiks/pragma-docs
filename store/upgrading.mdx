@@ -1,0 +1,131 @@
+---
+title: "Upgrading & Uninstalling"
+description: "Manage provider versions and lifecycle"
+---
+
+Keep your installed providers up to date or remove them when no longer needed.
+
+## Checking for Upgrades
+
+View your installed providers and their upgrade status:
+
+```bash
+pragma store installed
+```
+
+```
+Provider   Version   Tier       Upgrade Policy   Installed At          Upgrade Available
+qdrant     1.1.0     standard   manual           2026-01-15 10:00:00   yes (1.2.0)
+redis      1.0.0     standard   auto             2026-02-01 14:00:00   -
+agno       2.0.0     performance manual           2026-02-10 09:00:00   yes (2.1.0)
+```
+
+The **Upgrade Available** column shows when a newer version exists in the store.
+
+## Upgrading a Provider
+
+### Upgrade to Latest
+
+```bash
+pragma store upgrade qdrant
+```
+
+```
+Upgrading: qdrant -> latest
+
+Proceed with upgrade? [y/N]: y
+Upgraded: qdrant -> v1.2.0
+```
+
+### Upgrade to a Specific Version
+
+```bash
+pragma store upgrade qdrant 1.2.0
+```
+
+### Skip Confirmation
+
+```bash
+pragma store upgrade qdrant -y
+```
+
+### What Happens During Upgrade
+
+When you upgrade a provider:
+
+1. The platform pulls the new version's image
+2. A rolling deployment replaces the existing provider
+3. Existing resources continue to work throughout the upgrade
+4. No downtime for active resources
+
+<Note>
+If the provider is already on the requested version, the command returns a warning and exits without changes.
+</Note>
+
+## Auto-Upgrade
+
+Providers installed with `--upgrade-policy auto` are upgraded automatically when a new version is published. The platform checks for updates periodically and performs rolling upgrades with zero downtime.
+
+To change a provider's upgrade policy after installation, uninstall and reinstall with the desired policy.
+
+## Uninstalling a Provider
+
+### Basic Uninstall
+
+```bash
+pragma store uninstall qdrant
+```
+
+```
+Provider: qdrant
+
+Are you sure you want to UNINSTALL provider? [y/N]: y
+Uninstalled: qdrant
+```
+
+<Warning>
+If the provider has active resources, the uninstall will fail. You must either delete the resources manually or use `--cascade`.
+</Warning>
+
+### Cascade Delete
+
+Uninstall the provider and delete all resources it manages:
+
+```bash
+pragma store uninstall qdrant --cascade
+```
+
+```
+Provider: qdrant
+Warning: --cascade will delete all resources for this provider
+
+Are you sure you want to UNINSTALL provider and delete all its resources? [y/N]: y
+Uninstalled: qdrant
+```
+
+The `--cascade` flag deletes every resource created by the provider before removing the provider itself.
+
+### Force Uninstall
+
+Skip the confirmation prompt:
+
+```bash
+pragma store uninstall qdrant --force
+```
+
+### Cascade + Force
+
+```bash
+pragma store uninstall qdrant --cascade --force
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upgrade Policies" icon="gear" href="/store/upgrade-policies">
+    Learn about manual and auto upgrade policies.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/store">
+    Full command reference for store operations.
+  </Card>
+</CardGroup>

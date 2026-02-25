@@ -1,0 +1,80 @@
+---
+title: "Resource Tiers"
+description: "Configure compute resources for installed providers"
+---
+
+When you install a provider from the store, you select a resource tier that determines the CPU and memory limits for the provider's deployment. The tier is chosen at install time and affects how much compute the provider has available to process resource events.
+
+## Tiers
+
+### Free
+
+Minimal resource allocation, suitable for testing and development environments.
+
+- Lowest CPU and memory limits
+- Suitable for light workloads and experimentation
+- Not recommended for production use
+
+```bash
+pragma store install qdrant --tier free
+```
+
+### Standard
+
+Balanced resource allocation for production workloads. This is the **default** tier.
+
+- Moderate CPU and memory limits
+- Suitable for most production workloads
+- Good balance between cost and performance
+
+```bash
+pragma store install qdrant --tier standard
+```
+
+### Performance
+
+Maximum resource allocation for high-throughput production use.
+
+- Highest CPU and memory limits
+- Designed for heavy workloads with many concurrent resources
+- Best for providers that handle large volumes of events
+
+```bash
+pragma store install qdrant --tier performance
+```
+
+## Choosing a Tier
+
+| Scenario | Recommended Tier |
+|----------|-----------------|
+| Local development and testing | Free |
+| Standard production deployment | Standard |
+| High-throughput, many concurrent resources | Performance |
+| Evaluating a new provider | Free |
+
+## Viewing Your Current Tier
+
+Check the tier of installed providers:
+
+```bash
+pragma store installed
+```
+
+```
+Provider   Version   Tier          Upgrade Policy   Installed At
+qdrant     1.2.0     standard      manual           2026-02-20 14:30:00
+redis      1.0.0     performance   auto             2026-02-20 14:35:00
+```
+
+## Changing a Tier
+
+To change the resource tier of an installed provider, uninstall and reinstall with the desired tier:
+
+```bash
+pragma store uninstall qdrant --cascade
+pragma store install qdrant --tier performance
+```
+
+<Warning>
+Uninstalling with `--cascade` deletes all resources managed by the provider. Back up any important data before changing tiers.
+</Warning>
