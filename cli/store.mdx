@@ -5,6 +5,10 @@ description: "CLI reference for the pragma store command group"
 
 The `pragma store` command group manages the Provider Store. Browse, install, upgrade, and uninstall providers.
 
+<Note>
+Some store commands require authentication. Run `pragma auth login` to authenticate before using install, uninstall, or upgrade commands. Browse and search commands work without authentication.
+</Note>
+
 ## pragma store list
 
 List available providers in the store.
@@ -197,6 +201,10 @@ pragma store upgrade postgres 2.0.0
 # Skip confirmation
 pragma store upgrade redis -y
 ```
+
+<Note>
+The upgrade command only accepts versions newer than the currently installed one. To downgrade, uninstall with `pragma store uninstall` and reinstall with the desired version using `pragma store install`.
+</Note>
 
 ## pragma store installed
 

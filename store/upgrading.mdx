@@ -14,10 +14,10 @@ pragma store installed
 ```
 
 ```
-Provider   Version   Tier       Upgrade Policy   Installed At          Upgrade Available
-qdrant     1.1.0     standard   manual           2026-01-15 10:00:00   yes (1.2.0)
-redis      1.0.0     standard   auto             2026-02-01 14:00:00   -
-agno       2.0.0     performance manual           2026-02-10 09:00:00   yes (2.1.0)
+Provider   Version   Tier          Upgrade Policy   Installed At          Upgrade Available
+qdrant     1.1.0     standard      manual           2026-01-15 10:00:00   yes (1.2.0)
+redis      1.0.0     standard      auto             2026-02-01 14:00:00   -
+agno       2.0.0     performance   manual           2026-02-10 09:00:00   yes (2.1.0)
 ```
 
 The **Upgrade Available** column shows when a newer version exists in the store.
@@ -34,7 +34,7 @@ pragma store upgrade qdrant
 Upgrading: qdrant -> latest
 
 Proceed with upgrade? [y/N]: y
-Upgraded: qdrant -> v1.2.0
+Upgraded: qdrant -> 1.2.0
 ```
 
 ### Upgrade to a Specific Version

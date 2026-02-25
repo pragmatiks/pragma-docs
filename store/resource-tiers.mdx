@@ -71,6 +71,8 @@ redis      1.0.0     performance   auto             2026-02-20 14:35:00
 To change the resource tier of an installed provider, uninstall and reinstall with the desired tier:
 
 ```bash
+pragma store uninstall qdrant
+# If blocked by managed resources:
 pragma store uninstall qdrant --cascade
 pragma store install qdrant --tier performance
 ```
