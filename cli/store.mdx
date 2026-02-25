@@ -135,6 +135,10 @@ pragma store install redis --tier performance --upgrade-policy auto
 pragma store install qdrant -y
 ```
 
+<Note>
+If the provider is already installed, the command will return an error. Use `pragma store upgrade` to change versions, or uninstall first and reinstall to change configuration.
+</Note>
+
 ## pragma store uninstall
 
 Uninstall a provider from your workspace.

@@ -62,3 +62,7 @@ To change the upgrade policy of an installed provider, uninstall and reinstall w
 pragma store uninstall qdrant
 pragma store install qdrant --upgrade-policy auto
 ```
+
+<Note>
+If the provider has active resources, uninstall will fail. Use `--cascade` to delete all managed resources first. See [Uninstalling a Provider](/store/upgrading#uninstalling-a-provider) for details.
+</Note>
