@@ -1590,7 +1590,7 @@
           "resources"
         ],
         "summary": "List Resources",
-        "description": "List all resources.\n\nReturns:\n    List of resources matching filters, ordered by name.",
+        "description": "List all resources.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    List of resources matching filters, ordered by name.",
         "operationId": "resources-list_resources",
         "parameters": [
           {
@@ -1649,6 +1649,18 @@
               "title": "Tags"
             },
             "description": "Filter by tags (all must match)"
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values"
           }
         ],
         "responses": {
@@ -1685,7 +1697,7 @@
           "resources"
         ],
         "summary": "Get Resource",
-        "description": "Get resource by ID.\n\nReturns:\n    Resource with complete configuration and state.",
+        "description": "Get resource by ID.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    Resource with complete configuration and state.",
         "operationId": "resources-get_resource",
         "parameters": [
           {
@@ -1696,6 +1708,18 @@
               "type": "string",
               "title": "Resource Id"
             }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values"
           }
         ],
         "responses": {
@@ -1726,7 +1750,7 @@
           "resources"
         ],
         "summary": "Remove Resource",
-        "description": "Remove a resource from the graph (hard delete).\n\nOnly available for DRAFT and WAITING resources. For active resources,\nuse deactivate first.\n\nReturns:\n    The deleted resource.\n\nRaises:\n    HTTPException: 204 if resource not found.",
+        "description": "Remove a resource from the graph (hard delete).\n\nOnly available for DRAFT and WAITING resources. For active resources,\nuse deactivate first.\n\nSensitive fields are masked by default in the response.\n\nReturns:\n    The deleted resource.\n\nRaises:\n    HTTPException: 204 if resource not found.",
         "operationId": "resources-remove_resource",
         "parameters": [
           {
@@ -1737,6 +1761,18 @@
               "type": "string",
               "title": "Resource Id"
             }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values"
           }
         ],
         "responses": {
@@ -1812,17 +1848,31 @@
           "resources"
         ],
         "summary": "Apply Resource",
-        "description": "Apply a resource with declarative lifecycle semantics.\n\nSet lifecycle_state in the resource:\n    - lifecycle_state=\"draft\": Store without processing (default)\n    - lifecycle_state=\"pending\": Validate dependencies and queue for processing\n\nCannot set PROCESSING, READY, FAILED (system-only states).\nCannot modify resources in PENDING or PROCESSING state.\n\nReturns:\n    Applied resource with timestamps and server-populated fields.",
+        "description": "Apply a resource with declarative lifecycle semantics.\n\nSet lifecycle_state in the resource:\n    - lifecycle_state=\"draft\": Store without processing (default)\n    - lifecycle_state=\"pending\": Validate dependencies and queue for processing\n\nCannot set PROCESSING, READY, FAILED (system-only states).\nCannot modify resources in PENDING or PROCESSING state.\n\nSensitive fields are masked by default in the response. Pass ``reveal=true``\nto return actual values.\n\nReturns:\n    Applied resource with timestamps and server-populated fields.",
         "operationId": "resources-apply_resource",
+        "parameters": [
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Resource"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1854,7 +1904,7 @@
           "resources"
         ],
         "summary": "Deactivate Resource",
-        "description": "Deactivate a resource (soft delete).\n\nTriggers provider teardown. Resource returns to DRAFT state when complete.\nOnly available for READY and FAILED resources.\n\nReturns:\n    Resource in DELETING state awaiting provider teardown.",
+        "description": "Deactivate a resource (soft delete).\n\nTriggers provider teardown. Resource returns to DRAFT state when complete.\nOnly available for READY and FAILED resources.\n\nSensitive fields are masked by default in the response.\n\nReturns:\n    Resource in DELETING state awaiting provider teardown.",
         "operationId": "resources-deactivate_resource",
         "parameters": [
           {
@@ -1865,6 +1915,18 @@
               "type": "string",
               "title": "Resource Id"
             }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values"
           }
         ],
         "responses": {
