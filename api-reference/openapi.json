@@ -1750,7 +1750,7 @@
           "resources"
         ],
         "summary": "Remove Resource",
-        "description": "Remove a resource from the graph (hard delete).\n\nOnly available for DRAFT and WAITING resources. For active resources,\nuse deactivate first.\n\nSensitive fields are masked by default in the response.\n\nReturns:\n    The deleted resource.\n\nRaises:\n    HTTPException: 204 if resource not found.",
+        "description": "Remove a resource from the graph (hard delete).\n\nOnly available for DRAFT and WAITING resources. For active resources,\nuse deactivate first.\n\nSensitive fields are masked by default in the response.\n\nReturns:\n    The deleted resource.\n\nRaises:\n    HTTPException: 404 if resource not found.",
         "operationId": "resources-remove_resource",
         "parameters": [
           {
@@ -2875,6 +2875,11 @@
           "reconcile_count": {
             "type": "integer",
             "title": "Reconcile Count",
+            "default": 0
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
             "default": 0
           },
           "tags": {
