@@ -873,6 +873,68 @@
         }
       }
     },
+    "/providers/installed/{org}/{name}/downgrade": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Downgrade Provider",
+        "description": "Downgrade an installed provider to an older version.\n\nRuns resource migrations in reverse through each version step, deploys\nthe target version image, and updates records.\n\nReturns:\n    The updated installed provider record.",
+        "operationId": "providers-downgrade_provider",
+        "parameters": [
+          {
+            "name": "org",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DowngradeProviderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledProvider"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers/installed/{org}/{name}/deploy": {
       "post": {
         "tags": [
@@ -2401,6 +2463,20 @@
         "title": "DeploymentStatus",
         "description": "Status of a provider deployment."
       },
+      "DowngradeProviderRequest": {
+        "properties": {
+          "target_version": {
+            "type": "string",
+            "title": "Target Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_version"
+        ],
+        "title": "DowngradeProviderRequest",
+        "description": "Request model for downgrading an installed store provider.\n\nAttributes:\n    target_version: Target version to downgrade to (required)."
+      },
       "EventType": {
         "type": "string",
         "enum": [
@@ -2895,6 +2971,17 @@
               }
             ],
             "title": "Tags"
+          },
+          "provider_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Version"
           }
         },
         "type": "object",
@@ -2904,7 +2991,7 @@
           "name"
         ],
         "title": "Resource",
-        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "ResourceDefinition": {
         "properties": {
