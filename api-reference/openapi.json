@@ -2591,6 +2591,14 @@
             "type": "string",
             "title": "Store Provider Name"
           },
+          "deployment_name": {
+            "type": "string",
+            "title": "Deployment Name"
+          },
+          "service_name": {
+            "type": "string",
+            "title": "Service Name"
+          },
           "installed_version": {
             "type": "string",
             "title": "Installed Version"
@@ -2612,11 +2620,13 @@
         "type": "object",
         "required": [
           "store_provider_name",
+          "deployment_name",
+          "service_name",
           "installed_version",
           "installed_at"
         ],
         "title": "InstalledProvider",
-        "description": "Tenant-scoped record of an installed store provider.\n\nIdentity fields (frozen):\n    store_provider_name: Name of the store provider (used as SurrealDB record ID).\n\nConfiguration:\n    installed_version: Semver string of the currently installed version.\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n\nState (system-managed):\n    installed_at: Timestamp when the provider was first installed."
+        "description": "Tenant-scoped record of an installed store provider.\n\nIdentity fields (frozen):\n    store_provider_name: Name of the store provider (used as SurrealDB record ID).\n    deployment_name: Kubernetes Deployment name, stored at install time.\n    service_name: Kubernetes Service name, stored at install time.\n\nConfiguration:\n    installed_version: Semver string of the currently installed version.\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n\nState (system-managed):\n    installed_at: Timestamp when the provider was first installed."
       },
       "InstalledProviderSummary": {
         "properties": {
