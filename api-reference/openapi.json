@@ -34,7 +34,7 @@
           "auth"
         ],
         "summary": "Get Current User Info",
-        "description": "Return current authenticated user information.\n\nReturns:\n    UserInfo with user ID, email, organization ID and name.\n\nRaises:\n    HTTPException: 500 if unable to fetch user information.",
+        "description": "Return current authenticated user information.\n\nArgs:\n    user: Authenticated user from dependency injection.\n\nReturns:\n    UserInfo with user ID, email, organization ID and name.\n\nRaises:\n    HTTPException: 500 if unable to fetch user information.",
         "operationId": "auth-get_current_user_info",
         "responses": {
           "200": {
@@ -1056,7 +1056,7 @@
         }
       }
     },
-    "/providers/": {
+    "/providers": {
       "get": {
         "tags": [
           "providers"
@@ -1646,7 +1646,7 @@
         }
       }
     },
-    "/resources/": {
+    "/resources": {
       "get": {
         "tags": [
           "resources"
