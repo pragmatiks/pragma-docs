@@ -365,7 +365,7 @@
           "internal"
         ],
         "summary": "Register Runtime Version",
-        "description": "Register a new runtime image version.\n\nCalled by CI/CD after building and pushing a runtime image to the\ncontainer registry. Creates or updates the version record in SurrealDB.\n\nRequires a Bearer token matching the INTERNAL_API_KEY setting.\n\nArgs:\n    body: Runtime version registration payload.\n    service: RuntimeVersionStorageService for persistence.\n    authorization: Bearer token from Authorization header.\n\nReturns:\n    The persisted RuntimeVersion record.\n\nRaises:\n    HTTPException: 401 if API key is missing or invalid.",
+        "description": "Register a new runtime image version.\n\nCalled by CI/CD after building and pushing a runtime image to the\ncontainer registry. Creates or updates the version record in SurrealDB.\n\nRequires a Bearer token matching the INTERNAL_API_KEY setting.\n\nArgs:\n    body: Runtime version registration payload.\n    service: RuntimeVersionService for persistence.\n    authorization: Bearer token from Authorization header.\n\nReturns:\n    The persisted RuntimeVersion record.\n\nRaises:\n    HTTPException: 401 if API key is missing or invalid.",
         "operationId": "internal-register_runtime_version",
         "parameters": [
           {
@@ -692,7 +692,7 @@
           "providers"
         ],
         "summary": "List Installed",
-        "description": "List installed providers for the current tenant.\n\nReturns installed providers enriched with upgrade availability status\nby comparing installed versions against the latest store versions.\n\nReturns:\n    Installed provider summaries with upgrade availability flags.",
+        "description": "List installed providers for the current tenant.\n\nReturns installed providers for the authenticated user's organization.\n\nReturns:\n    Installed provider records.",
         "operationId": "providers-list_installed",
         "responses": {
           "200": {
@@ -701,7 +701,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/InstalledProviderSummary"
+                    "$ref": "#/components/schemas/ProviderInstallationResponse"
                   },
                   "type": "array",
                   "title": "Response Providers-List Installed"
@@ -718,7 +718,7 @@
           "providers"
         ],
         "summary": "Install Provider",
-        "description": "Install a provider from the store.\n\nDeploys a pre-built image from the store (no build step). Creates\nInstalledProvider + tenant Provider records, activates resource schemas,\nand increments the store provider's install_count.\n\nReturns:\n    The installed provider record.",
+        "description": "Install a provider from the store.\n\nDeploys a pre-built image from the store (no build step). Creates\nProviderInstallation + tenant Provider records, activates resource schemas,\nand increments the store provider's install_count.\n\nReturns:\n    The installed provider record.",
         "operationId": "providers-install_provider",
         "requestBody": {
           "content": {
@@ -736,7 +736,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstalledProvider"
+                  "$ref": "#/components/schemas/ProviderInstallationResponse"
                 }
               }
             }
@@ -817,7 +817,7 @@
           "providers"
         ],
         "summary": "Upgrade Provider",
-        "description": "Upgrade an installed provider to a new version.\n\nDeploys a new pre-built image via rolling Kubernetes update, replaces\nresource schemas from the new version, and updates the InstalledProvider\nrecord with the new version.\n\nReturns:\n    The updated installed provider record.",
+        "description": "Upgrade an installed provider to a new version.\n\nDeploys a new pre-built image via rolling Kubernetes update, replaces\nresource schemas from the new version, and updates the ProviderInstallation\nrecord with the new version.\n\nReturns:\n    The updated installed provider record.",
         "operationId": "providers-upgrade_provider",
         "parameters": [
           {
@@ -855,7 +855,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstalledProvider"
+                  "$ref": "#/components/schemas/ProviderInstallationResponse"
                 }
               }
             }
@@ -917,7 +917,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstalledProvider"
+                  "$ref": "#/components/schemas/ProviderInstallationResponse"
                 }
               }
             }
@@ -941,7 +941,7 @@
           "providers"
         ],
         "summary": "Deploy Provider",
-        "description": "(Re)deploy an installed provider.\n\nLooks up the installed provider, resolves the StoreVersion, and\ndeploys the pre-built image.\n\nReturns:\n    Deployment result with current state.",
+        "description": "(Re)deploy an installed provider.\n\nLooks up the installed provider, resolves the ProviderVersion, and\ndeploys the pre-built image.\n\nReturns:\n    Deployment result with current state.",
         "operationId": "providers-deploy_provider",
         "parameters": [
           {
@@ -1062,7 +1062,7 @@
           "providers"
         ],
         "summary": "List Providers",
-        "description": "Browse/search the provider store.\n\nPublic endpoint for browsing the provider catalog. Supports text search\nacross name, display_name, and description, plus filtering by scope,\ntrust tier, and tags. Authenticated users also see their own tenant-scoped providers.\n\nReturns:\n    Paginated list of provider summaries matching the search criteria.",
+        "description": "Browse/search the provider store.\n\nPublic endpoint for browsing the provider catalog. Supports text search\nacross name, display_name, and description, plus filtering by scope,\ntrust tier, and tags. Authenticated users also see their own tenant-scoped providers.\n\nReturns:\n    Paginated list of providers matching the search criteria.",
         "operationId": "providers-list_providers",
         "parameters": [
           {
@@ -1174,7 +1174,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_StoreProviderSummary_"
+                  "$ref": "#/components/schemas/PaginatedResponse_Provider_"
                 }
               }
             }
@@ -1198,7 +1198,7 @@
           "providers"
         ],
         "summary": "Get Provider",
-        "description": "Get provider details and version history.\n\nPublic endpoint. Raises 404 if provider not found or not visible.\n\nReturns:\n    Provider detail with version history.",
+        "description": "Get provider details.\n\nPublic endpoint. Raises 404 if provider not found or not visible.\n\nReturns:\n    Provider record.",
         "operationId": "providers-get_provider",
         "parameters": [
           {
@@ -1226,7 +1226,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoreProviderDetail"
+                  "$ref": "#/components/schemas/Provider"
                 }
               }
             }
@@ -1248,7 +1248,7 @@
           "providers"
         ],
         "summary": "Update Provider",
-        "description": "Update provider metadata (author only).\n\nOnly the provider's author (matching tenant) can update metadata.\nTrust tier is not updatable via this endpoint.\n\nReturns:\n    The updated store provider record.\n\nRaises:\n    HTTPException: If provider not found or user is not the author.",
+        "description": "Update provider metadata (author only).\n\nOnly the provider's author (matching tenant) can update metadata.\nTrust tier is not updatable via this endpoint.\n\nReturns:\n    The updated provider record.\n\nRaises:\n    HTTPException: If user is not the provider author.",
         "operationId": "providers-update_provider",
         "parameters": [
           {
@@ -1275,7 +1275,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStoreProviderRequest"
+                "$ref": "#/components/schemas/UpdateProviderRequest"
               }
             }
           }
@@ -1286,7 +1286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoreProvider"
+                  "$ref": "#/components/schemas/Provider"
                 }
               }
             }
@@ -1308,7 +1308,7 @@
           "providers"
         ],
         "summary": "Delete Provider",
-        "description": "Delete a provider from the store (author only).\n\nCancels running builds, deletes source archives, removes all versions,\nand deletes the StoreProvider record. Does NOT clean up installations\nat other tenants.",
+        "description": "Delete a provider from the store (author only).\n\nCancels running builds, deletes source archives, removes all versions,\nand deletes the Provider record. Does NOT clean up installations\nat other tenants.",
         "operationId": "providers-delete_provider",
         "parameters": [
           {
@@ -1347,13 +1347,69 @@
         }
       }
     },
+    "/providers/{org}/{name}/versions": {
+      "get": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "List Provider Versions",
+        "description": "List versions for a provider.\n\nPublic endpoint. Raises 404 if parent provider not found or not visible.\nNon-authors only see PUBLISHED versions.\n\nReturns:\n    List of provider versions.",
+        "operationId": "providers-list_provider_versions",
+        "parameters": [
+          {
+            "name": "org",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderVersion"
+                  },
+                  "title": "Response Providers-List Provider Versions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers/{org}/{name}/publish": {
       "post": {
         "tags": [
           "providers"
         ],
         "summary": "Publish Version",
-        "description": "Publish a new provider version.\n\nAccepts a source tarball and version metadata, validates org ownership\nvia Clerk slug, checks for duplicate content, and triggers a build\nwith the latest pinned runtime version. On first publish, auto-creates\nthe StoreProvider record using the provided metadata.\n\nReturns:\n    Store version record in BUILDING state with build_id.\n\nRaises:\n    HTTPException: If version is invalid or tags JSON is malformed.\n    OrgSlugMismatchError: If URL org does not match Clerk org slug.",
+        "description": "Publish a new provider version.\n\nAccepts a source tarball and version metadata, validates org ownership\nvia Clerk slug, checks for duplicate content, and triggers a build\nwith the latest pinned runtime version. On first publish, auto-creates\nthe Provider record using the provided metadata.\n\nReturns:\n    Provider version record in BUILDING state with build_id.\n\nRaises:\n    HTTPException: If version is invalid or tags JSON is malformed.\n    OrgSlugMismatchError: If URL org does not match Clerk org slug.",
         "operationId": "providers-publish_version",
         "parameters": [
           {
@@ -1391,7 +1447,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoreVersion"
+                  "$ref": "#/components/schemas/ProviderVersion"
                 }
               }
             }
@@ -1415,7 +1471,7 @@
           "providers"
         ],
         "summary": "Get Version Status",
-        "description": "Check build status for a version.\n\nIf the version is still BUILDING, queries the build service for current\nstatus and transitions the version on completion. Already-finalized\nversions are returned as-is.\n\nReturns:\n    Store version with current build/publish status.",
+        "description": "Check build status for a version.\n\nIf the version is still BUILDING, queries the build service for current\nstatus and transitions the version on completion. Already-finalized\nversions are returned as-is.\n\nReturns:\n    Provider version with current build/publish status.",
         "operationId": "providers-get_version_status",
         "parameters": [
           {
@@ -1452,7 +1508,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoreVersion"
+                  "$ref": "#/components/schemas/ProviderVersion"
                 }
               }
             }
@@ -1535,7 +1591,7 @@
           "providers"
         ],
         "summary": "Get Version Detail",
-        "description": "Get detail for a specific provider version.\n\nPublic endpoint. Returns 404 if parent provider is not visible.\n\nReturns:\n    Store version detail.\n\nRaises:\n    StoreProviderNotFoundError: If parent provider not found or not visible.\n    StoreVersionNotFoundError: If version not found.",
+        "description": "Get detail for a specific provider version.\n\nPublic endpoint. Returns 404 if parent provider is not visible.\n\nReturns:\n    Provider version detail.\n\nRaises:\n    CatalogProviderNotFoundError: If parent provider not found or not visible.\n    ProviderVersionNotFoundError: If version not found.",
         "operationId": "providers-get_version_detail",
         "parameters": [
           {
@@ -1572,7 +1628,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoreVersion"
+                  "$ref": "#/components/schemas/ProviderVersion"
                 }
               }
             }
@@ -1590,14 +1646,14 @@
         }
       }
     },
-    "/resources/types": {
+    "/resources/schemas": {
       "get": {
         "tags": [
           "resources"
         ],
-        "summary": "List Resource Types",
-        "description": "List available resource types.\n\nReturns resource types from both the shared namespace (platform resources\nlike pragma/secret) and the organization namespace (deployed providers).\n\nReturns:\n    List of resource types, ordered by provider and resource name.",
-        "operationId": "resources-list_resource_types",
+        "summary": "List Resource Schemas",
+        "description": "List available resource schemas.\n\nReturns schemas from installed providers in the tenant namespace,\nplus platform resources (e.g. pragma/secret) from the shared namespace.\n\nReturns:\n    List of resource schema responses.",
+        "operationId": "resources-list_resource_schemas",
         "parameters": [
           {
             "name": "provider",
@@ -1626,9 +1682,9 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ResourceDefinition"
+                    "$ref": "#/components/schemas/ResourceSchemaResponse"
                   },
-                  "title": "Response Resources-List Resource Types"
+                  "title": "Response Resources-List Resource Schemas"
                 }
               }
             }
@@ -2575,108 +2631,6 @@
         "title": "InstallProviderRequest",
         "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled."
       },
-      "InstalledProvider": {
-        "properties": {
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "store_provider_name": {
-            "type": "string",
-            "title": "Store Provider Name"
-          },
-          "deployment_name": {
-            "type": "string",
-            "title": "Deployment Name"
-          },
-          "service_name": {
-            "type": "string",
-            "title": "Service Name"
-          },
-          "installed_version": {
-            "type": "string",
-            "title": "Installed Version"
-          },
-          "upgrade_policy": {
-            "$ref": "#/components/schemas/UpgradePolicy",
-            "default": "manual"
-          },
-          "resource_tier": {
-            "$ref": "#/components/schemas/ResourceTier",
-            "default": "standard"
-          },
-          "installed_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Installed At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "store_provider_name",
-          "deployment_name",
-          "service_name",
-          "installed_version",
-          "installed_at"
-        ],
-        "title": "InstalledProvider",
-        "description": "Tenant-scoped record of an installed store provider.\n\nIdentity fields (frozen):\n    store_provider_name: Name of the store provider (used as SurrealDB record ID).\n    deployment_name: Kubernetes Deployment name, stored at install time.\n    service_name: Kubernetes Service name, stored at install time.\n\nConfiguration:\n    installed_version: Semver string of the currently installed version.\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n\nState (system-managed):\n    installed_at: Timestamp when the provider was first installed."
-      },
-      "InstalledProviderSummary": {
-        "properties": {
-          "store_provider_name": {
-            "type": "string",
-            "title": "Store Provider Name"
-          },
-          "installed_version": {
-            "type": "string",
-            "title": "Installed Version"
-          },
-          "upgrade_policy": {
-            "$ref": "#/components/schemas/UpgradePolicy"
-          },
-          "resource_tier": {
-            "$ref": "#/components/schemas/ResourceTier"
-          },
-          "installed_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Installed At"
-          },
-          "latest_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latest Version"
-          },
-          "upgrade_available": {
-            "type": "boolean",
-            "title": "Upgrade Available",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "store_provider_name",
-          "installed_version",
-          "upgrade_policy",
-          "resource_tier",
-          "installed_at"
-        ],
-        "title": "InstalledProviderSummary",
-        "description": "Installed provider with upgrade status.\n\nAttributes:\n    store_provider_name: Name of the installed store provider.\n    installed_version: Currently installed semver string.\n    upgrade_policy: How upgrades are handled (auto/manual).\n    resource_tier: Resource allocation tier.\n    installed_at: Timestamp of initial installation.\n    latest_version: Latest published version from the store (None if store provider deleted).\n    upgrade_available: True if latest_version differs from installed_version."
-      },
       "LifecycleState": {
         "type": "string",
         "enum": [
@@ -2812,11 +2766,11 @@
         "title": "OwnerReference",
         "description": "Reference to a resource that owns this resource for lifecycle coordination.\n\nUsed for cascading deletes and ownership tracking. When an owner resource\nis deleted, owned resources can be automatically cleaned up.\n\nA resource can have multiple owners (rare but valid for shared resources).\n\nAttributes:\n    provider: Provider that manages the owner resource.\n    resource: Resource type name.\n    name: Resource instance name."
       },
-      "PaginatedResponse_StoreProviderSummary_": {
+      "PaginatedResponse_Provider_": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/StoreProviderSummary"
+              "$ref": "#/components/schemas/Provider"
             },
             "type": "array",
             "title": "Items"
@@ -2841,7 +2795,173 @@
           "limit",
           "offset"
         ],
-        "title": "PaginatedResponse[StoreProviderSummary]"
+        "title": "PaginatedResponse[Provider]"
+      },
+      "Provider": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ProviderAuthor"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProviderScope",
+            "default": "public"
+          },
+          "trust_tier": {
+            "$ref": "#/components/schemas/TrustTier",
+            "default": "community"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
+          },
+          "readme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readme"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "install_count": {
+            "type": "integer",
+            "title": "Install Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "description",
+          "author"
+        ],
+        "title": "Provider",
+        "description": "Provider listing in the catalog.\n\nIdentity fields (frozen):\n    name: Globally unique provider name (used as SurrealDB record ID).\n\nMetadata:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    author: Publishing organization metadata.\n    scope: Visibility scope (public or tenant-only).\n    trust_tier: Trust level (Official/Verified/Community).\n    icon_url: URL to provider icon image.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n\nState (system-managed):\n    latest_version: Semver of the most recent published version.\n    install_count: Total number of tenant installations."
+      },
+      "ProviderAuthor": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "org_name": {
+            "type": "string",
+            "title": "Org Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "org_name"
+        ],
+        "title": "ProviderAuthor",
+        "description": "Author metadata for a provider.\n\nAttributes:\n    tenant_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
+      },
+      "ProviderInstallationResponse": {
+        "properties": {
+          "provider_name": {
+            "type": "string",
+            "title": "Provider Name"
+          },
+          "installed_version": {
+            "type": "string",
+            "title": "Installed Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "upgrade_policy": {
+            "$ref": "#/components/schemas/UpgradePolicy",
+            "default": "manual"
+          },
+          "resource_tier": {
+            "$ref": "#/components/schemas/ResourceTier",
+            "default": "standard"
+          },
+          "installed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Installed At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_name",
+          "installed_version",
+          "installed_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProviderInstallationResponse",
+        "description": "Public-facing response model for a provider installation.\n\nExcludes internal infrastructure fields (deployment_name, service_name,\ncurrent_image) that are not meaningful to API consumers.\n\nAttributes:\n    provider_name: Name of the installed provider.\n    installed_version: Semver of the currently installed version.\n    current_version: Version currently deployed (None if never deployed).\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n    installed_at: Timestamp when the provider was first installed.\n    created_at: Creation timestamp.\n    updated_at: Last update timestamp."
       },
       "ProviderScope": {
         "type": "string",
@@ -2851,6 +2971,126 @@
         ],
         "title": "ProviderScope",
         "description": "Scope of a provider in the unified store."
+      },
+      "ProviderVersion": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "provider_name": {
+            "type": "string",
+            "title": "Provider Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "runtime_version": {
+            "type": "string",
+            "title": "Runtime Version"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
+          },
+          "build_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Build Id"
+          },
+          "schemas": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schemas"
+          },
+          "changelog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changelog"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VersionStatus",
+            "default": "building"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_name",
+          "version",
+          "runtime_version"
+        ],
+        "title": "ProviderVersion",
+        "description": "A published version of a provider.\n\nIdentity fields (frozen):\n    provider_name: Globally unique provider name this version belongs to.\n    version: Semantic version string (e.g., \"1.0.0\").\n\nBuild metadata:\n    runtime_version: Pinned runtime version used to build the image.\n    image_url: Built container image URL (set after build completes).\n    source_hash: SHA-256 of the source tarball.\n\nProvider introspection:\n    schemas: Resource type schemas extracted from the provider.\n\nState (system-managed):\n    status: Build/publish lifecycle status.\n    published_at: Timestamp when version was published.\n    error_message: Error details when build fails."
       },
       "Resource": {
         "properties": {
@@ -3003,72 +3243,6 @@
         "title": "Resource",
         "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
-      "ResourceDefinition": {
-        "properties": {
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "provider": {
-            "type": "string",
-            "title": "Provider"
-          },
-          "resource": {
-            "type": "string",
-            "title": "Resource"
-          },
-          "schema": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Schema",
-            "default": {}
-          },
-          "outputs_schema": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Outputs Schema",
-            "default": {}
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tags"
-          }
-        },
-        "type": "object",
-        "required": [
-          "provider",
-          "resource"
-        ],
-        "title": "ResourceDefinition",
-        "description": "Domain model for resource definitions with provider/resource identity.\n\nResource definitions describe the schema and configuration for a resource type.\nProviders register resource definitions to declare what resources they can manage.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n\nSchema fields (mutable):\n    schema: JSON schema defining the resource configuration structure.\n    description: Human-readable description of the resource type.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
-      },
       "ResourceHealth": {
         "properties": {
           "status": {
@@ -3139,6 +3313,60 @@
         ],
         "title": "ResourceReference",
         "description": "Reference to another resource for dependency tracking.\n\nUsed to express dependencies between resources. At commit time,\nthe API validates that all referenced resources exist and are READY.\n\nAttributes:\n    provider: Provider that manages the referenced resource.\n    resource: Resource type name.\n    name: Resource instance name."
+      },
+      "ResourceSchemaResponse": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "config_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Schema"
+          },
+          "outputs_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outputs Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "resource"
+        ],
+        "title": "ResourceSchemaResponse",
+        "description": "Schema definition for a resource type exposed by a provider.\n\nAttributes:\n    provider: Provider that exposes this resource type.\n    resource: Resource type name.\n    description: Human-readable description of the resource type.\n    config_schema: JSON Schema for resource configuration.\n    outputs_schema: JSON Schema for resource outputs."
       },
       "ResourceStatus": {
         "properties": {
@@ -3274,330 +3502,6 @@
         "title": "SignedUrlResponse",
         "description": "Response containing a signed download URL."
       },
-      "StoreProvider": {
-        "properties": {
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "display_name": {
-            "type": "string",
-            "title": "Display Name"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "author": {
-            "$ref": "#/components/schemas/StoreProviderAuthor"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/ProviderScope",
-            "default": "public"
-          },
-          "trust_tier": {
-            "$ref": "#/components/schemas/TrustTier",
-            "default": "community"
-          },
-          "icon_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon Url"
-          },
-          "readme": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Readme"
-          },
-          "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tags"
-          },
-          "latest_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latest Version"
-          },
-          "install_count": {
-            "type": "integer",
-            "title": "Install Count",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "display_name",
-          "description",
-          "author"
-        ],
-        "title": "StoreProvider",
-        "description": "Provider listing in the store.\n\nIdentity fields (frozen):\n    name: Globally unique provider name (used as SurrealDB record ID).\n\nMetadata:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    author: Publishing organization metadata.\n    scope: Visibility scope (public or tenant-only).\n    trust_tier: Trust level (Official/Verified/Community).\n    icon_url: URL to provider icon image.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n\nState (system-managed):\n    latest_version: CalVer of the most recent published version.\n    install_count: Total number of tenant installations."
-      },
-      "StoreProviderAuthor": {
-        "properties": {
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
-          },
-          "org_name": {
-            "type": "string",
-            "title": "Org Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "tenant_id",
-          "org_name"
-        ],
-        "title": "StoreProviderAuthor",
-        "description": "Author metadata for a store provider.\n\nAttributes:\n    tenant_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
-      },
-      "StoreProviderDetail": {
-        "properties": {
-          "provider": {
-            "$ref": "#/components/schemas/StoreProvider"
-          },
-          "versions": {
-            "items": {
-              "$ref": "#/components/schemas/StoreVersion"
-            },
-            "type": "array",
-            "title": "Versions"
-          }
-        },
-        "type": "object",
-        "required": [
-          "provider",
-          "versions"
-        ],
-        "title": "StoreProviderDetail",
-        "description": "Full provider detail with versions list."
-      },
-      "StoreProviderSummary": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "display_name": {
-            "type": "string",
-            "title": "Display Name"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "author": {
-            "$ref": "#/components/schemas/StoreProviderAuthor"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/ProviderScope"
-          },
-          "trust_tier": {
-            "$ref": "#/components/schemas/TrustTier"
-          },
-          "icon_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon Url"
-          },
-          "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tags"
-          },
-          "latest_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latest Version"
-          },
-          "install_count": {
-            "type": "integer",
-            "title": "Install Count"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "display_name",
-          "description",
-          "author",
-          "scope",
-          "trust_tier",
-          "icon_url",
-          "tags",
-          "latest_version",
-          "install_count"
-        ],
-        "title": "StoreProviderSummary",
-        "description": "Summary for catalog listing."
-      },
-      "StoreVersion": {
-        "properties": {
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "provider_name": {
-            "type": "string",
-            "title": "Provider Name"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "runtime_version": {
-            "type": "string",
-            "title": "Runtime Version"
-          },
-          "image_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Url"
-          },
-          "source_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Hash"
-          },
-          "build_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Build Id"
-          },
-          "schemas": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Schemas"
-          },
-          "changelog": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Changelog"
-          },
-          "status": {
-            "$ref": "#/components/schemas/VersionStatus",
-            "default": "building"
-          },
-          "published_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Published At"
-          },
-          "error_message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "provider_name",
-          "version",
-          "runtime_version"
-        ],
-        "title": "StoreVersion",
-        "description": "A published version of a store provider.\n\nIdentity fields (frozen):\n    provider_name: Globally unique provider name this version belongs to.\n    version: Semantic version string (e.g., \"1.0.0\").\n\nBuild metadata:\n    runtime_version: Pinned runtime version used to build the image.\n    image_url: Built container image URL (set after build completes).\n    source_hash: SHA-256 of the source tarball.\n\nProvider introspection:\n    schemas: Resource type schemas extracted from the provider.\n\nState (system-managed):\n    status: Build/publish lifecycle status.\n    published_at: Timestamp when version was published.\n    error_message: Error details when build fails."
-      },
       "TrustTier": {
         "type": "string",
         "enum": [
@@ -3606,9 +3510,9 @@
           "community"
         ],
         "title": "TrustTier",
-        "description": "Trust level assigned to store providers."
+        "description": "Trust level assigned to providers."
       },
-      "UpdateStoreProviderRequest": {
+      "UpdateProviderRequest": {
         "properties": {
           "display_name": {
             "anyOf": [
@@ -3675,8 +3579,8 @@
           }
         },
         "type": "object",
-        "title": "UpdateStoreProviderRequest",
-        "description": "Request model for updating store provider metadata.\n\nOnly provided (non-None) fields are updated. Trust tier is intentionally\nexcluded -- it is admin-only and managed separately.\n\nAttributes:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n    icon_url: URL to provider icon image."
+        "title": "UpdateProviderRequest",
+        "description": "Request model for updating provider metadata.\n\nOnly provided (non-None) fields are updated. Trust tier is intentionally\nexcluded -- it is admin-only and managed separately.\n\nAttributes:\n    display_name: Human-readable name for UI display.\n    description: Short description of what the provider does.\n    readme: Long-form documentation in markdown.\n    tags: Searchable tags for categorization.\n    icon_url: URL to provider icon image."
       },
       "UpgradePolicy": {
         "type": "string",
@@ -3790,7 +3694,7 @@
           "yanked"
         ],
         "title": "VersionStatus",
-        "description": "Build/publish status for a store provider version."
+        "description": "Build/publish status for a provider version."
       }
     }
   }
