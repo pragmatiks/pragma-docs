@@ -2622,6 +2622,20 @@
           "upgrade_policy": {
             "$ref": "#/components/schemas/UpgradePolicy",
             "default": "manual"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
           }
         },
         "type": "object",
@@ -2629,7 +2643,7 @@
           "provider_name"
         ],
         "title": "InstallProviderRequest",
-        "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled."
+        "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled.\n    config: Key-value pairs injected as environment variables on the deployment."
       },
       "LifecycleState": {
         "type": "string",
@@ -2936,6 +2950,20 @@
             "$ref": "#/components/schemas/ResourceTier",
             "default": "standard"
           },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
           "installed_at": {
             "type": "string",
             "format": "date-time",
@@ -2961,7 +2989,7 @@
           "updated_at"
         ],
         "title": "ProviderInstallationResponse",
-        "description": "Public-facing response model for a provider installation.\n\nExcludes internal infrastructure fields (deployment_name, service_name,\ncurrent_image) that are not meaningful to API consumers.\n\nAttributes:\n    provider_name: Name of the installed provider.\n    installed_version: Semver of the currently installed version.\n    current_version: Version currently deployed (None if never deployed).\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n    installed_at: Timestamp when the provider was first installed.\n    created_at: Creation timestamp.\n    updated_at: Last update timestamp."
+        "description": "Public-facing response model for a provider installation.\n\nExcludes internal infrastructure fields (deployment_name, service_name,\ncurrent_image) that are not meaningful to API consumers.\n\nAttributes:\n    provider_name: Name of the installed provider.\n    installed_version: Semver of the currently installed version.\n    current_version: Version currently deployed (None if never deployed).\n    upgrade_policy: Whether upgrades are applied automatically or manually.\n    resource_tier: Resource allocation tier for the provider.\n    config: Key-value pairs injected as environment variables on the deployment.\n    installed_at: Timestamp when the provider was first installed.\n    created_at: Creation timestamp.\n    updated_at: Last update timestamp."
       },
       "ProviderScope": {
         "type": "string",
