@@ -1789,7 +1789,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Resource"
+                    "$ref": "#/components/schemas/Resource-Output"
                   },
                   "title": "Response Resources-List Resources"
                 }
@@ -1809,7 +1809,7 @@
         }
       }
     },
-    "/resources/{resource_id}": {
+    "/resources/{provider}/{resource_type}/{name}": {
       "get": {
         "tags": [
           "resources"
@@ -1819,12 +1819,30 @@
         "operationId": "resources-get_resource",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           },
           {
@@ -1846,7 +1864,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Resource"
+                  "$ref": "#/components/schemas/Resource-Output"
                 }
               }
             }
@@ -1872,12 +1890,30 @@
         "operationId": "resources-remove_resource",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           },
           {
@@ -1899,7 +1935,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Resource"
+                  "$ref": "#/components/schemas/Resource-Output"
                 }
               }
             }
@@ -1917,7 +1953,7 @@
         }
       }
     },
-    "/resources/{resource_id}/status": {
+    "/resources/{provider}/{resource_type}/{name}/status": {
       "get": {
         "tags": [
           "resources"
@@ -1927,12 +1963,30 @@
         "operationId": "resources-get_resource_status",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           }
         ],
@@ -1987,7 +2041,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Resource"
+                "$ref": "#/components/schemas/Resource-Input"
               }
             }
           }
@@ -1998,7 +2052,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Resource"
+                  "$ref": "#/components/schemas/Resource-Output"
                 }
               }
             }
@@ -2016,7 +2070,7 @@
         }
       }
     },
-    "/resources/{resource_id}/deactivate": {
+    "/resources/{provider}/{resource_type}/{name}/deactivate": {
       "post": {
         "tags": [
           "resources"
@@ -2026,12 +2080,30 @@
         "operationId": "resources-deactivate_resource",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           },
           {
@@ -2053,7 +2125,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Resource"
+                  "$ref": "#/components/schemas/Resource-Output"
                 }
               }
             }
@@ -2071,7 +2143,7 @@
         }
       }
     },
-    "/resources/{resource_id}/logs": {
+    "/resources/{provider}/{resource_type}/{name}/logs": {
       "get": {
         "tags": [
           "resources"
@@ -2081,12 +2153,30 @@
         "operationId": "resources-get_resource_logs",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           },
           {
@@ -2165,7 +2255,7 @@
         }
       }
     },
-    "/resources/{resource_id}/health": {
+    "/resources/{provider}/{resource_type}/{name}/health": {
       "get": {
         "tags": [
           "resources"
@@ -2175,12 +2265,30 @@
         "operationId": "resources-get_resource_health",
         "parameters": [
           {
-            "name": "resource_id",
+            "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Id"
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
             }
           }
         ],
@@ -3122,7 +3230,7 @@
         "title": "ProviderVersion",
         "description": "A published version of a provider.\n\nIdentity fields (frozen):\n    provider_name: Globally unique provider name this version belongs to.\n    version: Semantic version string (e.g., \"1.0.0\").\n\nBuild metadata:\n    runtime_version: Pinned runtime version used to build the image.\n    image_url: Built container image URL (set after build completes).\n    source_hash: SHA-256 of the source tarball.\n\nProvider introspection:\n    schemas: Resource type schemas extracted from the provider.\n\nState (system-managed):\n    status: Build/publish lifecycle status.\n    published_at: Timestamp when version was published.\n    error_message: Error details when build fails."
       },
-      "Resource": {
+      "Resource-Input": {
         "properties": {
           "created_at": {
             "type": "string",
@@ -3269,6 +3377,164 @@
           "provider",
           "resource",
           "name"
+        ],
+        "title": "Resource",
+        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+      },
+      "Resource-Output": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Config",
+            "default": {}
+          },
+          "resolved_config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Config"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceReference"
+            },
+            "type": "array",
+            "title": "Dependencies",
+            "default": []
+          },
+          "owner_references": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerReference"
+            },
+            "type": "array",
+            "title": "Owner References",
+            "default": []
+          },
+          "outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Outputs",
+            "default": {}
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "lifecycle_state": {
+            "$ref": "#/components/schemas/LifecycleState",
+            "default": "draft"
+          },
+          "pending_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Event Id"
+          },
+          "pending_event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Event Type"
+          },
+          "provisioned": {
+            "type": "boolean",
+            "title": "Provisioned",
+            "default": false
+          },
+          "reconcile_count": {
+            "type": "integer",
+            "title": "Reconcile Count",
+            "default": 0
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 0
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "provider_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Version"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "External resource ID for API responses: provider/resource/name.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "resource",
+          "name",
+          "id"
         ],
         "title": "Resource",
         "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
