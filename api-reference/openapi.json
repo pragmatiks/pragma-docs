@@ -2538,7 +2538,9 @@
         "enum": [
           "CREATE",
           "UPDATE",
-          "DELETE"
+          "DELETE",
+          "MIGRATE_UP",
+          "MIGRATE_DOWN"
         ],
         "title": "EventType",
         "description": "Resource lifecycle event type: CREATE, UPDATE, or DELETE."
@@ -2998,7 +3000,7 @@
           "tenant"
         ],
         "title": "ProviderScope",
-        "description": "Scope of a provider in the unified store."
+        "description": "Scope of a provider in the catalog."
       },
       "ProviderVersion": {
         "properties": {
