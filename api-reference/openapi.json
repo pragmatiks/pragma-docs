@@ -686,6 +686,122 @@
         }
       }
     },
+    "/organizations/": {
+      "get": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "List Organizations",
+        "description": "List all organizations.\n\nAdmin-only endpoint returning all organization records from the shared namespace.\n\nReturns:\n    List of organization records ordered by name.",
+        "operationId": "organizations-list_organizations",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Organization"
+                  },
+                  "type": "array",
+                  "title": "Response Organizations-List Organizations"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organization_id}": {
+      "get": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Get Organization",
+        "description": "Get organization details by ID.\n\nReturns a single organization record. Raises 404 if not found\n(handled by exception handler via OrganizationNotFoundError).\n\nReturns:\n    Organization record.",
+        "operationId": "organizations-get_organization",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organization_id}/cleanup": {
+      "post": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Cleanup Organization",
+        "description": "Manually trigger organization cleanup.\n\nAdmin-only endpoint that initiates cleanup of an organization's resources,\nprovider installations, and database records. Cleanup runs asynchronously\nin the background.\n\nReturns:\n    Status acknowledgement.",
+        "operationId": "organizations-cleanup_organization",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Organization Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Organizations-Cleanup Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers/installed": {
       "get": {
         "tags": [
@@ -2794,6 +2910,54 @@
         ],
         "title": "LifecycleState",
         "description": "Lifecycle states for resources."
+      },
+      "Organization": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganizationStatus",
+            "default": "active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "name",
+          "slug"
+        ],
+        "title": "Organization",
+        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+      },
+      "OrganizationStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "deactivating",
+          "deleted"
+        ],
+        "title": "OrganizationStatus",
+        "description": "Lifecycle status of an organization."
       },
       "OutboxEventResponse": {
         "properties": {
