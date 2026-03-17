@@ -2402,6 +2402,32 @@
           }
         }
       }
+    },
+    "/webhooks/clerk": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Clerk Webhook",
+        "description": "Handle Clerk webhook events for organization lifecycle.\n\nVerifies Svix signature, parses the event payload, and routes to the\nappropriate organization lifecycle handler based on event type.\n\nReturns:\n    Status acknowledgement.",
+        "operationId": "webhooks-clerk_webhook",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Webhooks-Clerk Webhook"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
