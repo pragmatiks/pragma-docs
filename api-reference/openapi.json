@@ -309,22 +309,22 @@
         }
       }
     },
-    "/internal/files/{tenant_id}/{name}": {
+    "/internal/files/{organization_id}/{name}": {
       "get": {
         "tags": [
           "internal"
         ],
         "summary": "Internal Download File",
-        "description": "Download file content for internal cluster use.\n\nThis endpoint is for provider access to files. It uses tenant_id from\nthe URL path instead of JWT authentication.\n\nOnly accessible from within the Kubernetes cluster - not exposed via\npublic ingress.\n\nArgs:\n    tenant_id: Tenant/organization ID owning the file.\n    name: File name.\n\nReturns:\n    File content with content-type from stored metadata.\n\nRaises:\n    HTTPException: 404 if file not found.",
+        "description": "Download file content for internal cluster use.\n\nThis endpoint is for provider access to files. It uses organization_id from\nthe URL path instead of JWT authentication.\n\nOnly accessible from within the Kubernetes cluster - not exposed via\npublic ingress.\n\nArgs:\n    organization_id: Organization ID owning the file.\n    name: File name.\n\nReturns:\n    File content with content-type from stored metadata.\n\nRaises:\n    HTTPException: 404 if file not found.",
         "operationId": "internal-internal_download_file",
         "parameters": [
           {
-            "name": "tenant_id",
+            "name": "organization_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Tenant Id"
+              "title": "Organization Id"
             }
           },
           {
@@ -3014,9 +3014,9 @@
       },
       "ProviderAuthor": {
         "properties": {
-          "tenant_id": {
+          "organization_id": {
             "type": "string",
-            "title": "Tenant Id"
+            "title": "Organization Id"
           },
           "org_name": {
             "type": "string",
@@ -3025,11 +3025,11 @@
         },
         "type": "object",
         "required": [
-          "tenant_id",
+          "organization_id",
           "org_name"
         ],
         "title": "ProviderAuthor",
-        "description": "Author metadata for a provider.\n\nAttributes:\n    tenant_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
+        "description": "Author metadata for a provider.\n\nAttributes:\n    organization_id: Organization ID of the publisher.\n    org_name: Display name of the publishing organization."
       },
       "ProviderInstallationResponse": {
         "properties": {
