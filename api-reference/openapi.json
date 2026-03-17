@@ -3219,7 +3219,7 @@
           "org_name"
         ],
         "title": "ProviderAuthor",
-        "description": "Author metadata for a provider.\n\nAttributes:\n    organization_id: Organization ID of the publisher.\n    org_name: Display name of the publishing organization."
+        "description": "Author metadata for a provider.\n\nAttributes:\n    organization_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
       },
       "ProviderInstallationResponse": {
         "properties": {
