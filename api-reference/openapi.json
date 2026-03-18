@@ -1917,41 +1917,47 @@
         }
       }
     },
-    "/resources/{provider}/{resource_type}/{name}": {
+    "/resources/by-name": {
       "get": {
         "tags": [
           "resources"
         ],
         "summary": "Get Resource",
-        "description": "Get resource by ID.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    Resource with complete configuration and state.",
+        "description": "Get a specific resource by provider, resource type, and name.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    Resource with complete configuration and state.",
         "operationId": "resources-get_resource",
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           },
           {
             "name": "reveal",
@@ -1999,30 +2005,36 @@
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           },
           {
             "name": "reveal",
@@ -2061,7 +2073,7 @@
         }
       }
     },
-    "/resources/{provider}/{resource_type}/{name}/status": {
+    "/resources/status": {
       "get": {
         "tags": [
           "resources"
@@ -2072,30 +2084,36 @@
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           }
         ],
         "responses": {
@@ -2178,7 +2196,7 @@
         }
       }
     },
-    "/resources/{provider}/{resource_type}/{name}/deactivate": {
+    "/resources/deactivate": {
       "post": {
         "tags": [
           "resources"
@@ -2189,30 +2207,36 @@
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           },
           {
             "name": "reveal",
@@ -2251,41 +2275,47 @@
         }
       }
     },
-    "/resources/{provider}/{resource_type}/{name}/logs": {
+    "/resources/logs": {
       "get": {
         "tags": [
           "resources"
         ],
         "summary": "Get Resource Logs",
-        "description": "Get logs for a resource.\n\nProxies log requests to the provider runtime that manages this resource.\n\nResponse modes:\n    - follow=false (default): Returns a JSON array of LogEntry objects\n    - follow=true: Returns an SSE stream of log events\n\nSSE format (when follow=true):\n    event: log\n    data: {\"timestamp\": \"...\", \"level\": \"info\", \"message\": \"...\"}\n\nReturns:\n    List of LogEntry objects (follow=false) or SSE StreamingResponse (follow=true).\n\nRaises:\n    HTTPException: 504 on provider timeout, 502 on provider error or connection failure.",
+        "description": "Get logs for a resource by provider, resource type, and name.\n\nProxies log requests to the provider runtime that manages this resource.\n\nResponse modes:\n    - follow=false (default): Returns a JSON array of LogEntry objects\n    - follow=true: Returns an SSE stream of log events\n\nSSE format (when follow=true):\n    event: log\n    data: {\"timestamp\": \"...\", \"level\": \"info\", \"message\": \"...\"}\n\nReturns:\n    List of LogEntry objects (follow=false) or SSE StreamingResponse (follow=true).\n\nRaises:\n    HTTPException: 504 on provider timeout, 502 on provider error or connection failure.",
         "operationId": "resources-get_resource_logs",
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           },
           {
             "name": "since",
@@ -2363,41 +2393,47 @@
         }
       }
     },
-    "/resources/{provider}/{resource_type}/{name}/health": {
+    "/resources/health": {
       "get": {
         "tags": [
           "resources"
         ],
         "summary": "Get Resource Health",
-        "description": "Get health status of a resource.\n\nProxies the health check to the provider runtime that manages this resource.\nThe provider calls the resource's health() method and returns the result.\n\nReturns:\n    ResourceHealth with status (healthy, unhealthy, degraded) and optional details.\n\nRaises:\n    HTTPException: 404 if health check not available, 504 on timeout, 502 on provider error.",
+        "description": "Get health status of a resource by provider, resource type, and name.\n\nProxies the health check to the provider runtime that manages this resource.\nThe provider calls the resource's health() method and returns the result.\n\nReturns:\n    ResourceHealth with status (healthy, unhealthy, degraded) and optional details.\n\nRaises:\n    HTTPException: 404 if health check not available, 504 on timeout, 502 on provider error.",
         "operationId": "resources-get_resource_health",
         "parameters": [
           {
             "name": "provider",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Provider name",
               "title": "Provider"
-            }
+            },
+            "description": "Provider name"
           },
           {
-            "name": "resource_type",
-            "in": "path",
+            "name": "resource",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Resource Type"
-            }
+              "description": "Resource type",
+              "title": "Resource"
+            },
+            "description": "Resource type"
           },
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Resource name",
               "title": "Name"
-            }
+            },
+            "description": "Resource name"
           }
         ],
         "responses": {
