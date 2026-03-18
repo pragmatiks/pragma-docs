@@ -1083,15 +1083,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Version"
+                "$ref": "#/components/schemas/Body_providers-deploy_provider"
               }
             }
           }
@@ -2561,6 +2553,23 @@
           "file"
         ],
         "title": "Body_files-upload_file"
+      },
+      "Body_providers-deploy_provider": {
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "title": "Body_providers-deploy_provider"
       },
       "Body_providers-publish_version": {
         "properties": {
