@@ -2629,11 +2629,6 @@
             ],
             "title": "Changelog"
           },
-          "force": {
-            "type": "boolean",
-            "title": "Force",
-            "default": false
-          },
           "display_name": {
             "anyOf": [
               {
