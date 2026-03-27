@@ -2260,6 +2260,24 @@
             "description": "Filter by tags (all must match)"
           },
           {
+            "name": "health",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HealthStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by health status (healthy or degraded)",
+              "title": "Health"
+            },
+            "description": "Filter by health status (healthy or degraded)"
+          },
+          {
             "name": "reveal",
             "in": "query",
             "required": false,
@@ -2562,6 +2580,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Resource-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/copy": {
+      "post": {
+        "tags": [
+          "resources"
+        ],
+        "summary": "Copy Resources",
+        "description": "Copy a subgraph of resources.\n\nSelects all resources reachable from the given root IDs via dependency\nedges, then creates a copy of each. Copies are created in DRAFT state\nwith a COPY event dispatched to the provider for actual duplication.\n\nDependency rewiring (enabled by default) ensures that dependencies\nbetween copied resources point to their copies instead of originals.\nDependencies on resources outside the copied subgraph remain unchanged.\n\nReturns:\n    CopyResponse with per-resource results and summary counts.",
+        "operationId": "resources-copy_resources",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyResponse"
                 }
               }
             }
@@ -3063,6 +3123,129 @@
         ],
         "title": "Body_providers-publish_version"
       },
+      "CopyRequest": {
+        "properties": {
+          "resource_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Resource Ids"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "rewire_dependencies": {
+            "type": "boolean",
+            "title": "Rewire Dependencies",
+            "default": true
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "strategy": {
+            "$ref": "#/components/schemas/CopyStrategy",
+            "default": "stateless"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_ids"
+        ],
+        "title": "CopyRequest",
+        "description": "Request body for the subgraph copy operation.\n\nAttributes:\n    resource_ids: SurrealDB resource IDs to copy (roots of the subgraph).\n    tags: Tags to apply to all copied resources.\n    rewire_dependencies: If True, rewrite dependencies between copied\n        resources to point to their copies instead of the originals.\n    depth: Maximum traversal depth from roots. None means unlimited.\n    strategy: Default copy strategy for resources that do not specify one."
+      },
+      "CopyResourceResult": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "copied_resource": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Resource-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_id"
+        ],
+        "title": "CopyResourceResult",
+        "description": "Result for a single resource in a copy operation.\n\nAttributes:\n    source_id: External ID of the original resource.\n    copied_resource: The newly created copy resource (None if copy failed).\n    error: Error message if copying this resource failed."
+      },
+      "CopyResponse": {
+        "properties": {
+          "copied": {
+            "items": {
+              "$ref": "#/components/schemas/CopyResourceResult"
+            },
+            "type": "array",
+            "title": "Copied"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "succeeded": {
+            "type": "integer",
+            "title": "Succeeded"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "copied",
+          "total",
+          "succeeded",
+          "failed"
+        ],
+        "title": "CopyResponse",
+        "description": "Response body for the subgraph copy operation.\n\nAttributes:\n    copied: List of per-resource copy results.\n    total: Total resources in the selected subgraph.\n    succeeded: Number of resources successfully copied.\n    failed: Number of resources that failed to copy."
+      },
+      "CopyStrategy": {
+        "type": "string",
+        "enum": [
+          "stateless",
+          "stateful"
+        ],
+        "title": "CopyStrategy",
+        "description": "Strategy for how a resource should be copied.\n\nAttributes:\n    STATELESS: Config-only copy. The resource is duplicated by creating a new\n        instance with the same (or modified) configuration. No data migration.\n    STATEFUL: Data-bearing copy. The resource needs to clone underlying data\n        (e.g., database contents, vector indices) and may produce patches for\n        ongoing synchronization."
+      },
       "DeadLetterEventResponse": {
         "properties": {
           "event_id": {
@@ -3282,6 +3465,13 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthStatus": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "degraded"
+        ]
       },
       "InstallProviderRequest": {
         "properties": {
@@ -4111,6 +4301,21 @@
             "$ref": "#/components/schemas/LifecycleState",
             "default": "draft"
           },
+          "health": {
+            "$ref": "#/components/schemas/HealthStatus",
+            "default": "healthy"
+          },
+          "health_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Message"
+          },
           "pending_event_id": {
             "anyOf": [
               {
@@ -4261,6 +4466,21 @@
           "lifecycle_state": {
             "$ref": "#/components/schemas/LifecycleState",
             "default": "draft"
+          },
+          "health": {
+            "$ref": "#/components/schemas/HealthStatus",
+            "default": "healthy"
+          },
+          "health_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Message"
           },
           "pending_event_id": {
             "anyOf": [
@@ -4475,6 +4695,21 @@
           "lifecycle_state": {
             "$ref": "#/components/schemas/LifecycleState"
           },
+          "health": {
+            "$ref": "#/components/schemas/HealthStatus",
+            "default": "healthy"
+          },
+          "health_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Message"
+          },
           "error": {
             "anyOf": [
               {
@@ -4493,7 +4728,7 @@
           "lifecycle_state"
         ],
         "title": "ResourceStatus",
-        "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, waiting, pending, processing, ready, failed, deleting).\n    error: Error message if resource is in failed state."
+        "description": "Resource lifecycle status response.\n\nAttributes:\n    resource_id: Unique resource identifier.\n    lifecycle_state: Current lifecycle state (draft, waiting, pending, processing, ready, failed, deleting).\n    health: Dependency health flag (healthy or degraded).\n    health_message: Human-readable description of why health is degraded.\n    error: Error message if resource is in failed state."
       },
       "ResourceTier": {
         "type": "string",
