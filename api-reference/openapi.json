@@ -802,6 +802,208 @@
         }
       }
     },
+    "/resources/{resource_id}/patches": {
+      "post": {
+        "tags": [
+          "patches"
+        ],
+        "summary": "Create Patch",
+        "description": "Create a new patch against a source resource.\n\nRecords a patch definition with compatibility constraints. The patch\ncan later be applied to any compatible resource.\n\nReturns:\n    Created patch record with generated ID.",
+        "operationId": "patches-create_patch",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "patches"
+        ],
+        "summary": "List Patches",
+        "description": "List all patches for a source resource.\n\nReturns patches ordered by creation time (newest first).\n\nReturns:\n    List of patch records.",
+        "operationId": "patches-list_patches",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Patch"
+                  },
+                  "title": "Response Patches-List Patches"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patches/{patch_id}/check/{target_resource_id}": {
+      "post": {
+        "tags": [
+          "patches"
+        ],
+        "summary": "Check Patch Compatibility",
+        "description": "Check if a patch is compatible with a target resource.\n\nEvaluates the patch's compatibility constraints against the target\nresource's current configuration. Does not apply the patch.\n\nReturns:\n    CompatibilityResult with overall verdict and per-constraint details.",
+        "operationId": "patches-check_patch_compatibility",
+        "parameters": [
+          {
+            "name": "patch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Patch Id"
+            }
+          },
+          {
+            "name": "target_resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Resource Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patches/{patch_id}/apply/{target_resource_id}": {
+      "post": {
+        "tags": [
+          "patches"
+        ],
+        "summary": "Apply Patch",
+        "description": "Apply a patch to a target resource.\n\nChecks compatibility constraints, then dispatches a PATCH event to the\nprovider for actual application. The provider implements the patch logic\nvia its on_patch handler.\n\nReturns:\n    ApplyPatchResult with outcome details.",
+        "operationId": "patches-apply_patch",
+        "parameters": [
+          {
+            "name": "patch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Patch Id"
+            }
+          },
+          {
+            "name": "target_resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Resource Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyPatchResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/presence/register": {
       "post": {
         "tags": [
@@ -3029,6 +3231,35 @@
         "title": "AgentType",
         "description": "Type of agent connected to the platform."
       },
+      "ApplyPatchResult": {
+        "properties": {
+          "patch_id": {
+            "type": "string",
+            "title": "Patch Id"
+          },
+          "target_resource_id": {
+            "type": "string",
+            "title": "Target Resource Id"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "patch_id",
+          "target_resource_id",
+          "success"
+        ],
+        "title": "ApplyPatchResult",
+        "description": "Result of applying a patch to a target resource.\n\nAttributes:\n    patch_id: ID of the patch that was applied.\n    target_resource_id: SurrealDB ID of the target resource.\n    success: Whether the patch was applied successfully.\n    message: Human-readable description of the outcome."
+      },
       "Body_files-upload_file": {
         "properties": {
           "file": {
@@ -3122,6 +3353,61 @@
           "version"
         ],
         "title": "Body_providers-publish_version"
+      },
+      "CompatibilityConstraint": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "==",
+              "!=",
+              ">",
+              ">=",
+              "<",
+              "<=",
+              "in"
+            ],
+            "title": "Operator"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "operator",
+          "value"
+        ],
+        "title": "CompatibilityConstraint",
+        "description": "A single constraint expression for patch eligibility.\n\nConstraints are evaluated against the resource's current configuration\nto determine whether a patch can be applied.\n\nAttributes:\n    field: Config field name to check (e.g., \"postgresql_version\").\n    operator: Comparison operator (e.g., \">=\", \"==\", \"!=\", \"<\", \">\", \"<=\", \"in\").\n    value: Value to compare against. Type depends on operator."
+      },
+      "CompatibilityResult": {
+        "properties": {
+          "compatible": {
+            "type": "boolean",
+            "title": "Compatible"
+          },
+          "failed_constraints": {
+            "items": {
+              "$ref": "#/components/schemas/FailedConstraint"
+            },
+            "type": "array",
+            "title": "Failed Constraints",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "compatible"
+        ],
+        "title": "CompatibilityResult",
+        "description": "Result of a patch compatibility check against a target resource.\n\nAttributes:\n    compatible: Whether all constraints are satisfied.\n    failed_constraints: Constraints that did not pass, with reasons."
       },
       "CopyRequest": {
         "properties": {
@@ -3245,6 +3531,27 @@
         ],
         "title": "CopyStrategy",
         "description": "Strategy for how a resource should be copied.\n\nAttributes:\n    STATELESS: Config-only copy. The resource is duplicated by creating a new\n        instance with the same (or modified) configuration. No data migration.\n    STATEFUL: Data-bearing copy. The resource needs to clone underlying data\n        (e.g., database contents, vector indices) and may produce patches for\n        ongoing synchronization."
+      },
+      "CreatePatchRequest": {
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/PatchDefinition"
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/CompatibilityConstraint"
+            },
+            "type": "array",
+            "title": "Constraints",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "definition"
+        ],
+        "title": "CreatePatchRequest",
+        "description": "Request body for creating a new patch.\n\nAttributes:\n    definition: Patch content describing the action and parameters.\n    constraints: Compatibility constraints for target resource eligibility."
       },
       "DeadLetterEventResponse": {
         "properties": {
@@ -3412,6 +3719,43 @@
         ],
         "title": "EventType",
         "description": "Resource lifecycle event type."
+      },
+      "FailedConstraint": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "operator": {
+            "type": "string",
+            "title": "Operator"
+          },
+          "expected": {
+            "title": "Expected"
+          },
+          "actual": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "operator",
+          "expected",
+          "reason"
+        ],
+        "title": "FailedConstraint",
+        "description": "A single constraint that failed during compatibility checking.\n\nAttributes:\n    field: Config field name that was checked.\n    operator: The comparison operator.\n    expected: The constraint's expected value.\n    actual: The actual value found in the resource config (None if field missing).\n    reason: Human-readable explanation of why it failed."
       },
       "FileMetadata": {
         "properties": {
@@ -3778,6 +4122,113 @@
           "offset"
         ],
         "title": "PaginatedResponse[Provider]"
+      },
+      "Patch": {
+        "properties": {
+          "patch_id": {
+            "type": "string",
+            "title": "Patch Id"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/PatchDefinition"
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/CompatibilityConstraint"
+            },
+            "type": "array",
+            "title": "Constraints",
+            "default": []
+          },
+          "status": {
+            "$ref": "#/components/schemas/PatchStatus",
+            "default": "pending"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "patch_id",
+          "resource_id",
+          "definition",
+          "created_by"
+        ],
+        "title": "Patch",
+        "description": "A patch record stored in SurrealDB.\n\nPatches are migration scripts, schema diffs, or configuration changes\nrecorded against a source resource. They can be applied to any compatible\nresource that satisfies the declared constraints.\n\nAttributes:\n    patch_id: Unique identifier for this patch.\n    resource_id: SurrealDB ID of the source resource this patch was created against.\n    definition: Patch content (action, parameters, description).\n    constraints: Compatibility constraints for target resource eligibility.\n    status: Current lifecycle status (pending, applied, failed).\n    created_by: User or agent ID that created the patch.\n    created_at: When the patch was created.\n    error: Error message if patch application failed."
+      },
+      "PatchDefinition": {
+        "properties": {
+          "patch_id": {
+            "type": "string",
+            "title": "Patch Id"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/CompatibilityConstraint"
+            },
+            "type": "array",
+            "title": "Constraints",
+            "default": []
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload",
+            "default": {}
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "default": {}
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "patch_id"
+        ],
+        "title": "PatchDefinition",
+        "description": "Definition of a patch to apply to a resource.\n\nPatches are migration scripts, schema diffs, or configuration changes\nthat can be applied to a resource. They include compatibility constraints\nto ensure they are only applied to eligible resources.\n\nAttributes:\n    patch_id: Unique identifier for this patch.\n    description: Human-readable description of what this patch does.\n    constraints: Compatibility constraints the resource must satisfy.\n    payload: Patch-specific data (e.g., migration script, schema diff).\n    metadata: Additional context about the patch (author, source, etc.)."
+      },
+      "PatchStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "dispatched",
+          "applied",
+          "failed"
+        ],
+        "title": "PatchStatus",
+        "description": "Lifecycle status of a patch record.\n\nAttributes:\n    PENDING: Patch recorded but not yet applied.\n    DISPATCHED: Patch event sent to provider, awaiting confirmation.\n    APPLIED: Patch confirmed applied by the provider.\n    FAILED: Patch application failed."
       },
       "PresenceEntry": {
         "properties": {
