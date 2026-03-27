@@ -802,6 +802,389 @@
         }
       }
     },
+    "/presence/register": {
+      "post": {
+        "tags": [
+          "presence"
+        ],
+        "summary": "Register Presence",
+        "description": "Register an agent or session as active.\n\nCreates a presence entry that auto-expires if heartbeats stop.\n\nReturns:\n    Registered presence entry with timestamps.",
+        "operationId": "presence-register_presence",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresenceEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presence/{agent_id}/heartbeat": {
+      "post": {
+        "tags": [
+          "presence"
+        ],
+        "summary": "Heartbeat",
+        "description": "Send a heartbeat to maintain presence and update activity.\n\nReturns:\n    Updated presence entry.\n\nRaises:\n    NotFoundError: 404 if agent is not registered.",
+        "operationId": "presence-heartbeat",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceHeartbeatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresenceEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presence/{agent_id}": {
+      "delete": {
+        "tags": [
+          "presence"
+        ],
+        "summary": "Deregister Presence",
+        "description": "Remove an agent's presence registration.",
+        "operationId": "presence-deregister_presence",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "presence"
+        ],
+        "summary": "Get Presence",
+        "description": "Get presence details for a specific agent.\n\nReturns:\n    Presence entry if found, None otherwise.",
+        "operationId": "presence-get_presence",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PresenceEntry"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Presence-Get Presence"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presence/": {
+      "get": {
+        "tags": [
+          "presence"
+        ],
+        "summary": "List Active",
+        "description": "List all active agents and sessions for the organization.\n\nReturns:\n    List of active presence entries.",
+        "operationId": "presence-list_active",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PresenceEntry"
+                  },
+                  "type": "array",
+                  "title": "Response Presence-List Active"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presence/locks/{resource_id}": {
+      "post": {
+        "tags": [
+          "presence",
+          "presence"
+        ],
+        "summary": "Acquire Lock",
+        "description": "Acquire an advisory lock on a resource.\n\nAdvisory locks signal intent and do not block operations.\nIf another agent already holds the lock, returns 409 Conflict.\nAgents working on the resource without a lock are notified.\n\nReturns:\n    Lock entry with acquisition timestamp.",
+        "operationId": "presence-acquire_lock",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockAcquireRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LockEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "presence",
+          "presence"
+        ],
+        "summary": "Release Lock",
+        "description": "Release an advisory lock on a resource.\n\nOnly the lock holder can release. Returns 409 if held by a different agent.",
+        "operationId": "presence-release_lock",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Agent releasing the lock",
+              "title": "Agent Id"
+            },
+            "description": "Agent releasing the lock"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "presence",
+          "presence"
+        ],
+        "summary": "Get Lock",
+        "description": "Check who holds the advisory lock on a resource.\n\nReturns:\n    Lock entry if resource is locked, None otherwise.",
+        "operationId": "presence-get_lock",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LockEntry"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Presence-Get Lock"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presence/locks/": {
+      "get": {
+        "tags": [
+          "presence",
+          "presence"
+        ],
+        "summary": "List Locks",
+        "description": "List all active advisory locks for the organization.\n\nReturns:\n    List of active lock entries.",
+        "operationId": "presence-list_locks",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LockEntry"
+                  },
+                  "type": "array",
+                  "title": "Response Presence-List Locks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers/installed": {
       "get": {
         "tags": [
@@ -2576,6 +2959,16 @@
   },
   "components": {
     "schemas": {
+      "AgentType": {
+        "type": "string",
+        "enum": [
+          "external",
+          "internal",
+          "human"
+        ],
+        "title": "AgentType",
+        "description": "Type of agent connected to the platform."
+      },
       "Body_files-upload_file": {
         "properties": {
           "file": {
@@ -2829,11 +3222,13 @@
           "CREATE",
           "UPDATE",
           "DELETE",
+          "COPY",
+          "PATCH",
           "MIGRATE_UP",
           "MIGRATE_DOWN"
         ],
         "title": "EventType",
-        "description": "Resource lifecycle event type: CREATE, UPDATE, or DELETE."
+        "description": "Resource lifecycle event type."
       },
       "FileMetadata": {
         "properties": {
@@ -2950,6 +3345,49 @@
         ],
         "title": "LifecycleState",
         "description": "Lifecycle states for resources."
+      },
+      "LockAcquireRequest": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id"
+        ],
+        "title": "LockAcquireRequest",
+        "description": "Request body for acquiring an advisory lock.\n\nAttributes:\n    agent_id: ID of the agent requesting the lock."
+      },
+      "LockEntry": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "acquired_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Acquired At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_id",
+          "agent_id",
+          "organization_id"
+        ],
+        "title": "LockEntry",
+        "description": "Advisory lock on a resource.\n\nAttributes:\n    resource_id: ID of the locked resource.\n    agent_id: ID of the agent holding the lock.\n    organization_id: Organization the lock belongs to.\n    acquired_at: Timestamp when the lock was acquired."
       },
       "Organization": {
         "properties": {
@@ -3150,6 +3588,140 @@
           "offset"
         ],
         "title": "PaginatedResponse[Provider]"
+      },
+      "PresenceEntry": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "agent_type": {
+            "$ref": "#/components/schemas/AgentType"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "activity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Registered At"
+          },
+          "last_heartbeat": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Heartbeat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id",
+          "agent_type",
+          "name",
+          "organization_id"
+        ],
+        "title": "PresenceEntry",
+        "description": "Presence registration for an active agent or human session.\n\nAttributes:\n    agent_id: Unique identifier for the connected agent or session.\n    agent_type: Whether the agent is external (MCP), internal, or human.\n    name: Human-readable display name.\n    organization_id: Organization the agent belongs to.\n    activity: Description of current activity, if any.\n    resource_id: Resource the agent is currently working on, if any.\n    registered_at: Timestamp when presence was first registered.\n    last_heartbeat: Timestamp of the most recent heartbeat."
+      },
+      "PresenceHeartbeatRequest": {
+        "properties": {
+          "activity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          }
+        },
+        "type": "object",
+        "title": "PresenceHeartbeatRequest",
+        "description": "Request body for updating presence heartbeat.\n\nAttributes:\n    activity: Updated activity description, if changed.\n    resource_id: Updated resource being worked on, if changed."
+      },
+      "PresenceRegisterRequest": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "agent_type": {
+            "$ref": "#/components/schemas/AgentType"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "activity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id",
+          "agent_type",
+          "name"
+        ],
+        "title": "PresenceRegisterRequest",
+        "description": "Request body for registering presence.\n\nAttributes:\n    agent_id: Unique identifier for the agent or session.\n    agent_type: Type of agent connecting.\n    name: Human-readable display name.\n    activity: Optional current activity description.\n    resource_id: Optional resource being worked on."
       },
       "Provider": {
         "properties": {
