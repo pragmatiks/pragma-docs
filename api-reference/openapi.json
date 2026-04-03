@@ -365,28 +365,17 @@
           "internal"
         ],
         "summary": "Register Runtime Version",
-        "description": "Register a new runtime image version.\n\nCalled by CI/CD after building and pushing a runtime image to the\ncontainer registry. Creates or updates the version record in SurrealDB.\n\nRequires a Bearer token matching the INTERNAL_API_KEY setting.\n\nArgs:\n    body: Runtime version registration payload.\n    service: RuntimeVersionService for persistence.\n    authorization: Bearer token from Authorization header.\n\nReturns:\n    The persisted RuntimeVersion record.\n\nRaises:\n    HTTPException: 401 if API key is missing or invalid.",
+        "description": "Register a new runtime image version.\n\nCalled by CI/CD after building and pushing a runtime image to the\ncontainer registry. Creates or updates the version record in SurrealDB.\n\nRequires Clerk authentication (session token or API key).\n\nArgs:\n    body: Runtime version registration payload.\n    service: RuntimeVersionService for persistence.\n    user: Authenticated user from Clerk.\n\nReturns:\n    The persisted RuntimeVersion record.",
         "operationId": "internal-register_runtime_version",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Authorization"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RuntimeVersionCreate"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
