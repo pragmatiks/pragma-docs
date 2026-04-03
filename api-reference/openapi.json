@@ -3334,6 +3334,17 @@
               }
             ],
             "title": "Tags"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
           }
         },
         "type": "object",
