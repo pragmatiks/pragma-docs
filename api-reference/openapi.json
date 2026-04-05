@@ -178,6 +178,155 @@
         }
       }
     },
+    "/canvas/views": {
+      "get": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "List Views",
+        "description": "List all saved canvas views for the authenticated user.\n\nReturns:\n    Saved canvas views ordered by creation time (newest first).",
+        "operationId": "canvas-list_views",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasViewsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Create View",
+        "description": "Create a new saved canvas view.\n\nCaptures the current search query, filters, and pinned nodes\nso the user can restore this view later.\n\nReturns:\n    Updated list of all saved canvas views.",
+        "operationId": "canvas-create_view",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasViewCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasViewsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/canvas/views/{view_id}": {
+      "put": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Update View",
+        "description": "Update an existing saved canvas view.\n\nReturns:\n    Updated list of all saved canvas views.",
+        "operationId": "canvas-update_view",
+        "parameters": [
+          {
+            "name": "view_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "View Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasViewUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasViewsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Delete View",
+        "description": "Delete a saved canvas view.",
+        "operationId": "canvas-delete_view",
+        "parameters": [
+          {
+            "name": "view_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "View Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/events/stream": {
       "get": {
         "tags": [
@@ -3513,6 +3662,151 @@
         "title": "CanvasPositionsResponse",
         "description": "Response body for canvas position queries.\n\nAttributes:\n    positions: Map of resource ID to node position."
       },
+      "CanvasView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "search_query": {
+            "type": "string",
+            "title": "Search Query",
+            "default": ""
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/FilterCriteria"
+            },
+            "type": "array",
+            "title": "Filters"
+          },
+          "pinned_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pinned Node Ids"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CanvasView",
+        "description": "Persisted saved view for the canvas.\n\nSaved views capture a combination of search query, filters, and\npinned nodes that users can restore later.\n\nAttributes:\n    id: SurrealDB record identifier.\n    name: User-assigned name for this view.\n    search_query: Text search query to apply when restoring.\n    filters: List of filter criteria to apply when restoring.\n    pinned_node_ids: Resource IDs that should be pinned when restoring.\n    created_at: Timestamp when the view was first saved.\n    updated_at: Timestamp of last modification."
+      },
+      "CanvasViewCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "search_query": {
+            "type": "string",
+            "title": "Search Query",
+            "default": ""
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/FilterCriteria"
+            },
+            "type": "array",
+            "title": "Filters"
+          },
+          "pinned_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pinned Node Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CanvasViewCreateRequest",
+        "description": "Request body for creating a saved canvas view.\n\nAttributes:\n    name: User-assigned name for this view.\n    search_query: Text search query to persist.\n    filters: Filter criteria to persist.\n    pinned_node_ids: Resource IDs to pin when restoring."
+      },
+      "CanvasViewUpdateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "search_query": {
+            "type": "string",
+            "title": "Search Query",
+            "default": ""
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/FilterCriteria"
+            },
+            "type": "array",
+            "title": "Filters"
+          },
+          "pinned_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pinned Node Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CanvasViewUpdateRequest",
+        "description": "Request body for updating an existing saved canvas view.\n\nAttributes:\n    name: Updated name for this view.\n    search_query: Updated text search query.\n    filters: Updated filter criteria.\n    pinned_node_ids: Updated pinned resource IDs."
+      },
+      "CanvasViewsResponse": {
+        "properties": {
+          "views": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasView"
+            },
+            "type": "array",
+            "title": "Views"
+          }
+        },
+        "type": "object",
+        "required": [
+          "views"
+        ],
+        "title": "CanvasViewsResponse",
+        "description": "Response body for listing saved canvas views.\n\nAttributes:\n    views: List of saved canvas views."
+      },
       "CompatibilityConstraint": {
         "properties": {
           "field": {
@@ -3955,6 +4249,25 @@
         ],
         "title": "FileMetadata",
         "description": "Metadata for a stored file."
+      },
+      "FilterCriteria": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "title": "FilterCriteria",
+        "description": "Single filter criterion for a saved canvas view.\n\nAttributes:\n    type: Filter category (provider, status, resourceType, health).\n    value: Filter value to match against."
       },
       "HTTPValidationError": {
         "properties": {
