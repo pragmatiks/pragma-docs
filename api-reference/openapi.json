@@ -50,6 +50,134 @@
         }
       }
     },
+    "/canvas/positions": {
+      "get": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Get Positions",
+        "description": "Retrieve saved node positions for the authenticated user.\n\nReturns empty positions if the user has no saved canvas state.\n\nReturns:\n    Saved node positions keyed by resource ID.",
+        "operationId": "canvas-get_positions",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasPositionsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Save Positions",
+        "description": "Save or update node positions for the authenticated user.\n\nMerges provided positions with existing saved state. Nodes not\nincluded in the request are left unchanged.\n\nReturns:\n    Complete set of saved positions after merge.",
+        "operationId": "canvas-save_positions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasPositionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasPositionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Delete Positions",
+        "description": "Delete all saved node positions for the authenticated user.\n\nUsed for \"rearrange all\" to reset the canvas to auto-layout.",
+        "operationId": "canvas-delete_positions",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/canvas/positions/{resource_id}/pinned": {
+      "put": {
+        "tags": [
+          "canvas"
+        ],
+        "summary": "Set Node Pinned",
+        "description": "Toggle the pinned state for a single node.\n\nPinned nodes are excluded from auto-layout on the frontend.\nIf the node has no saved position, creates one at (0, 0) with\nthe requested pin state.\n\nReturns:\n    Complete set of saved positions after update.",
+        "operationId": "canvas-set_node_pinned",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodePinnedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasPositionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/events/stream": {
       "get": {
         "tags": [
@@ -3354,6 +3482,37 @@
         ],
         "title": "Body_providers-publish_version"
       },
+      "CanvasPositionsRequest": {
+        "properties": {
+          "positions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NodePosition"
+            },
+            "type": "object",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "positions"
+        ],
+        "title": "CanvasPositionsRequest",
+        "description": "Request body for saving or updating node positions.\n\nPositions are merged with existing state. Nodes not included\nin the request are left unchanged.\n\nAttributes:\n    positions: Map of resource ID to position to save (max 1000 entries)."
+      },
+      "CanvasPositionsResponse": {
+        "properties": {
+          "positions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NodePosition"
+            },
+            "type": "object",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "title": "CanvasPositionsResponse",
+        "description": "Response body for canvas position queries.\n\nAttributes:\n    positions: Map of resource ID to node position."
+      },
       "CompatibilityConstraint": {
         "properties": {
           "field": {
@@ -3922,6 +4081,44 @@
         ],
         "title": "LockEntry",
         "description": "Advisory lock on a resource.\n\nAttributes:\n    resource_id: ID of the locked resource.\n    agent_id: ID of the agent holding the lock.\n    organization_id: Organization the lock belongs to.\n    acquired_at: Timestamp when the lock was acquired."
+      },
+      "NodePinnedRequest": {
+        "properties": {
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pinned"
+        ],
+        "title": "NodePinnedRequest",
+        "description": "Request body for toggling a node's pinned state.\n\nAttributes:\n    pinned: Whether the node should be excluded from auto-layout."
+      },
+      "NodePosition": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "NodePosition",
+        "description": "Position and pin state for a single node on the canvas.\n\nAttributes:\n    x: Horizontal position in canvas coordinates.\n    y: Vertical position in canvas coordinates.\n    pinned: Whether the node is excluded from auto-layout."
       },
       "Organization": {
         "properties": {
