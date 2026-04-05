@@ -333,11 +333,105 @@
           "events"
         ],
         "summary": "Event Stream",
-        "description": "Stream resource state changes via Server-Sent Events.\n\nSubscribes to NATS state notifications for the authenticated tenant\nand forwards them as SSE events. Each event contains the full resource\nJSON after a state transition (READY, FAILED, PENDING, etc.).\n\nThe connection stays open until the client disconnects.\n\nReturns:\n    SSE stream of resource state change events.",
+        "description": "Stream resource state changes via Server-Sent Events.\n\nSubscribes to NATS state notifications for the authenticated tenant\nand forwards them as SSE events. Each event contains the full resource\nJSON after a state transition, with optional event metadata (from_state,\nevent_type) when available.\n\nSSE events use `event: state_change` when lifecycle event metadata\nis present, otherwise a generic message event.\n\nThe connection stays open until the client disconnects.\n\nReturns:\n    SSE stream of resource state change events.",
         "operationId": "events-event_stream",
         "responses": {
           "200": {
             "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/events/history": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "List Event History",
+        "description": "Query lifecycle state transition history.\n\nReturns events ordered by timestamp descending within the given\ntime window. Defaults to the last hour if no window is specified.\n\nReturns:\n    List of lifecycle events matching the query criteria.",
+        "operationId": "events-list_event_history",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start of time window (ISO 8601). Defaults to 1 hour ago.",
+              "title": "Since"
+            },
+            "description": "Start of time window (ISO 8601). Defaults to 1 hour ago."
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End of time window (ISO 8601). Defaults to now.",
+              "title": "Until"
+            },
+            "description": "End of time window (ISO 8601). Defaults to now."
+          },
+          {
+            "name": "resource_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to a specific resource by SurrealDB ID.",
+              "title": "Resource Id"
+            },
+            "description": "Filter to a specific resource by SurrealDB ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LifecycleEvent"
+                  },
+                  "title": "Response Events-List Event History"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -4337,6 +4431,91 @@
         ],
         "title": "InstallProviderRequest",
         "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled.\n    config: Key-value pairs injected as environment variables on the deployment."
+      },
+      "LifecycleEvent": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "resource_name": {
+            "type": "string",
+            "title": "Resource Name"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "from_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to_state": {
+            "$ref": "#/components/schemas/LifecycleState"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "resource_id",
+          "resource_name",
+          "provider",
+          "resource_type",
+          "event_type",
+          "to_state"
+        ],
+        "title": "LifecycleEvent",
+        "description": "A recorded lifecycle state transition for a resource.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the resource.\n    resource_id: SurrealDB resource ID.\n    resource_name: Human-readable resource name.\n    provider: Provider that manages the resource.\n    resource_type: Resource type name.\n    event_type: Lifecycle event that caused the transition (e.g. apply, success, failure).\n    from_state: State before transition, None for initial creation.\n    to_state: State after transition.\n    error: Error message when transitioning to FAILED state.\n    timestamp: When the transition occurred.\n    expires_at: When this event should be garbage collected."
       },
       "LifecycleState": {
         "type": "string",
