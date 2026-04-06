@@ -214,7 +214,7 @@
       },
       {
         "tab": "API Reference",
-        "openapi": "https://api.pragmatiks.io/openapi.json",
+        "openapi": "/api-reference/openapi.json",
         "groups": [
           {
             "group": "API",
