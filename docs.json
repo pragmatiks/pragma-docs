@@ -214,6 +214,7 @@
       },
       {
         "tab": "API Reference",
+        "openapi": "api-reference/openapi.json",
         "groups": [
           {
             "group": "API",
@@ -223,13 +224,6 @@
               "api-reference/errors",
               "api-reference/examples"
             ]
-          },
-          {
-            "group": "Endpoints",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference"
-            }
           }
         ]
       }
