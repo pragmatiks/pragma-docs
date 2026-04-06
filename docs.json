@@ -214,6 +214,7 @@
       },
       {
         "tab": "API Reference",
+        "openapi": "https://api.pragmatiks.io/openapi.json",
         "groups": [
           {
             "group": "API",
@@ -222,8 +223,7 @@
               "api-reference/authentication",
               "api-reference/errors",
               "api-reference/examples"
-            ],
-            "openapi": "https://api.pragmatiks.io/openapi.json"
+            ]
           }
         ]
       }
