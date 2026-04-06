@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
   "name": "Pragmatiks",
+  "openapi": "api-reference/openapi.json",
   "colors": {
     "primary": "#E8527A",
     "light": "#E8527A",
@@ -214,7 +215,7 @@
       },
       {
         "tab": "API Reference",
-        "openapi": "/api-reference/openapi.json",
+        "openapi": "api-reference/openapi.json",
         "groups": [
           {
             "group": "API",
