@@ -3381,7 +3381,10 @@
                 }
               },
               "text/event-stream": {
-                "description": "SSE stream of log events when follow=true"
+                "schema": {
+                  "type": "string",
+                  "description": "SSE stream of log events when follow=true"
+                }
               }
             }
           },
