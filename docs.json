@@ -1,17 +1,21 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "theme": "maple",
   "name": "Pragmatiks",
   "colors": {
-    "primary": "#0D0D0D",
-    "light": "#0D0D0D",
-    "dark": "#E5E5E5"
+    "primary": "#E8527A",
+    "light": "#E8527A",
+    "dark": "#FF6B95"
   },
   "background": {
+    "decoration": "gradient",
     "color": {
-      "light": "#E5E5E5",
-      "dark": "#0D0D0D"
+      "light": "#FBF8F4",
+      "dark": "#1C1919"
     }
+  },
+  "appearance": {
+    "default": "system"
   },
   "styling": {
     "codeblocks": {
@@ -22,13 +26,10 @@
     }
   },
   "fonts": {
+    "family": "Geist",
     "heading": {
-      "family": "Lekton",
-      "weight": 700
-    },
-    "body": {
-      "family": "Nunito Sans",
-      "weight": 300
+      "family": "Geist",
+      "weight": 600
     }
   },
   "favicon": "/favicon.svg",

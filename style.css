@@ -1,37 +1,255 @@
-/* Fix Mintlify bug: dark:text-primary-light uses wrong variable in dark mode */
+/* ===== Nacre Design Tokens ===== */
+:root {
+  --nacre-canvas: #FBF8F4;
+  --nacre-surface: #FEFCF9;
+  --nacre-surface-raised: #FFFFFF;
+  --nacre-border: #ECE6DF;
+  --nacre-border-strong: #DFD8D0;
+  --nacre-text: #23201D;
+  --nacre-text-secondary: #736960;
+  --nacre-text-tertiary: #C4BAB0;
+  --nacre-rose: #E8527A;
+  --nacre-rose-hover: #D4416B;
+  --nacre-rose-subtle: #FFF0F3;
+}
+
 .dark {
-  --primary-light: 229 229 229;
+  --nacre-canvas: #1C1919;
+  --nacre-surface: #242121;
+  --nacre-surface-raised: #2D2A2A;
+  --nacre-border: #3A3535;
+  --nacre-border-strong: #4D4747;
+  --nacre-text: #EDE9E7;
+  --nacre-text-secondary: #A09797;
+  --nacre-text-tertiary: #6B6262;
+  --nacre-rose: #E8527A;
+  --nacre-rose-hover: #FF6B95;
+  --nacre-rose-subtle: #2E2025;
 }
 
-/* ===== LIGHT MODE ONLY FIXES ===== */
-/* Cards - light mode only */
+/* ===== Mintlify Primary Color Fix ===== */
+/* Mintlify uses --primary-light in dark mode for text/accents via Tailwind */
+.dark {
+  --primary-light: 255 107 149;
+}
+
+/* ===== Global Overrides ===== */
+body {
+  color: var(--nacre-text);
+}
+
+::selection {
+  background-color: var(--nacre-rose-subtle);
+  color: var(--nacre-text);
+}
+
+/* ===== Links ===== */
+a:not([class]) {
+  color: var(--nacre-rose);
+}
+
+a:not([class]):hover {
+  color: var(--nacre-rose-hover);
+}
+
+/* ===== Text Colors ===== */
+.dark p,
+.dark li,
+.dark td,
+.dark th,
+.dark dt,
+.dark dd {
+  color: var(--nacre-text);
+}
+
+p.text-muted,
+span.text-muted,
+.text-gray-500,
+.text-gray-600 {
+  color: var(--nacre-text-secondary) !important;
+}
+
+.dark .text-gray-400,
+.dark .text-gray-500 {
+  color: var(--nacre-text-secondary) !important;
+}
+
+/* ===== Borders ===== */
+hr {
+  border-color: var(--nacre-border);
+}
+
+.dark hr {
+  border-color: var(--nacre-border);
+}
+
+/* ===== Cards ===== */
 :root:not(.dark) .card {
-  background-color: #F0F0F0 !important;
+  background-color: var(--nacre-surface) !important;
+  border-color: var(--nacre-border);
 }
 
-/* Code blocks - light mode only */
+.dark .card {
+  background-color: var(--nacre-surface) !important;
+  border-color: var(--nacre-border);
+}
+
+/* ===== Code Blocks ===== */
 :root:not(.dark) .code-block,
 :root:not(.dark) .code-block-background,
 :root:not(.dark) [class*="code-block-background"],
 :root:not(.dark) pre,
 :root:not(.dark) pre[class*="language-"],
 :root:not(.dark) .code-group {
-  background-color: #F0F0F0 !important;
+  background-color: var(--nacre-surface) !important;
 }
 
-/* Override Tailwind bg-white - light mode only */
+.dark .code-block,
+.dark .code-block-background,
+.dark [class*="code-block-background"],
+.dark pre,
+.dark pre[class*="language-"],
+.dark .code-group {
+  background-color: var(--nacre-surface) !important;
+}
+
+/* Override Tailwind bg-white inside code blocks */
 :root:not(.dark) .code-block [class*="bg-white"] {
-  background-color: #F0F0F0 !important;
+  background-color: var(--nacre-surface) !important;
 }
 
-/* Code block copy button gradient - light mode only */
+/* Code block copy button gradient */
 :root:not(.dark) .code-block > div {
-  background: linear-gradient(to right, transparent 0px, rgba(240, 240, 240, 0.2) 10px, rgba(240, 240, 240, 0.5) 25px, rgba(240, 240, 240, 0.8) 35px, #F0F0F0 45px) !important;
+  background: linear-gradient(
+    to right,
+    transparent 0px,
+    rgba(254, 252, 249, 0.2) 10px,
+    rgba(254, 252, 249, 0.5) 25px,
+    rgba(254, 252, 249, 0.8) 35px,
+    #FEFCF9 45px
+  ) !important;
 }
 
-/* Reset the inner content div - light mode only */
+.dark .code-block > div {
+  background: linear-gradient(
+    to right,
+    transparent 0px,
+    rgba(36, 33, 33, 0.2) 10px,
+    rgba(36, 33, 33, 0.5) 25px,
+    rgba(36, 33, 33, 0.8) 35px,
+    #242121 45px
+  ) !important;
+}
+
+/* Reset inner content div inside code blocks */
 :root:not(.dark) .code-block > div[class*="w-0"],
 :root:not(.dark) .code-block > div[class*="min-w-full"] {
   background: none !important;
-  background-color: #F0F0F0 !important;
+  background-color: var(--nacre-surface) !important;
+}
+
+.dark .code-block > div[class*="w-0"],
+.dark .code-block > div[class*="min-w-full"] {
+  background: none !important;
+  background-color: var(--nacre-surface) !important;
+}
+
+/* Inline code */
+:not(pre) > code {
+  background-color: var(--nacre-surface) !important;
+  border: 1px solid var(--nacre-border);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+}
+
+.dark :not(pre) > code {
+  background-color: var(--nacre-surface-raised) !important;
+  border-color: var(--nacre-border);
+}
+
+/* ===== Navigation & Sidebar ===== */
+nav,
+aside,
+[class*="sidebar"],
+[class*="nav-"] {
+  border-color: var(--nacre-border);
+}
+
+.dark nav,
+.dark aside,
+.dark [class*="sidebar"],
+.dark [class*="nav-"] {
+  border-color: var(--nacre-border);
+}
+
+/* Active sidebar item */
+[class*="sidebar"] a[aria-current="page"],
+[class*="sidebar"] a.active {
+  color: var(--nacre-rose) !important;
+}
+
+/* ===== Tables ===== */
+table {
+  border-color: var(--nacre-border);
+}
+
+th {
+  background-color: var(--nacre-surface);
+  border-color: var(--nacre-border);
+}
+
+.dark th {
+  background-color: var(--nacre-surface);
+  border-color: var(--nacre-border);
+}
+
+td {
+  border-color: var(--nacre-border);
+}
+
+.dark td {
+  border-color: var(--nacre-border);
+}
+
+/* ===== Blockquotes ===== */
+blockquote {
+  border-left-color: var(--nacre-border-strong);
+  background-color: var(--nacre-rose-subtle);
+}
+
+.dark blockquote {
+  border-left-color: var(--nacre-border-strong);
+  background-color: var(--nacre-rose-subtle);
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nacre-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nacre-border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nacre-text-tertiary);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--nacre-canvas);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--nacre-border-strong);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--nacre-text-tertiary);
 }
