@@ -436,6 +436,357 @@
         }
       }
     },
+    "/graph/upstream": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Get Upstream",
+        "description": "Get all transitive dependencies (upstream) of a resource.\n\nTraverses the depends_on graph edges recursively to find all resources\nthat the anchor resource transitively depends on.\n\nReturns:\n    List of upstream resources with populated edge data.",
+        "operationId": "graph-get_upstream",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider name of the anchor resource",
+              "title": "Provider"
+            },
+            "description": "Provider name of the anchor resource"
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Resource type of the anchor resource",
+              "title": "Resource"
+            },
+            "description": "Resource type of the anchor resource"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the anchor resource",
+              "title": "Name"
+            },
+            "description": "Name of the anchor resource"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum traversal depth",
+              "title": "Depth"
+            },
+            "description": "Maximum traversal depth"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Resource-Output"
+                  },
+                  "title": "Response Graph-Get Upstream"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/downstream": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Get Downstream",
+        "description": "Get all transitive dependents (downstream) of a resource.\n\nTraverses the depends_on graph edges in reverse recursively to find all\nresources that transitively depend on the anchor resource.\n\nReturns:\n    List of downstream resources with populated edge data.",
+        "operationId": "graph-get_downstream",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider name of the anchor resource",
+              "title": "Provider"
+            },
+            "description": "Provider name of the anchor resource"
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Resource type of the anchor resource",
+              "title": "Resource"
+            },
+            "description": "Resource type of the anchor resource"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the anchor resource",
+              "title": "Name"
+            },
+            "description": "Name of the anchor resource"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum traversal depth",
+              "title": "Depth"
+            },
+            "description": "Maximum traversal depth"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Resource-Output"
+                  },
+                  "title": "Response Graph-Get Downstream"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/neighbors": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Get Neighbors",
+        "description": "Get direct connections (dependencies and dependents) of a resource.\n\nReturns the union of direct dependencies and direct dependents,\nwithout transitive traversal.\n\nReturns:\n    List of neighboring resources with populated edge data.",
+        "operationId": "graph-get_neighbors",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider name of the anchor resource",
+              "title": "Provider"
+            },
+            "description": "Provider name of the anchor resource"
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Resource type of the anchor resource",
+              "title": "Resource"
+            },
+            "description": "Resource type of the anchor resource"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the anchor resource",
+              "title": "Name"
+            },
+            "description": "Name of the anchor resource"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Resource-Output"
+                  },
+                  "title": "Response Graph-Get Neighbors"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/path": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Check Path",
+        "description": "Check if a dependency path exists between two resources.\n\nReturns whether the source resource transitively depends on the target\nresource via depends_on edges.\n\nReturns:\n    PathExistsResponse with exists=True if a path was found.",
+        "operationId": "graph-check_path",
+        "parameters": [
+          {
+            "name": "from_provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider name of the source resource",
+              "title": "From Provider"
+            },
+            "description": "Provider name of the source resource"
+          },
+          {
+            "name": "from_resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Resource type of the source resource",
+              "title": "From Resource"
+            },
+            "description": "Resource type of the source resource"
+          },
+          {
+            "name": "from_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the source resource",
+              "title": "From Name"
+            },
+            "description": "Name of the source resource"
+          },
+          {
+            "name": "to_provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider name of the target resource",
+              "title": "To Provider"
+            },
+            "description": "Provider name of the target resource"
+          },
+          {
+            "name": "to_resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Resource type of the target resource",
+              "title": "To Resource"
+            },
+            "description": "Resource type of the target resource"
+          },
+          {
+            "name": "to_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Name of the target resource",
+              "title": "To Name"
+            },
+            "description": "Name of the target resource"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathExistsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/files/{name}/upload": {
       "post": {
         "tags": [
@@ -4946,6 +5297,20 @@
         ],
         "title": "PatchStatus",
         "description": "Lifecycle status of a patch record.\n\nAttributes:\n    PENDING: Patch recorded but not yet applied.\n    DISPATCHED: Patch event sent to provider, awaiting confirmation.\n    APPLIED: Patch confirmed applied by the provider.\n    FAILED: Patch application failed."
+      },
+      "PathExistsResponse": {
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "title": "Exists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exists"
+        ],
+        "title": "PathExistsResponse",
+        "description": "Response for path existence check.\n\nAttributes:\n    exists: Whether a dependency path exists between the two resources."
       },
       "PresenceEntry": {
         "properties": {
