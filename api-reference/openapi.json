@@ -4190,7 +4190,7 @@
           "triggers"
         ],
         "summary": "Create Trigger",
-        "description": "Create a new agent trigger.\n\nReturns:\n    Created trigger with server-populated fields.",
+        "description": "Create a new agent trigger.\n\nReturns:\n    Created trigger with server-populated fields.\n\nRaises:\n    HTTPException: 403 if non-platform org attempts cross-org trigger.",
         "operationId": "triggers-create_trigger",
         "requestBody": {
           "required": true,
@@ -4585,6 +4585,17 @@
             "type": "string",
             "title": "Organization Id"
           },
+          "target_organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Organization Id"
+          },
           "agent_resource_id": {
             "type": "string",
             "title": "Agent Resource Id"
@@ -4650,7 +4661,7 @@
           "trigger_type"
         ],
         "title": "AgentTrigger",
-        "description": "Configuration for triggering an agent via events, schedules, or conversations.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the trigger.\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger is active.\n    created_at: When the trigger was created.\n    updated_at: When the trigger was last modified."
+        "description": "Configuration for triggering an agent via events, schedules, or conversations.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the trigger and the agent resource.\n    target_organization_id: Organization whose events this trigger watches.\n        When set, the trigger fires on events from this org but the agent\n        resource lives in organization_id. When None, watches organization_id.\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger is active.\n    created_at: When the trigger was created.\n    updated_at: When the trigger was last modified."
       },
       "AgentTriggerCreate": {
         "properties": {
@@ -4664,6 +4675,17 @@
           },
           "trigger_type": {
             "$ref": "#/components/schemas/TriggerType"
+          },
+          "target_organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Organization Id"
           },
           "event_filters": {
             "anyOf": [
@@ -4708,10 +4730,21 @@
           "trigger_type"
         ],
         "title": "AgentTriggerCreate",
-        "description": "Request body for creating an agent trigger.\n\nAttributes:\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger starts active."
+        "description": "Request body for creating an agent trigger.\n\nAttributes:\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    target_organization_id: Organization whose events this trigger watches.\n        When set, the trigger fires on events from this org but the agent\n        resource lives in the authenticated org. When None, watches own org.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger starts active."
       },
       "AgentTriggerUpdate": {
         "properties": {
+          "target_organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Organization Id"
+          },
           "event_filters": {
             "anyOf": [
               {
@@ -4762,7 +4795,7 @@
         },
         "type": "object",
         "title": "AgentTriggerUpdate",
-        "description": "Request body for updating an agent trigger.\n\nAll fields are optional. Only provided fields are updated.\n\nAttributes:\n    event_filters: Updated event filters.\n    cron_expression: Updated cron expression.\n    is_main_agent: Updated main agent flag.\n    enabled: Updated enabled state."
+        "description": "Request body for updating an agent trigger.\n\nAll fields are optional. Only provided fields are updated.\n\nAttributes:\n    target_organization_id: Updated target organization for cross-org event watching.\n    event_filters: Updated event filters.\n    cron_expression: Updated cron expression.\n    is_main_agent: Updated main agent flag.\n    enabled: Updated enabled state."
       },
       "AgentType": {
         "type": "string",
