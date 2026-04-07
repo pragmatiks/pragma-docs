@@ -3377,13 +3377,13 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/LogEntry"
-                  }
+                  },
+                  "title": "Response Resources-Get Resource Logs"
                 }
               },
               "text/event-stream": {
                 "schema": {
-                  "type": "string",
-                  "description": "SSE stream of log events when follow=true"
+                  "type": "string"
                 }
               }
             }
@@ -4576,6 +4576,31 @@
         ],
         "title": "LockEntry",
         "description": "Advisory lock on a resource.\n\nAttributes:\n    resource_id: ID of the locked resource.\n    agent_id: ID of the agent holding the lock.\n    organization_id: Organization the lock belongs to.\n    acquired_at: Timestamp when the lock was acquired."
+      },
+      "LogEntry": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp",
+          "level",
+          "message"
+        ],
+        "title": "LogEntry",
+        "description": "A single log entry from a resource.\n\nAttributes:\n    timestamp: ISO-8601 timestamp of when the log was generated.\n    level: Log level (debug, info, warning, error).\n    message: Log message content."
       },
       "NodePinnedRequest": {
         "properties": {
