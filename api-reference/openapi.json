@@ -28,6 +28,194 @@
         }
       }
     },
+    "/agents/{agent_id}/actions": {
+      "get": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "List Agent Actions",
+        "description": "Query the merged timeline of events and logs for an agent.\n\nReturns lifecycle events (where actor matches the agent) and agent\nlog entries merged into a unified timeline, sorted by timestamp\ndescending.\n\nReturns:\n    Merged timeline entries for the agent.",
+        "operationId": "agents-list_agent_actions",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start of time window (ISO 8601). Defaults to 1 hour ago.",
+              "title": "Since"
+            },
+            "description": "Start of time window (ISO 8601). Defaults to 1 hour ago."
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End of time window (ISO 8601). Defaults to now.",
+              "title": "Until"
+            },
+            "description": "End of time window (ISO 8601). Defaults to now."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum entries to return.",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum entries to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentActionEntry"
+                  },
+                  "title": "Response Agents-List Agent Actions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/actions/stream": {
+      "get": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Stream Agent Actions",
+        "description": "Stream real-time agent actions via Server-Sent Events.\n\nSubscribes to NATS for agent action notifications and forwards\nthem as SSE events. The connection stays open until the client\ndisconnects.\n\nReturns:\n    SSE stream of agent action entries.",
+        "operationId": "agents-stream_agent_actions",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/logs": {
+      "post": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Create Agent Log",
+        "description": "Create an agent log entry.\n\nCalled by agent runners to report their actions. The log entry\nis persisted to SurrealDB and published to NATS for real-time\nstreaming to connected mission control clients.\n\nReturns:\n    Created agent log entry with server-populated fields.",
+        "operationId": "agents-create_agent_log",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentLogCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentLog"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/me": {
       "get": {
         "tags": [
@@ -3906,6 +4094,301 @@
         }
       }
     },
+    "/triggers/": {
+      "get": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "List Triggers",
+        "description": "List triggers with optional filters.\n\nReturns all triggers for the authenticated organization, optionally\nfiltered by agent, type, or enabled state.\n\nReturns:\n    List of matching triggers.",
+        "operationId": "triggers-list_triggers",
+        "parameters": [
+          {
+            "name": "agent_resource_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by agent resource ID",
+              "title": "Agent Resource Id"
+            },
+            "description": "Filter by agent resource ID"
+          },
+          {
+            "name": "trigger_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TriggerType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by trigger type",
+              "title": "Trigger Type"
+            },
+            "description": "Filter by trigger type"
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by enabled state",
+              "title": "Enabled"
+            },
+            "description": "Filter by enabled state"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentTrigger"
+                  },
+                  "title": "Response Triggers-List Triggers"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "Create Trigger",
+        "description": "Create a new agent trigger.\n\nReturns:\n    Created trigger with server-populated fields.",
+        "operationId": "triggers-create_trigger",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTriggerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTrigger"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/triggers/{trigger_id}": {
+      "get": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "Get Trigger",
+        "description": "Get a specific trigger by ID.\n\nReturns:\n    The requested trigger.\n\nRaises:\n    NotFoundError: If trigger not found or belongs to another org.",
+        "operationId": "triggers-get_trigger",
+        "parameters": [
+          {
+            "name": "trigger_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trigger Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTrigger"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "Update Trigger",
+        "description": "Update an existing trigger.\n\nOnly provided fields are updated. Returns the updated trigger.\n\nReturns:\n    Updated trigger.\n\nRaises:\n    NotFoundError: If trigger not found or belongs to another org.",
+        "operationId": "triggers-update_trigger",
+        "parameters": [
+          {
+            "name": "trigger_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trigger Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTriggerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTrigger"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "Delete Trigger",
+        "description": "Delete a trigger.\n\nRaises:\n    NotFoundError: If trigger not found or belongs to another org.",
+        "operationId": "triggers-delete_trigger",
+        "parameters": [
+          {
+            "name": "trigger_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trigger Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/triggers/conversation": {
+      "post": {
+        "tags": [
+          "triggers"
+        ],
+        "summary": "Send Conversation Message",
+        "description": "Send a message to the organization's main conversation agent.\n\nFinds the conversation trigger with is_main_agent=True, resolves\nthe runner URL, and streams the SSE response from the agent.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main conversation agent configured.",
+        "operationId": "triggers-send_conversation_message",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/clerk": {
       "post": {
         "tags": [
@@ -3935,6 +4418,352 @@
   },
   "components": {
     "schemas": {
+      "AgentActionEntry": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "event",
+              "log"
+            ],
+            "title": "Source"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleEvent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentLog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "timestamp"
+        ],
+        "title": "AgentActionEntry",
+        "description": "Unified timeline entry combining lifecycle events and agent logs.\n\nAttributes:\n    source: Whether this entry originated from a lifecycle event or an agent log.\n    timestamp: When this action occurred.\n    event: Lifecycle event data (populated when source is \"event\").\n    log: Agent log data (populated when source is \"log\")."
+      },
+      "AgentLog": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "agent_resource_id": {
+            "type": "string",
+            "title": "Agent Resource Id"
+          },
+          "log_type": {
+            "$ref": "#/components/schemas/AgentLogType"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "agent_resource_id",
+          "log_type",
+          "message"
+        ],
+        "title": "AgentLog",
+        "description": "A recorded action or decision by an AI agent.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the agent.\n    agent_resource_id: SurrealDB ID of the agent resource.\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    metadata: Flexible payload (tool name, arguments, error details, etc.).\n    timestamp: When this action occurred.\n    expires_at: When this log entry should be garbage collected."
+      },
+      "AgentLogCreate": {
+        "properties": {
+          "log_type": {
+            "$ref": "#/components/schemas/AgentLogType"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "log_type",
+          "message"
+        ],
+        "title": "AgentLogCreate",
+        "description": "Request body for creating an agent log entry.\n\nAttributes:\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    metadata: Flexible payload (tool name, arguments, error details, etc.)."
+      },
+      "AgentLogType": {
+        "type": "string",
+        "enum": [
+          "trigger_fired",
+          "agent_started",
+          "agent_completed",
+          "agent_error",
+          "tool_call",
+          "tool_result",
+          "reasoning",
+          "decision"
+        ],
+        "title": "AgentLogType",
+        "description": "Types of agent log entries."
+      },
+      "AgentTrigger": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "agent_resource_id": {
+            "type": "string",
+            "title": "Agent Resource Id"
+          },
+          "runner_resource_id": {
+            "type": "string",
+            "title": "Runner Resource Id"
+          },
+          "trigger_type": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "event_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventFilter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Filters"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "is_main_agent": {
+            "type": "boolean",
+            "title": "Is Main Agent",
+            "default": false
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "agent_resource_id",
+          "runner_resource_id",
+          "trigger_type"
+        ],
+        "title": "AgentTrigger",
+        "description": "Configuration for triggering an agent via events, schedules, or conversations.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the trigger.\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger is active.\n    created_at: When the trigger was created.\n    updated_at: When the trigger was last modified."
+      },
+      "AgentTriggerCreate": {
+        "properties": {
+          "agent_resource_id": {
+            "type": "string",
+            "title": "Agent Resource Id"
+          },
+          "runner_resource_id": {
+            "type": "string",
+            "title": "Runner Resource Id"
+          },
+          "trigger_type": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "event_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventFilter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Filters"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "is_main_agent": {
+            "type": "boolean",
+            "title": "Is Main Agent",
+            "default": false
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_resource_id",
+          "runner_resource_id",
+          "trigger_type"
+        ],
+        "title": "AgentTriggerCreate",
+        "description": "Request body for creating an agent trigger.\n\nAttributes:\n    agent_resource_id: SurrealDB ID of the agno agent resource.\n    runner_resource_id: SurrealDB ID of the agno runner resource.\n    trigger_type: How this trigger fires.\n    event_filters: Filters for matching lifecycle events (event triggers only).\n    cron_expression: Cron schedule expression (schedule triggers only).\n    is_main_agent: Whether this is the org's main conversation agent.\n    enabled: Whether the trigger starts active."
+      },
+      "AgentTriggerUpdate": {
+        "properties": {
+          "event_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventFilter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Filters"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "is_main_agent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Main Agent"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "title": "AgentTriggerUpdate",
+        "description": "Request body for updating an agent trigger.\n\nAll fields are optional. Only provided fields are updated.\n\nAttributes:\n    event_filters: Updated event filters.\n    cron_expression: Updated cron expression.\n    is_main_agent: Updated main agent flag.\n    enabled: Updated enabled state."
+      },
       "AgentType": {
         "type": "string",
         "enum": [
@@ -4310,6 +5139,31 @@
         "title": "CompatibilityResult",
         "description": "Result of a patch compatibility check against a target resource.\n\nAttributes:\n    compatible: Whether all constraints are satisfied.\n    failed_constraints: Constraints that did not pass, with reasons."
       },
+      "ConversationMessage": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ConversationMessage",
+        "description": "Request body for sending a message to the organization's main conversation agent.\n\nAttributes:\n    message: The user message to send.\n    session_id: Session ID for conversation continuity. New session if None."
+      },
       "CopyRequest": {
         "properties": {
           "resource_ids": {
@@ -4607,6 +5461,57 @@
         "title": "DowngradeProviderRequest",
         "description": "Request model for downgrading an installed store provider.\n\nAttributes:\n    target_version: Target version to downgrade to (required)."
       },
+      "EventFilter": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "resource_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Type"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "resource_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Name"
+          }
+        },
+        "type": "object",
+        "title": "EventFilter",
+        "description": "Filter for matching NATS lifecycle events.\n\nAll fields are optional. A filter matches when every non-None field\nmatches the corresponding value in the event subject. An empty filter\nmatches all events.\n\nAttributes:\n    provider: Provider canonical name (e.g. \"pragmatiks/gcp\").\n    resource_type: Resource type slug (e.g. \"instance\").\n    event_type: Lifecycle outcome (e.g. \"failure\", \"degraded\", \"success\").\n    resource_name: Specific resource name to match."
+      },
       "EventType": {
         "type": "string",
         "enum": [
@@ -4836,6 +5741,28 @@
           "to_state": {
             "$ref": "#/components/schemas/LifecycleState"
           },
+          "actor_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Type"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
           "error": {
             "anyOf": [
               {
@@ -4869,7 +5796,7 @@
           "to_state"
         ],
         "title": "LifecycleEvent",
-        "description": "A recorded lifecycle state transition for a resource.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the resource.\n    resource_id: SurrealDB resource ID.\n    resource_name: Human-readable resource name.\n    provider: Provider that manages the resource.\n    resource_type: Resource type name.\n    event_type: Lifecycle event that caused the transition (e.g. apply, success, failure).\n    from_state: State before transition, None for initial creation.\n    to_state: State after transition.\n    error: Error message when transitioning to FAILED state.\n    timestamp: When the transition occurred.\n    expires_at: When this event should be garbage collected."
+        "description": "A recorded lifecycle state transition for a resource.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the resource.\n    resource_id: SurrealDB resource ID.\n    resource_name: Human-readable resource name.\n    provider: Provider that manages the resource.\n    resource_type: Resource type name.\n    event_type: Lifecycle event that caused the transition (e.g. apply, success, failure).\n    from_state: State before transition, None for initial creation.\n    to_state: State after transition.\n    actor_type: Who caused this event (\"user\", \"agent\", \"system\"), None for legacy events.\n    actor_id: Identifier for the actor (user ID or agent resource ID), None for legacy events.\n    error: Error message when transitioning to FAILED state.\n    timestamp: When the transition occurred.\n    expires_at: When this event should be garbage collected."
       },
       "LifecycleState": {
         "type": "string",
@@ -6367,6 +7294,16 @@
         ],
         "title": "SignedUrlResponse",
         "description": "Response containing a signed download URL."
+      },
+      "TriggerType": {
+        "type": "string",
+        "enum": [
+          "event",
+          "schedule",
+          "conversation"
+        ],
+        "title": "TriggerType",
+        "description": "Types of agent triggers."
       },
       "TrustTier": {
         "type": "string",
