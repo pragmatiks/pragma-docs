@@ -4336,6 +4336,376 @@
         }
       }
     },
+    "/agents/tasks/board": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Board Summary",
+        "description": "Get board summary with task counts per status.\n\nReturns:\n    Board summary with counts and total.",
+        "operationId": "tasks-board_summary",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Tasks",
+        "description": "List tasks with optional filters.\n\nReturns all tasks for the authenticated organization, optionally\nfiltered by status or assigned agent instance.\n\nReturns:\n    List of matching tasks.",
+        "operationId": "tasks-list_tasks",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by task status",
+              "title": "Status"
+            },
+            "description": "Filter by task status"
+          },
+          {
+            "name": "assigned_to_instance_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by assigned agent instance",
+              "title": "Assigned To Instance Id"
+            },
+            "description": "Filter by assigned agent instance"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  },
+                  "title": "Response Tasks-List Tasks"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Task",
+        "description": "Create a new task.\n\nReturns:\n    Created task with server-populated fields.",
+        "operationId": "tasks-create_task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task",
+        "description": "Get a specific task by ID.\n\nReturns:\n    The requested task.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-get_task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Update Task",
+        "description": "Update an existing task.\n\nOnly provided fields are updated. Returns the updated task.\n\nReturns:\n    Updated task.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-update_task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Delete Task",
+        "description": "Delete a task.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-delete_task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/assign": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Assign Task",
+        "description": "Assign a task to an agent instance, user, or type.\n\nReturns:\n    Updated task with assignment.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-assign_task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAssign"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/transition": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Transition Task",
+        "description": "Transition a task to a new status.\n\nValidates the transition against allowed status transitions.\n\nReturns:\n    Updated task with new status.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.\n    InvalidLifecycleTransitionError: If the transition is not allowed.",
+        "operationId": "tasks-transition_task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskTransition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/triggers/": {
       "get": {
         "tags": [
@@ -5390,6 +5760,28 @@
         ],
         "title": "ApplyPatchResult",
         "description": "Result of applying a patch to a target resource.\n\nAttributes:\n    patch_id: ID of the patch that was applied.\n    target_resource_id: SurrealDB ID of the target resource.\n    success: Whether the patch was applied successfully.\n    message: Human-readable description of the outcome."
+      },
+      "BoardSummary": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "counts",
+          "total"
+        ],
+        "title": "BoardSummary",
+        "description": "Board summary with task counts per status.\n\nAttributes:\n    counts: Mapping of status to task count.\n    total: Total number of tasks."
       },
       "Body_files-upload_file": {
         "properties": {
@@ -7914,6 +8306,415 @@
         ],
         "title": "SignedUrlResponse",
         "description": "Response containing a signed download URL."
+      },
+      "Task": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "default": "backlog"
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Priority",
+            "default": 3
+          },
+          "assigned_to_type_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Type Id"
+          },
+          "assigned_to_instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Instance Id"
+          },
+          "assigned_to_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To User Id"
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id"
+          },
+          "correlation_bucket_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Bucket Id"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TaskSource",
+            "default": "manual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "title"
+        ],
+        "title": "Task",
+        "description": "An agent task representing a unit of work.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Owning organization.\n    title: Short description of the task.\n    description: Detailed description.\n    status: Current task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type assigned to this task.\n    assigned_to_instance_id: Agent instance working on this task.\n    assigned_to_user_id: User assigned to this task.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    created_by: User ID of the creator.\n    source: How this task was created."
+      },
+      "TaskAssign": {
+        "properties": {
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Id"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "type_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Id"
+          }
+        },
+        "type": "object",
+        "title": "TaskAssign",
+        "description": "Request body for assigning a task.\n\nAttributes:\n    instance_id: Agent instance to assign.\n    user_id: User to assign.\n    type_id: Agent type to assign."
+      },
+      "TaskCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "default": "backlog"
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Priority",
+            "default": 3
+          },
+          "assigned_to_type_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Type Id"
+          },
+          "assigned_to_instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Instance Id"
+          },
+          "assigned_to_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To User Id"
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id"
+          },
+          "correlation_bucket_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Bucket Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TaskSource",
+            "default": "manual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "TaskCreate",
+        "description": "Request body for creating a task.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    status: Initial task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
+      },
+      "TaskSource": {
+        "type": "string",
+        "enum": [
+          "triage",
+          "conversation",
+          "manual"
+        ],
+        "title": "TaskSource",
+        "description": "Origin of an agent task."
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "backlog",
+          "assigned",
+          "running",
+          "review",
+          "done"
+        ],
+        "title": "TaskStatus",
+        "description": "Status of an agent task on the board."
+      },
+      "TaskTransition": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TaskTransition",
+        "description": "Request body for transitioning a task to a new status.\n\nAttributes:\n    status: Target status."
+      },
+      "TaskUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "assigned_to_type_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Type Id"
+          },
+          "assigned_to_instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Instance Id"
+          },
+          "assigned_to_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To User Id"
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id"
+          },
+          "correlation_bucket_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Bucket Id"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "TaskUpdate",
+        "description": "Request body for updating a task. All fields optional.\n\nStatus changes are not allowed here \u2014 use the transition endpoint instead.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
       },
       "TriggerType": {
         "type": "string",
