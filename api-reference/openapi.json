@@ -216,6 +216,337 @@
         }
       }
     },
+    "/agents/instances/": {
+      "get": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "List Instances",
+        "description": "List agent instances with optional filters.\n\nReturns all agent instances for the authenticated organization,\noptionally filtered by status, agent type, task, or needs_input flag.\n\nReturns:\n    List of matching agent instances.",
+        "operationId": "agent-instances-list_instances",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by instance status",
+              "title": "Status"
+            },
+            "description": "Filter by instance status"
+          },
+          {
+            "name": "agent_type_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by agent type ID",
+              "title": "Agent Type Id"
+            },
+            "description": "Filter by agent type ID"
+          },
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by task ID",
+              "title": "Task Id"
+            },
+            "description": "Filter by task ID"
+          },
+          {
+            "name": "needs_input",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by needs_input flag",
+              "title": "Needs Input"
+            },
+            "description": "Filter by needs_input flag"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentInstance"
+                  },
+                  "title": "Response Agent-Instances-List Instances"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Create Instance",
+        "description": "Create a new agent instance.\n\nReturns:\n    Created agent instance with server-populated fields.",
+        "operationId": "agent-instances-create_instance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInstanceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInstance"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/instances/{instance_id}": {
+      "get": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Get Instance",
+        "description": "Get a specific agent instance by ID.\n\nReturns:\n    The requested agent instance.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.",
+        "operationId": "agent-instances-get_instance",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInstance"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Update Instance",
+        "description": "Update an existing agent instance.\n\nOnly provided fields are updated. Returns the updated instance.\n\nReturns:\n    Updated agent instance.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.",
+        "operationId": "agent-instances-update_instance",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInstanceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInstance"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Delete Instance",
+        "description": "Delete an agent instance.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.",
+        "operationId": "agent-instances-delete_instance",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/instances/{instance_id}/transition": {
+      "post": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Transition Instance",
+        "description": "Transition an agent instance to a new status.\n\nValidates the transition against allowed status transitions.\n\nReturns:\n    Updated agent instance with new status.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.\n    InvalidLifecycleTransitionError: If the transition is not allowed.",
+        "operationId": "agent-instances-transition_instance",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInstanceStatusTransition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInstance"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/agents/types/": {
       "get": {
         "tags": [
@@ -5074,6 +5405,264 @@
         "title": "AgentActionEntry",
         "description": "Unified timeline entry combining lifecycle events and agent logs.\n\nAttributes:\n    source: Whether this entry originated from a lifecycle event or an agent log.\n    timestamp: When this action occurred.\n    event: Lifecycle event data (populated when source is \"event\").\n    log: Agent log data (populated when source is \"log\")."
       },
+      "AgentInstance": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "agent_type_id": {
+            "type": "string",
+            "title": "Agent Type Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InstanceStatus",
+            "default": "starting"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "turn_count": {
+            "type": "integer",
+            "title": "Turn Count",
+            "default": 0
+          },
+          "tokens_total": {
+            "type": "integer",
+            "title": "Tokens Total",
+            "default": 0
+          },
+          "needs_input": {
+            "type": "boolean",
+            "title": "Needs Input",
+            "default": false
+          },
+          "current_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Step"
+          },
+          "last_action_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Action At"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "agent_type_id"
+        ],
+        "title": "AgentInstance",
+        "description": "A running or completed agent session.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Owning organization.\n    agent_type_id: Agent type this instance runs.\n    task_id: Task this instance is working on.\n    status: Current lifecycle status.\n    started_at: When the instance began execution.\n    ended_at: When the instance reached a terminal status.\n    turn_count: Number of LLM turns completed.\n    tokens_total: Total tokens consumed.\n    needs_input: Whether the instance is blocked waiting for human input.\n    current_step: Description of what the instance is currently doing.\n    last_action_at: Timestamp of the most recent action.\n    session_id: External session identifier for conversation continuity."
+      },
+      "AgentInstanceCreate": {
+        "properties": {
+          "agent_type_id": {
+            "type": "string",
+            "title": "Agent Type Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_type_id"
+        ],
+        "title": "AgentInstanceCreate",
+        "description": "Request body for creating an agent instance.\n\nAttributes:\n    agent_type_id: Agent type to instantiate.\n    task_id: Task to assign to this instance.\n    session_id: External session identifier."
+      },
+      "AgentInstanceStatusTransition": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InstanceStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AgentInstanceStatusTransition",
+        "description": "Request body for transitioning an agent instance to a new status.\n\nAttributes:\n    status: Target status."
+      },
+      "AgentInstanceUpdate": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "turn_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Count"
+          },
+          "tokens_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tokens Total"
+          },
+          "needs_input": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Needs Input"
+          },
+          "current_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Step"
+          },
+          "last_action_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Action At"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "title": "AgentInstanceUpdate",
+        "description": "Request body for updating an agent instance. All fields optional.\n\nStatus changes are not allowed here \u2014 use the transition endpoint instead.\n\nAttributes:\n    task_id: Task this instance is working on.\n    turn_count: Number of LLM turns completed.\n    tokens_total: Total tokens consumed.\n    needs_input: Whether the instance is blocked waiting for human input.\n    current_step: Description of what the instance is currently doing.\n    last_action_at: Timestamp of the most recent action.\n    session_id: External session identifier."
+      },
       "AgentLog": {
         "properties": {
           "id": {
@@ -5094,6 +5683,17 @@
           "agent_resource_id": {
             "type": "string",
             "title": "Agent Resource Id"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Id"
           },
           "log_type": {
             "$ref": "#/components/schemas/AgentLogType"
@@ -5133,7 +5733,7 @@
           "message"
         ],
         "title": "AgentLog",
-        "description": "A recorded action or decision by an AI agent.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the agent.\n    agent_resource_id: SurrealDB ID of the agent resource.\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    metadata: Flexible payload (tool name, arguments, error details, etc.).\n    timestamp: When this action occurred.\n    expires_at: When this log entry should be garbage collected."
+        "description": "A recorded action or decision by an AI agent.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Tenant that owns the agent.\n    agent_resource_id: SurrealDB ID of the agent resource.\n    instance_id: Agent instance that produced this log entry.\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    metadata: Flexible payload (tool name, arguments, error details, etc.).\n    timestamp: When this action occurred.\n    expires_at: When this log entry should be garbage collected."
       },
       "AgentLogCreate": {
         "properties": {
@@ -5143,6 +5743,17 @@
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Id"
           },
           "metadata": {
             "anyOf": [
@@ -5163,7 +5774,7 @@
           "message"
         ],
         "title": "AgentLogCreate",
-        "description": "Request body for creating an agent log entry.\n\nAttributes:\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    metadata: Flexible payload (tool name, arguments, error details, etc.)."
+        "description": "Request body for creating an agent log entry.\n\nAttributes:\n    log_type: Category of this log entry.\n    message: Human-readable description of what happened.\n    instance_id: Agent instance that produced this log entry.\n    metadata: Flexible payload (tool name, arguments, error details, etc.)."
       },
       "AgentLogType": {
         "type": "string",
@@ -6702,6 +7313,20 @@
         ],
         "title": "InstallProviderRequest",
         "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled.\n    config: Key-value pairs injected as environment variables on the deployment."
+      },
+      "InstanceStatus": {
+        "type": "string",
+        "enum": [
+          "starting",
+          "running",
+          "waiting",
+          "paused",
+          "completed",
+          "error",
+          "stopped"
+        ],
+        "title": "InstanceStatus",
+        "description": "Lifecycle status of an agent instance."
       },
       "LifecycleEvent": {
         "properties": {
