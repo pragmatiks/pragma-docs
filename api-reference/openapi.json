@@ -547,6 +547,49 @@
         }
       }
     },
+    "/agents/instances/{instance_id}/plan": {
+      "get": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "Get Instance Plan",
+        "description": "Reconstruct the current plan for an agent instance.\n\nReplays plan-related log events (PLAN_CREATED, PLAN_UPDATED,\nSTEP_STARTED, STEP_COMPLETED) to build the current plan state.\n\nReturns:\n    Instance plan with ordered steps and their statuses.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.",
+        "operationId": "agent-instances-get_instance_plan",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstancePlan"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/agents/types/": {
       "get": {
         "tags": [
@@ -1099,6 +1142,28 @@
         "responses": {
           "200": {
             "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/agents/vitals": {
+      "get": {
+        "tags": [
+          "fleet"
+        ],
+        "summary": "Fleet Vitals",
+        "description": "Return aggregated fleet metrics for the authenticated organization.\n\nComputes instance counts, error rate, average token usage, and task\nstatus distribution from current database state.\n\nReturns:\n    Fleet vitals with instance and task metrics.",
+        "operationId": "fleet-fleet_vitals",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetVitals"
+                }
+              }
+            }
           }
         }
       }
@@ -5786,7 +5851,11 @@
           "tool_call",
           "tool_result",
           "reasoning",
-          "decision"
+          "decision",
+          "plan_created",
+          "plan_updated",
+          "step_started",
+          "step_completed"
         ],
         "title": "AgentLogType",
         "description": "Types of agent log entries."
@@ -7245,6 +7314,47 @@
         "title": "FilterCriteria",
         "description": "Single filter criterion for a saved canvas view.\n\nAttributes:\n    type: Filter category (provider, status, resourceType, health).\n    value: Filter value to match against."
       },
+      "FleetVitals": {
+        "properties": {
+          "active_instances": {
+            "type": "integer",
+            "title": "Active Instances",
+            "default": 0
+          },
+          "error_rate": {
+            "type": "number",
+            "title": "Error Rate",
+            "default": 0.0
+          },
+          "avg_turn_count": {
+            "type": "number",
+            "title": "Avg Turn Count",
+            "default": 0.0
+          },
+          "avg_tokens_total": {
+            "type": "number",
+            "title": "Avg Tokens Total",
+            "default": 0.0
+          },
+          "tasks_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Tasks By Status"
+          },
+          "instances_by_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Instances By Type"
+          }
+        },
+        "type": "object",
+        "title": "FleetVitals",
+        "description": "Aggregated fleet metrics computed on read from current database state.\n\nAttributes:\n    active_instances: Count of instances in starting, running, or waiting status.\n    error_rate: Fraction of instances in error status over the last 24 hours.\n    avg_turn_count: Average LLM turns across active instances.\n    avg_tokens_total: Average total tokens across active instances.\n    tasks_by_status: Task counts grouped by status.\n    instances_by_type: Instance counts grouped by agent type ID."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -7313,6 +7423,49 @@
         ],
         "title": "InstallProviderRequest",
         "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled.\n    config: Key-value pairs injected as environment variables on the deployment."
+      },
+      "InstancePlan": {
+        "properties": {
+          "instance_id": {
+            "type": "string",
+            "title": "Instance Id"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "instance_id"
+        ],
+        "title": "InstancePlan",
+        "description": "Reconstructed plan for an agent instance, derived from log events.\n\nAttributes:\n    instance_id: Agent instance this plan belongs to.\n    steps: Ordered list of plan steps with current status.\n    created_at: When the plan was first created.\n    updated_at: When the plan was last modified."
       },
       "InstanceStatus": {
         "type": "string",
@@ -7875,6 +8028,47 @@
         ],
         "title": "PathExistsResponse",
         "description": "Response for path existence check.\n\nAttributes:\n    exists: Whether a dependency path exists between the two resources."
+      },
+      "PlanStep": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "planned"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "PlanStep",
+        "description": "A single step in an agent instance plan.\n\nAttributes:\n    title: Human-readable description of the step.\n    status: Current step status (planned, in_progress, completed, failed, skipped).\n    started_at: When the step began execution.\n    completed_at: When the step finished."
       },
       "PresenceEntry": {
         "properties": {
