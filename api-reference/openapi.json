@@ -1174,6 +1174,151 @@
         }
       }
     },
+    "/agents/main-agent": {
+      "post": {
+        "tags": [
+          "conversation-routing"
+        ],
+        "summary": "Set Main Agent",
+        "description": "Set the main conversation agent for the organization.\n\nThe main agent is the entry point for all user chat messages. It receives\nmessages non-streaming and routes them to the appropriate specialist agent.\n\nReturns:\n    Updated organization record.\n\nRaises:\n    NotFoundError: If agent resource not found in the organization.",
+        "operationId": "conversation-routing-set_main_agent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMainAgentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/routing-manifest": {
+      "get": {
+        "tags": [
+          "conversation-routing"
+        ],
+        "summary": "Get Routing Manifest",
+        "description": "Return assembled routing manifests from all active agent types.\n\nQueries all agent types for the organization and filters to those\nwith conversation_routing configured, returning their routing rules.\n\nReturns:\n    RoutingManifest with entries for each eligible agent type.",
+        "operationId": "conversation-routing-get_routing_manifest",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingManifest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/instances/{instance_id}/messages": {
+      "post": {
+        "tags": [
+          "conversation-routing"
+        ],
+        "summary": "Send Instance Message",
+        "description": "Stream a message to a specific agent instance.\n\nResolves the agent instance's runner URL and streams the SSE response\nback to the client. This is the second hop in the two-hop routing pattern.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.\n    AgentInvokerError: If runner resolution or streaming fails.",
+        "operationId": "conversation-routing-send_instance_message",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstanceMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/chat": {
+      "post": {
+        "tags": [
+          "conversation-routing"
+        ],
+        "summary": "Chat",
+        "description": "Main entry point for all user chat messages.\n\nImplements the two-hop routing pattern: looks up the organization's main\nagent and streams the response. In v1, this forwards directly to the main\nagent's runner streaming. Future versions will add non-streaming routing\nhop where the main agent selects a target instance before streaming.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main agent configured for the organization.",
+        "operationId": "conversation-routing-chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/events/stream": {
       "get": {
         "tags": [
@@ -6787,6 +6932,31 @@
         "title": "CanvasViewsResponse",
         "description": "Response body for listing saved canvas views.\n\nAttributes:\n    views: List of saved canvas views."
       },
+      "ChatMessage": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatMessage",
+        "description": "Request body for the main chat entry point.\n\nAttributes:\n    message: The user message to send.\n    session_id: Session ID for conversation continuity. New session if None."
+      },
       "CompatibilityConstraint": {
         "properties": {
           "field": {
@@ -7467,6 +7637,31 @@
         "title": "InstallProviderRequest",
         "description": "Request model for installing a store provider.\n\nAttributes:\n    provider_name: Store provider name to install (org/name format).\n    version: Specific version to install (None = latest published).\n    resource_tier: Resource allocation tier for the deployment.\n    upgrade_policy: How upgrades should be handled.\n    config: Key-value pairs injected as environment variables on the deployment."
       },
+      "InstanceMessage": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "InstanceMessage",
+        "description": "Request body for sending a message to a specific agent instance.\n\nAttributes:\n    message: The user message to send.\n    session_id: Session ID for conversation continuity. New session if None."
+      },
       "InstancePlan": {
         "properties": {
           "instance_id": {
@@ -7778,6 +7973,17 @@
           "status": {
             "$ref": "#/components/schemas/OrganizationStatus",
             "default": "active"
+          },
+          "main_agent_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Main Agent Resource Id"
           }
         },
         "type": "object",
@@ -7787,7 +7993,7 @@
           "slug"
         ],
         "title": "Organization",
-        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nAgent routing:\n    main_agent_resource_id: SurrealDB resource ID of the organization's\n        main conversation agent, used as the entry point for chat routing.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "OrganizationStatus": {
         "type": "string",
@@ -9074,6 +9280,66 @@
         "title": "ResourceTier",
         "description": "Resource allocation tier for an installed provider."
       },
+      "RoutingManifest": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingManifestEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "RoutingManifest",
+        "description": "Assembled routing manifests from all active agent types with conversation routing.\n\nAttributes:\n    entries: List of routing manifest entries, one per eligible agent type."
+      },
+      "RoutingManifestEntry": {
+        "properties": {
+          "agent_type_id": {
+            "type": "string",
+            "title": "Agent Type Id"
+          },
+          "agent_type_name": {
+            "type": "string",
+            "title": "Agent Type Name"
+          },
+          "when": {
+            "type": "string",
+            "title": "When"
+          },
+          "examples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Examples"
+          },
+          "avoid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avoid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_type_id",
+          "agent_type_name",
+          "when",
+          "examples"
+        ],
+        "title": "RoutingManifestEntry",
+        "description": "A single agent type's routing rules for conversation assignment.\n\nAttributes:\n    agent_type_id: SurrealDB record ID of the agent type.\n    agent_type_name: Human-readable display name of the agent type.\n    when: Natural language description of when this agent should handle a conversation.\n    examples: Example messages that should route to this agent.\n    avoid: Natural language description of messages this agent should not handle."
+      },
       "RuntimeVersion": {
         "properties": {
           "created_at": {
@@ -9149,6 +9415,20 @@
         ],
         "title": "RuntimeVersionCreate",
         "description": "Request body for registering a new runtime version.\n\nAttributes:\n    version: Semver version string (e.g., \"0.40.0\").\n    image_url: Full container image URL for this runtime version.\n    changelog: Optional release notes in markdown."
+      },
+      "SetMainAgentRequest": {
+        "properties": {
+          "agent_resource_id": {
+            "type": "string",
+            "title": "Agent Resource Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_resource_id"
+        ],
+        "title": "SetMainAgentRequest",
+        "description": "Request body for setting the organization's main conversation agent.\n\nAttributes:\n    agent_resource_id: SurrealDB resource ID of the agent to use as\n        the main conversation router."
       },
       "SignedUrlResponse": {
         "properties": {
