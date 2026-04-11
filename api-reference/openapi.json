@@ -547,6 +547,85 @@
         }
       }
     },
+    "/agents/instances/{instance_id}/logs": {
+      "get": {
+        "tags": [
+          "agent-instances"
+        ],
+        "summary": "List Instance Logs",
+        "description": "List log entries for an agent instance.\n\nReturns logs in chronological order, optionally filtered by type.\n\nReturns:\n    List of agent log entries.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.",
+        "operationId": "agent-instances-list_instance_logs",
+        "parameters": [
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instance Id"
+            }
+          },
+          {
+            "name": "log_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AgentLogType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by log type (e.g., tool_call, reasoning, agent_error)",
+              "title": "Log Type"
+            },
+            "description": "Filter by log type (e.g., tool_call, reasoning, agent_error)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum entries to return.",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Maximum entries to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentLog"
+                  },
+                  "title": "Response Agent-Instances-List Instance Logs"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/agents/instances/{instance_id}/plan": {
       "get": {
         "tags": [
