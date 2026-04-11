@@ -216,6 +216,248 @@
         }
       }
     },
+    "/agents/types/": {
+      "get": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "List Agent Types",
+        "description": "List all agent types for the authenticated organization.\n\nReturns:\n    List of agent types ordered by creation date descending.",
+        "operationId": "agent-types-list_agent_types",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/pragma_api__models__agent_type__AgentType"
+                  },
+                  "type": "array",
+                  "title": "Response Agent-Types-List Agent Types"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "Create Agent Type",
+        "description": "Create a new agent type.\n\nReturns:\n    Created agent type with server-populated fields.\n\nRaises:\n    AgentTypeAlreadyExistsError: If name already taken in organization.",
+        "operationId": "agent-types-create_agent_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTypeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pragma_api__models__agent_type__AgentType"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/types/{agent_type_id}": {
+      "get": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "Get Agent Type",
+        "description": "Get a specific agent type by ID.\n\nReturns:\n    The requested agent type.\n\nRaises:\n    NotFoundError: If agent type not found or belongs to another org.",
+        "operationId": "agent-types-get_agent_type",
+        "parameters": [
+          {
+            "name": "agent_type_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Type Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pragma_api__models__agent_type__AgentType"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "Update Agent Type",
+        "description": "Update an existing agent type.\n\nOnly provided fields are updated. Version is automatically bumped.\n\nReturns:\n    Updated agent type.\n\nRaises:\n    NotFoundError: If agent type not found or belongs to another org.",
+        "operationId": "agent-types-update_agent_type",
+        "parameters": [
+          {
+            "name": "agent_type_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Type Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTypeUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pragma_api__models__agent_type__AgentType"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "Delete Agent Type",
+        "description": "Delete an agent type.\n\nRaises:\n    NotFoundError: If agent type not found or belongs to another org.",
+        "operationId": "agent-types-delete_agent_type",
+        "parameters": [
+          {
+            "name": "agent_type_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Type Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/types/{agent_type_id}/instances": {
+      "get": {
+        "tags": [
+          "agent-types"
+        ],
+        "summary": "List Agent Type Instances",
+        "description": "List instances for an agent type.\n\nStub endpoint - returns empty list until AgentInstance storage is implemented.\n\nReturns:\n    List of agent instances (currently empty).\n\nRaises:\n    NotFoundError: If agent type not found or belongs to another org.",
+        "operationId": "agent-types-list_agent_type_instances",
+        "parameters": [
+          {
+            "name": "agent_type_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Type Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Agent-Types-List Agent Type Instances"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/me": {
       "get": {
         "tags": [
@@ -4797,7 +5039,7 @@
         "title": "AgentTriggerUpdate",
         "description": "Request body for updating an agent trigger.\n\nAll fields are optional. Only provided fields are updated.\n\nAttributes:\n    target_organization_id: Updated target organization for cross-org event watching.\n    event_filters: Updated event filters.\n    cron_expression: Updated cron expression.\n    is_main_agent: Updated main agent flag.\n    enabled: Updated enabled state."
       },
-      "AgentType": {
+      "AgentType-Input": {
         "type": "string",
         "enum": [
           "external",
@@ -4806,6 +5048,319 @@
         ],
         "title": "AgentType",
         "description": "Type of agent connected to the platform."
+      },
+      "AgentTypeCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
+          },
+          "system_instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Instructions"
+          },
+          "mcp_servers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mcp Servers"
+          },
+          "builtin_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Builtin Tools"
+          },
+          "default_plan_template": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Plan Template"
+          },
+          "agent_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Resource Id"
+          },
+          "runner_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner Resource Id"
+          },
+          "conversation_routing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationRoutingManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "provider",
+          "model"
+        ],
+        "title": "AgentTypeCreate",
+        "description": "Request body for creating an agent type.\n\nAttributes:\n    name: Machine-readable name unique within organization.\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n    conversation_routing: Routing rules for conversation assignment."
+      },
+      "AgentTypeUpdate": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
+          },
+          "system_instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Instructions"
+          },
+          "mcp_servers": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Servers"
+          },
+          "builtin_tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Builtin Tools"
+          },
+          "default_plan_template": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Plan Template"
+          },
+          "agent_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Resource Id"
+          },
+          "runner_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner Resource Id"
+          },
+          "conversation_routing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationRoutingManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "AgentTypeUpdate",
+        "description": "Request body for updating an agent type. All fields optional.\n\nOnly provided fields are updated. Name and organization_id are immutable\nand cannot be changed via update.\n\nAttributes:\n    display_name: Updated human-readable name.\n    description: Updated description.\n    icon: Updated icon identifier or URL.\n    provider: Updated LLM provider.\n    model: Updated model identifier.\n    temperature: Updated sampling temperature.\n    context_window: Updated context window size.\n    system_instructions: Updated system prompt.\n    mcp_servers: Updated MCP server list.\n    builtin_tools: Updated built-in tool list.\n    default_plan_template: Updated default plan steps.\n    agent_resource_id: Updated agent resource ID.\n    runner_resource_id: Updated runner resource ID.\n    conversation_routing: Updated routing rules."
       },
       "ApplyPatchResult": {
         "properties": {
@@ -5196,6 +5751,38 @@
         ],
         "title": "ConversationMessage",
         "description": "Request body for sending a message to the organization's main conversation agent.\n\nAttributes:\n    message: The user message to send.\n    session_id: Session ID for conversation continuity. New session if None."
+      },
+      "ConversationRoutingManifest": {
+        "properties": {
+          "when": {
+            "type": "string",
+            "title": "When"
+          },
+          "examples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Examples"
+          },
+          "avoid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avoid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "when"
+        ],
+        "title": "ConversationRoutingManifest",
+        "description": "Routing rules for conversation-to-agent assignment.\n\nAttributes:\n    when: Natural language description of when this agent should handle a conversation.\n    examples: Example messages that should route to this agent.\n    avoid: Natural language description of messages this agent should not handle."
       },
       "CopyRequest": {
         "properties": {
@@ -6279,7 +6866,7 @@
             "title": "Agent Id"
           },
           "agent_type": {
-            "$ref": "#/components/schemas/AgentType"
+            "$ref": "#/components/schemas/pragma_api__models__presence__AgentType"
           },
           "name": {
             "type": "string",
@@ -6368,7 +6955,7 @@
             "title": "Agent Id"
           },
           "agent_type": {
-            "$ref": "#/components/schemas/AgentType"
+            "$ref": "#/components/schemas/AgentType-Input"
           },
           "name": {
             "type": "string",
@@ -7538,6 +8125,202 @@
         ],
         "title": "VersionStatus",
         "description": "Build/publish status for a provider version."
+      },
+      "pragma_api__models__agent_type__AgentType": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
+          },
+          "system_instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Instructions"
+          },
+          "mcp_servers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mcp Servers"
+          },
+          "builtin_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Builtin Tools"
+          },
+          "default_plan_template": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Plan Template"
+          },
+          "agent_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Resource Id"
+          },
+          "runner_resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner Resource Id"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 1
+          },
+          "conversation_routing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationRoutingManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "organization_id",
+          "display_name",
+          "provider",
+          "model"
+        ],
+        "title": "AgentType",
+        "description": "Domain model for agent types with LLM configuration and tooling.\n\nIdentity fields (frozen - immutable after creation):\n    name: Machine-readable name unique within organization.\n    organization_id: Tenant that owns this agent type.\n\nConfiguration fields (mutable):\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    conversation_routing: Routing rules for conversation assignment.\n\nResource fields (linking to pragma resources):\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n\nAudit fields:\n    created_by: User ID of the creator.\n    version: Schema version for migration support.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+      },
+      "pragma_api__models__presence__AgentType": {
+        "type": "string",
+        "enum": [
+          "external",
+          "internal",
+          "human"
+        ],
+        "title": "AgentType",
+        "description": "Type of agent connected to the platform."
       }
     }
   }
