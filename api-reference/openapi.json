@@ -5369,6 +5369,491 @@
         }
       }
     },
+    "/agents/tasks/{task_id}/subtasks": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Subtasks",
+        "description": "List direct subtasks of a task.\n\nReturns:\n    Direct child tasks ordered by priority then creation time.\n\nRaises:\n    NotFoundError: If parent task not found or belongs to another organization.",
+        "operationId": "tasks-list_subtasks",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  },
+                  "title": "Response Tasks-List Subtasks"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Subtask",
+        "description": "Create a new subtask under an existing task.\n\nInherits priority and assignee fields from the parent when the\nrequest body leaves them at their defaults.\n\nReturns:\n    Created subtask with the has_subtask edge already in place.\n\nRaises:\n    NotFoundError: If parent task not found or belongs to another organization.",
+        "operationId": "tasks-create_subtask",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/subtasks/link": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Link Subtask",
+        "description": "Link an existing task as a subtask of another task.\n\nRaises:\n    NotFoundError: If either task not found or belongs to another organization.\n    TaskCycleError: If linking would create a cycle in the subtask graph.",
+        "operationId": "tasks-link_subtask",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_tasks-link_subtask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/subtasks/{child_id}": {
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Unlink Subtask",
+        "description": "Remove a subtask link between two tasks.\n\nThe child task is not deleted, only the has_subtask edge.\n\nRaises:\n    NotFoundError: If either task not found or belongs to another organization.",
+        "operationId": "tasks-unlink_subtask",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "child_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Child Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/comments": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Task Comments",
+        "description": "List comments on a task, oldest first, paginated.\n\nReturns:\n    Comments ordered oldest first, capped at ``limit``.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-list_task_comments",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "Maximum comments to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum comments to return"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Composite cursor '<iso-created_at>|<comment-id>'; returns comments strictly after this point under (created_at ASC, id ASC).",
+              "title": "Cursor"
+            },
+            "description": "Composite cursor '<iso-created_at>|<comment-id>'; returns comments strictly after this point under (created_at ASC, id ASC)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskComment"
+                  },
+                  "title": "Response Tasks-List Task Comments"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Task Comment",
+        "description": "Create a comment on a task.\n\nAuthorship is taken from the authenticated user \u2014 agent comments are\nwritten by the agent runtime through a separate code path and are not\ncreatable via this endpoint.\n\nReturns:\n    Persisted comment with the server-populated id.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-create_task_comment",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCommentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskComment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/comments/{comment_id}": {
+      "patch": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Update Task Comment",
+        "description": "Edit a task comment. Only the original author may edit.\n\nReturns:\n    Updated comment with edited=True.\n\nRaises:\n    TaskCommentNotFoundError: If the comment does not exist for this organization.\n    TaskCommentForbiddenError: If the actor is not the comment author.",
+        "operationId": "tasks-update_task_comment",
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCommentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskComment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Delete Task Comment",
+        "description": "Delete a task comment. Only the original author may delete.\n\nRaises:\n    TaskCommentNotFoundError: If the comment does not exist for this organization.\n    TaskCommentForbiddenError: If the actor is not the comment author.",
+        "operationId": "tasks-delete_task_comment",
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/activity": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Task Activity",
+        "description": "List the activity timeline for a task.\n\nCombines status transitions, assignments, comments, and agent start\nevents into a single stream ordered newest first. Mutation entries\nwill join the stream once PRA-327 phase 2 wires the resource write\npath.\n\nReturns:\n    Activity entries ordered newest first.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-list_task_activity",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "Maximum entries to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum entries to return"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Composite cursor '<iso-timestamp>|<edge-id>'; returns entries strictly older than this point under (timestamp DESC, edge_id DESC).",
+              "title": "Cursor"
+            },
+            "description": "Composite cursor '<iso-timestamp>|<edge-id>'; returns entries strictly older than this point under (timestamp DESC, edge_id DESC)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskActivityEntry"
+                  },
+                  "title": "Response Tasks-List Task Activity"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/triggers/": {
       "get": {
         "tags": [
@@ -6835,6 +7320,20 @@
         ],
         "title": "Body_providers-publish_version"
       },
+      "Body_tasks-link_subtask": {
+        "properties": {
+          "child_id": {
+            "type": "string",
+            "title": "Child Id",
+            "description": "Existing task to attach as a subtask"
+          }
+        },
+        "type": "object",
+        "required": [
+          "child_id"
+        ],
+        "title": "Body_tasks-link_subtask"
+      },
       "CanvasPositionsRequest": {
         "properties": {
           "positions": {
@@ -7035,6 +7534,15 @@
         ],
         "title": "ChatMessage",
         "description": "Request body for the main chat entry point.\n\nAttributes:\n    message: The user message to send.\n    session_id: Session ID for conversation continuity. New session if None."
+      },
+      "CommentAuthorType": {
+        "type": "string",
+        "enum": [
+          "user",
+          "agent"
+        ],
+        "title": "CommentAuthorType",
+        "description": "Source of a task comment."
       },
       "CompatibilityConstraint": {
         "properties": {
@@ -9614,17 +10122,6 @@
             ],
             "title": "Assigned To User Id"
           },
-          "parent_task_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Task Id"
-          },
           "correlation_bucket_id": {
             "anyOf": [
               {
@@ -9658,7 +10155,109 @@
           "title"
         ],
         "title": "Task",
-        "description": "An agent task representing a unit of work.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Owning organization.\n    title: Short description of the task.\n    description: Detailed description.\n    status: Current task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type assigned to this task.\n    assigned_to_instance_id: Agent instance working on this task.\n    assigned_to_user_id: User assigned to this task.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    created_by: User ID of the creator.\n    source: How this task was created."
+        "description": "An agent task representing a unit of work.\n\nSubtask relationships are modeled as ``has_subtask`` graph edges in\nSurrealDB rather than a flat parent reference. Use ``TaskStorageService``\ngraph traversal methods to find parents and children.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Owning organization.\n    title: Short description of the task.\n    description: Detailed description.\n    status: Current task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type assigned to this task.\n    assigned_to_instance_id: Agent instance working on this task.\n    assigned_to_user_id: User assigned to this task.\n    correlation_bucket_id: Correlation bucket for related events.\n    created_by: User ID of the creator.\n    source: How this task was created."
+      },
+      "TaskActivityEntry": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TaskActivityKind"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "edge_id": {
+            "type": "string",
+            "title": "Edge Id"
+          },
+          "from_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Status"
+          },
+          "to_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Status"
+          },
+          "assignee_table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Table"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "comment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment Id"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "timestamp",
+          "edge_id"
+        ],
+        "title": "TaskActivityEntry",
+        "description": "A single entry in a task's derived activity timeline.\n\nEach entry corresponds to one graph edge: status transitions,\nassignments, comments, agent start events, or resource mutations.\nMutation entries are returned starting in PRA-327 phase 2.\n\nAttributes:\n    kind: Discriminator for the entry shape.\n    timestamp: When the underlying edge was created.\n    edge_id: SurrealDB edge identifier (no table prefix).\n    from_status: Source status for transition entries.\n    to_status: Target status for transition entries.\n    assignee_table: Table of the assignee for assignment entries.\n    assignee_id: Identifier of the assignee for assignment entries.\n    comment_id: Comment node id for comment entries.\n    instance_id: Agent instance id for agent_started entries."
+      },
+      "TaskActivityKind": {
+        "type": "string",
+        "enum": [
+          "transition",
+          "assignment",
+          "mutation",
+          "comment",
+          "agent_started"
+        ],
+        "title": "TaskActivityKind",
+        "description": "Discriminator for entries in the activity timeline."
       },
       "TaskAssign": {
         "properties": {
@@ -9699,6 +10298,121 @@
         "type": "object",
         "title": "TaskAssign",
         "description": "Request body for assigning a task.\n\nAttributes:\n    instance_id: Agent instance to assign.\n    user_id: User to assign.\n    type_id: Agent type to assign."
+      },
+      "TaskComment": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "author_type": {
+            "$ref": "#/components/schemas/CommentAuthorType"
+          },
+          "author_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author User Id"
+          },
+          "author_instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Instance Id"
+          },
+          "author_agent_type_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Agent Type Id"
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "task_id",
+          "body",
+          "author_type"
+        ],
+        "title": "TaskComment",
+        "description": "A markdown comment on a task.\n\nComments are first-class graph nodes connected to tasks via\n``has_comment`` edges. Authorship is recorded as graph edges as well:\nuser comments use ``authored_by_user`` and agent comments persist a\ndual ``authored_by_instance`` plus ``authored_by_type`` pair so that\ntype-level attribution survives instance garbage collection.\n\nAttributes:\n    id: SurrealDB record ID (populated by database).\n    organization_id: Owning organization (mirrored from the task).\n    task_id: Task this comment belongs to.\n    body: Markdown body of the comment.\n    author_type: Whether the author is a user or an agent.\n    author_user_id: User ID when ``author_type`` is ``user``.\n    author_instance_id: Agent instance ID when ``author_type`` is ``agent``.\n    author_agent_type_id: Agent type ID when ``author_type`` is ``agent``.\n    edited: True after at least one update."
+      },
+      "TaskCommentCreate": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "TaskCommentCreate",
+        "description": "Request body for creating a task comment.\n\nAuthorship is set by the service from the request context \u2014 callers\nonly need to provide the body.\n\nAttributes:\n    body: Markdown body of the comment."
+      },
+      "TaskCommentUpdate": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "TaskCommentUpdate",
+        "description": "Request body for editing a task comment.\n\nAttributes:\n    body: New markdown body to replace the existing one."
       },
       "TaskCreate": {
         "properties": {
@@ -9761,17 +10475,6 @@
             ],
             "title": "Assigned To User Id"
           },
-          "parent_task_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Task Id"
-          },
           "correlation_bucket_id": {
             "anyOf": [
               {
@@ -9793,7 +10496,7 @@
           "title"
         ],
         "title": "TaskCreate",
-        "description": "Request body for creating a task.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    status: Initial task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
+        "description": "Request body for creating a task.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    status: Initial task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
       },
       "TaskSource": {
         "type": "string",
@@ -9900,17 +10603,6 @@
             ],
             "title": "Assigned To User Id"
           },
-          "parent_task_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Task Id"
-          },
           "correlation_bucket_id": {
             "anyOf": [
               {
@@ -9935,7 +10627,7 @@
         },
         "type": "object",
         "title": "TaskUpdate",
-        "description": "Request body for updating a task. All fields optional.\n\nStatus changes are not allowed here \u2014 use the transition endpoint instead.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    parent_task_id: Parent task for subtask relationships.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
+        "description": "Request body for updating a task. All fields optional.\n\nStatus changes are not allowed here \u2014 use the transition endpoint instead.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
       },
       "TriggerSuggestion": {
         "properties": {
