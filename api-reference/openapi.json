@@ -5781,7 +5781,7 @@
           "tasks"
         ],
         "summary": "List Task Activity",
-        "description": "List the activity timeline for a task.\n\nCombines status transitions, assignments, comments, and agent start\nevents into a single stream ordered newest first. Mutation entries\nwill join the stream once PRA-327 phase 2 wires the resource write\npath.\n\nReturns:\n    Activity entries ordered newest first.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "description": "List the activity timeline for a task.\n\nCombines status transitions, assignments, comments, agent start\nevents, and resource mutations into a single stream ordered newest\nfirst. Mutation entries surface the operation and changed field\nnames; full before/after snapshots live on the ``/mutations``\nendpoint.\n\nReturns:\n    Activity entries ordered newest first.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
         "operationId": "tasks-list_task_activity",
         "parameters": [
           {
@@ -5837,6 +5837,148 @@
                     "$ref": "#/components/schemas/TaskActivityEntry"
                   },
                   "title": "Response Tasks-List Task Activity"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/mutations": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Task Mutations",
+        "description": "Return the paginated mutation log for a task.\n\nEach entry surfaces a full before/after snapshot plus the list of\nfields that changed. Entries are ordered newest first and can be\npaged forward via ``next_cursor``. Sensitive fields on the\nsnapshots are masked by default. Pass ``reveal=true`` to return\nactual values, matching the ``/resources`` endpoint's convention.\n\nReturns:\n    ``TaskMutationPage`` with the current page and a cursor for the\n    next page (``None`` when there are no more entries).\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.\n    InvalidCursorError: If the cursor is malformed.",
+        "operationId": "tasks-list_task_mutations",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "Maximum mutations to return per page",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum mutations to return per page"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Composite cursor '<iso-timestamp>|<edge-id>'; returns mutations strictly older than this point under (timestamp DESC, edge_id DESC).",
+              "title": "Cursor"
+            },
+            "description": "Composite cursor '<iso-timestamp>|<edge-id>'; returns mutations strictly older than this point under (timestamp DESC, edge_id DESC)."
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values on before/after snapshots",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values on before/after snapshots"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskMutationPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/tasks/{task_id}/graph-diff": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Task Graph Diff",
+        "description": "Return the net delta per resource for a task.\n\nEvery ``task->mutated->resource`` edge is rolled up server-side\ninto a per-resource net delta: create + many updates collapses to\na single ``create``; create + delete collapses to a ``noop``; etc.\nThe fields_changed list on each entry is the union of top-level\nfields that differ between the earliest before and the latest\nafter snapshots.\n\nThe endpoint scans up to ``settings.MAX_GRAPH_DIFF_MUTATIONS``\nedges per request. Tasks with more mutations than the cap return\na partial rollup marked ``truncated=true`` \u2014 use the paginated\n``/mutations`` endpoint for the full audit trail.\n\nSensitive fields on the snapshots are masked by default. Pass\n``reveal=true`` to return actual values, matching the\n``/resources`` endpoint's convention.\n\nReturns:\n    ``GraphDiff`` with per-resource net deltas and the raw mutation\n    count.\n\nRaises:\n    NotFoundError: If task not found or belongs to another organization.",
+        "operationId": "tasks-task_graph_diff",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Reveal sensitive field values on before/after snapshots",
+              "default": false,
+              "title": "Reveal"
+            },
+            "description": "Reveal sensitive field values on before/after snapshots"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphDiff"
                 }
               }
             }
@@ -8155,6 +8297,48 @@
         "title": "FleetVitals",
         "description": "Aggregated fleet metrics computed on read from current database state.\n\nAttributes:\n    active_instances: Count of instances in starting, running, or waiting status.\n    error_rate: Fraction of instances in error status over the last 24 hours.\n    avg_turn_count: Average LLM turns across active instances.\n    avg_tokens_total: Average total tokens across active instances.\n    tasks_by_status: Task counts grouped by status.\n    instances_by_type: Instance counts grouped by agent type ID."
       },
+      "GraphDiff": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceNetDelta"
+            },
+            "type": "array",
+            "title": "Resources"
+          },
+          "total_mutations": {
+            "type": "integer",
+            "title": "Total Mutations"
+          },
+          "total_mutations_scanned": {
+            "type": "integer",
+            "title": "Total Mutations Scanned"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "default": false
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "resources",
+          "total_mutations",
+          "total_mutations_scanned"
+        ],
+        "title": "GraphDiff",
+        "description": "Top-level graph diff response for a task.\n\nAttributes:\n    task_id: Task SurrealDB record id part. Echoed back so clients\n        can correlate the response with the request.\n    resources: Net delta per affected resource. Ordered by\n        ``(resource_table, resource_id)`` for deterministic output.\n    total_mutations: Raw mutation edge count folded into the\n        rollup. When ``truncated`` is ``True`` this is the cap,\n        not the real total \u2014 the real total is not known without\n        a full scan.\n    total_mutations_scanned: Number of mutation edges actually\n        consumed from the database before the rollup was cut off.\n        Equals ``total_mutations`` in the common (non-truncated)\n        case. Exposed so clients can surface \"5000 mutations\n        scanned\" when ``truncated`` is ``True``.\n    truncated: ``True`` when the task had more mutation edges than\n        the configured cap (``settings.MAX_GRAPH_DIFF_MUTATIONS``).\n        The rollup is still safe to display but does not reflect\n        every mutation. Clients should direct users to the\n        paginated ``/mutations`` endpoint for the full audit trail.\n    has_more: Alias for ``truncated`` \u2014 kept for clients that use\n        the has-more convention."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -8494,6 +8678,25 @@
         ],
         "title": "LogEntry",
         "description": "A single log entry from a resource.\n\nAttributes:\n    timestamp: ISO-8601 timestamp of when the log was generated.\n    level: Log level (debug, info, warning, error).\n    message: Log message content."
+      },
+      "MutationActorType": {
+        "type": "string",
+        "enum": [
+          "user",
+          "agent_instance"
+        ],
+        "title": "MutationActorType",
+        "description": "Who initiated the mutation."
+      },
+      "MutationOperation": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "delete"
+        ],
+        "title": "MutationOperation",
+        "description": "Discriminator for the underlying resource write on a mutation edge."
       },
       "NodePinnedRequest": {
         "properties": {
@@ -9725,6 +9928,176 @@
         "title": "ResourceHealth",
         "description": "Health status of a resource reported by its provider.\n\nAttributes:\n    status: Health state (healthy, unhealthy, degraded).\n    message: Optional human-readable description.\n    details: Optional provider-specific health check details."
       },
+      "ResourceMutation": {
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "title": "Edge Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/MutationOperation"
+          },
+          "resource_table": {
+            "type": "string",
+            "title": "Resource Table"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "fields_changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fields Changed",
+            "default": []
+          },
+          "version_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Before"
+          },
+          "version_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version After"
+          },
+          "actor_type": {
+            "$ref": "#/components/schemas/MutationActorType"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edge_id",
+          "timestamp",
+          "operation",
+          "resource_table",
+          "resource_id",
+          "actor_type"
+        ],
+        "title": "ResourceMutation",
+        "description": "A single resource mutation tied to a task.\n\nEach entry corresponds to one ``task->mutated->resource`` edge in the\nshared SurrealDB namespace.\n\nAttributes:\n    edge_id: SurrealDB edge identifier (id part, no table prefix).\n        Stable across reads \u2014 used together with ``timestamp`` as a\n        composite pagination cursor.\n    timestamp: When the mutation was persisted.\n    operation: ``create``, ``update``, or ``delete``.\n    resource_table: SurrealDB table that holds the target resource.\n        Always ``resources`` in the current schema \u2014 emitted so\n        downstream consumers can tell the shape of ``resource_id``\n        without having to parse the SurrealDB thing literal.\n    resource_id: SurrealDB record id part for the target resource\n        (e.g. ``gcp_storage_bucket_mybucket``). No table prefix.\n    before: Resource snapshot before the mutation, or ``None`` on\n        create.\n    after: Resource snapshot after the mutation, or ``None`` on\n        delete.\n    fields_changed: Top-level field names whose value differs between\n        ``before`` and ``after``. Noise fields (``updated_at``,\n        ``version``, etc.) are filtered out.\n    version_before: Resource version before the mutation, or ``None``\n        on create.\n    version_after: Resource version after the mutation, or ``None`` on\n        delete.\n    actor_type: ``user`` or ``agent_instance`` \u2014 who initiated the\n        mutation.\n    actor_id: Identifier of the actor (user id or instance id). May\n        be ``None`` for system-level writes."
+      },
+      "ResourceNetDelta": {
+        "properties": {
+          "resource_table": {
+            "type": "string",
+            "title": "Resource Table"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "net_operation": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "delete",
+              "noop"
+            ],
+            "title": "Net Operation"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "fields_changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fields Changed",
+            "default": []
+          },
+          "mutation_count": {
+            "type": "integer",
+            "title": "Mutation Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_table",
+          "resource_id",
+          "net_operation"
+        ],
+        "title": "ResourceNetDelta",
+        "description": "Net delta for a single resource across a task's mutation sequence.\n\nThe net delta is the last-winning projection of every mutation for\nthe same ``(resource_table, resource_id)`` pair ordered by timestamp.\nCreate + delete collapses to ``net_operation = \"noop\"`` because the\nresource neither exists before nor after the task \u2014 there is nothing\nfor the reviewer to scan.\n\nAttributes:\n    resource_table: SurrealDB table for the affected resource.\n    resource_id: SurrealDB record id part (no table prefix).\n    net_operation: One of:\n        - ``create`` \u2014 resource did not exist before the task and\n          exists after (any number of intermediate updates collapse\n          into this one shape).\n        - ``update`` \u2014 resource existed before and after the task,\n          with at least one mutation that changed its observable\n          state.\n        - ``delete`` \u2014 resource existed before the task and does not\n          after.\n        - ``noop`` \u2014 resource was created and then deleted inside the\n          same task; the net effect is that the resource never\n          existed. Also used when a no-op update produced no field\n          changes.\n    before: First observed before snapshot, or ``None`` when the\n        net effect is a create (nothing to compare against) or a\n        noop via create+delete.\n    after: Last observed after snapshot, or ``None`` when the net\n        effect is a delete or noop.\n    fields_changed: Union of all top-level fields that differ between\n        the earliest before and the latest after snapshots. Built\n        from the same pure diff helper the storage layer uses.\n    mutation_count: Number of raw ``mutated`` edges collapsed into\n        this net delta. Useful for rendering \"3 changes\" badges."
+      },
       "ResourceReference": {
         "properties": {
           "created_at": {
@@ -10236,6 +10609,53 @@
               }
             ],
             "title": "Instance Id"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation"
+          },
+          "resource_table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Table"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "fields_changed": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields Changed"
           }
         },
         "type": "object",
@@ -10245,7 +10665,7 @@
           "edge_id"
         ],
         "title": "TaskActivityEntry",
-        "description": "A single entry in a task's derived activity timeline.\n\nEach entry corresponds to one graph edge: status transitions,\nassignments, comments, agent start events, or resource mutations.\nMutation entries are returned starting in PRA-327 phase 2.\n\nAttributes:\n    kind: Discriminator for the entry shape.\n    timestamp: When the underlying edge was created.\n    edge_id: SurrealDB edge identifier (no table prefix).\n    from_status: Source status for transition entries.\n    to_status: Target status for transition entries.\n    assignee_table: Table of the assignee for assignment entries.\n    assignee_id: Identifier of the assignee for assignment entries.\n    comment_id: Comment node id for comment entries.\n    instance_id: Agent instance id for agent_started entries."
+        "description": "A single entry in a task's derived activity timeline.\n\nEach entry corresponds to one graph edge: status transitions,\nassignments, comments, agent start events, or resource mutations.\nMutation entries are emitted starting in PRA-327 phase 2.\n\nAttributes:\n    kind: Discriminator for the entry shape.\n    timestamp: When the underlying edge was created.\n    edge_id: SurrealDB edge identifier (no table prefix).\n    from_status: Source status for transition entries.\n    to_status: Target status for transition entries.\n    assignee_table: Table of the assignee for assignment entries.\n    assignee_id: Identifier of the assignee for assignment entries.\n    comment_id: Comment node id for comment entries.\n    instance_id: Agent instance id for agent_started entries.\n    operation: Mutation operation for mutation entries\n        (``create`` / ``update`` / ``delete``).\n    resource_table: SurrealDB table for the mutated resource\n        (``resources`` in the current schema).\n    resource_id: SurrealDB record id of the mutated resource\n        (id part only).\n    fields_changed: Top-level field names whose value differs\n        between before and after on the mutation. Used for the\n        activity-timeline summary; the full before/after lives on\n        the mutation log endpoint."
       },
       "TaskActivityKind": {
         "type": "string",
@@ -10497,6 +10917,34 @@
         ],
         "title": "TaskCreate",
         "description": "Request body for creating a task.\n\nAttributes:\n    title: Short description of the task.\n    description: Detailed description.\n    status: Initial task status.\n    priority: Priority level (1=urgent, 2=high, 3=normal, 4=low).\n    assigned_to_type_id: Agent type to assign.\n    assigned_to_instance_id: Agent instance to assign.\n    assigned_to_user_id: User to assign.\n    correlation_bucket_id: Correlation bucket for related events.\n    source: How this task was created."
+      },
+      "TaskMutationPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceMutation"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "TaskMutationPage",
+        "description": "Paginated page of mutation log entries.\n\nAttributes:\n    items: Mutation entries for the current page, newest first.\n    next_cursor: Composite cursor for the next page, or ``None`` when\n        no more entries exist. Built as ``\"<iso-timestamp>|<edge-id>\"``\n        over the last entry in ``items``."
       },
       "TaskSource": {
         "type": "string",
