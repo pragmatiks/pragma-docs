@@ -28,7 +28,7 @@
         }
       }
     },
-    "/agents/{agent_id}/actions": {
+    "/projects/{project_id}/agents/{agent_id}/actions": {
       "get": {
         "tags": [
           "agents"
@@ -44,6 +44,15 @@
             "schema": {
               "type": "string",
               "title": "Agent Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           },
           {
@@ -127,7 +136,7 @@
         }
       }
     },
-    "/agents/{agent_id}/actions/stream": {
+    "/projects/{project_id}/agents/{agent_id}/actions/stream": {
       "get": {
         "tags": [
           "agents"
@@ -143,6 +152,15 @@
             "schema": {
               "type": "string",
               "title": "Agent Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           }
         ],
@@ -163,7 +181,7 @@
         }
       }
     },
-    "/agents/{agent_id}/logs": {
+    "/projects/{project_id}/agents/{agent_id}/logs": {
       "post": {
         "tags": [
           "agents"
@@ -179,6 +197,15 @@
             "schema": {
               "type": "string",
               "title": "Agent Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           }
         ],
@@ -1253,48 +1280,6 @@
         }
       }
     },
-    "/agents/main-agent": {
-      "post": {
-        "tags": [
-          "conversation-routing"
-        ],
-        "summary": "Set Main Agent",
-        "description": "Set the main conversation agent for the organization.\n\nThe main agent is the entry point for all user chat messages. It receives\nmessages non-streaming and routes them to the appropriate specialist agent.\n\nReturns:\n    Updated organization record.\n\nRaises:\n    NotFoundError: If agent resource not found in the organization.",
-        "operationId": "conversation-routing-set_main_agent",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetMainAgentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Organization"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/agents/routing-manifest": {
       "get": {
         "tags": [
@@ -1369,7 +1354,7 @@
           "conversation-routing"
         ],
         "summary": "Chat",
-        "description": "Main entry point for all user chat messages.\n\nImplements the two-hop routing pattern: looks up the organization's main\nagent and streams the response. In v1, this forwards directly to the main\nagent's runner streaming. Future versions will add non-streaming routing\nhop where the main agent selects a target instance before streaming.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main agent configured for the organization.",
+        "description": "Main entry point for all user chat messages.\n\nImplements the two-hop routing pattern: looks up the organization's main\nagent and streams the response. In v1, this forwards directly to the main\nagent's runner streaming. Future versions will add non-streaming routing\nhop where the main agent selects a target instance before streaming.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main router agent seeded for the organization.",
         "operationId": "conversation-routing-chat",
         "requestBody": {
           "content": {
@@ -1529,15 +1514,24 @@
         }
       }
     },
-    "/graph/upstream": {
+    "/projects/{project_id}/graph/upstream": {
       "get": {
         "tags": [
           "graph"
         ],
         "summary": "Get Upstream",
-        "description": "Get all transitive dependencies (upstream) of a resource.\n\nTraverses the depends_on graph edges recursively to find all resources\nthat the anchor resource transitively depends on.\n\nReturns:\n    List of upstream resources with populated edge data.",
+        "description": "Get all transitive dependencies (upstream) of a resource.\n\nTraverses the depends_on graph edges recursively to find all resources\nthat the anchor resource transitively depends on. Results are filtered\nto the project in the URL path \u2014 cross-project edges are not followed.\n\nReturns:\n    List of upstream resources with populated edge data.",
         "operationId": "graph-get_upstream",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -1619,15 +1613,24 @@
         }
       }
     },
-    "/graph/downstream": {
+    "/projects/{project_id}/graph/downstream": {
       "get": {
         "tags": [
           "graph"
         ],
         "summary": "Get Downstream",
-        "description": "Get all transitive dependents (downstream) of a resource.\n\nTraverses the depends_on graph edges in reverse recursively to find all\nresources that transitively depend on the anchor resource.\n\nReturns:\n    List of downstream resources with populated edge data.",
+        "description": "Get all transitive dependents (downstream) of a resource.\n\nTraverses the depends_on graph edges in reverse recursively to find all\nresources that transitively depend on the anchor resource. Results are\nfiltered to the project in the URL path.\n\nReturns:\n    List of downstream resources with populated edge data.",
         "operationId": "graph-get_downstream",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -1709,15 +1712,24 @@
         }
       }
     },
-    "/graph/neighbors": {
+    "/projects/{project_id}/graph/neighbors": {
       "get": {
         "tags": [
           "graph"
         ],
         "summary": "Get Neighbors",
-        "description": "Get direct connections (dependencies and dependents) of a resource.\n\nReturns the union of direct dependencies and direct dependents,\nwithout transitive traversal.\n\nReturns:\n    List of neighboring resources with populated edge data.",
+        "description": "Get direct connections (dependencies and dependents) of a resource.\n\nReturns the union of direct dependencies and direct dependents,\nwithout transitive traversal. Results are filtered to the project in\nthe URL path.\n\nReturns:\n    List of neighboring resources with populated edge data.",
         "operationId": "graph-get_neighbors",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -1780,15 +1792,24 @@
         }
       }
     },
-    "/graph/path": {
+    "/projects/{project_id}/graph/path": {
       "get": {
         "tags": [
           "graph"
         ],
         "summary": "Check Path",
-        "description": "Check if a dependency path exists between two resources.\n\nReturns whether the source resource transitively depends on the target\nresource via depends_on edges.\n\nReturns:\n    PathExistsResponse with exists=True if a path was found.",
+        "description": "Check if a dependency path exists between two resources.\n\nReturns whether the source resource transitively depends on the target\nresource via depends_on edges, with every intermediate hop constrained\nto live in the URL project. Two same-project endpoints connected only\nthrough cross-project intermediates return ``exists=false``.\n\nReturns:\n    PathExistsResponse with exists=True if a path was found.",
         "operationId": "graph-check_path",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "from_provider",
             "in": "query",
@@ -2606,13 +2627,13 @@
         }
       }
     },
-    "/resources/{resource_id}/patches": {
+    "/projects/{project_id}/patches/resources/{resource_id}": {
       "post": {
         "tags": [
           "patches"
         ],
         "summary": "Create Patch",
-        "description": "Create a new patch against a source resource.\n\nRecords a patch definition with compatibility constraints. The patch\ncan later be applied to any compatible resource.\n\nReturns:\n    Created patch record with generated ID.",
+        "description": "Create a new patch against a source resource.\n\nRecords a patch definition with compatibility constraints. The patch\ncan later be applied to any compatible resource within the same project.\n\nReturns:\n    Created patch record with generated ID.",
         "operationId": "patches-create_patch",
         "parameters": [
           {
@@ -2622,6 +2643,15 @@
             "schema": {
               "type": "string",
               "title": "Resource Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           }
         ],
@@ -2674,6 +2704,15 @@
               "type": "string",
               "title": "Resource Id"
             }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
           }
         ],
         "responses": {
@@ -2704,7 +2743,7 @@
         }
       }
     },
-    "/patches/{patch_id}/check/{target_resource_id}": {
+    "/projects/{project_id}/patches/{patch_id}/check/{target_resource_id}": {
       "post": {
         "tags": [
           "patches"
@@ -2729,6 +2768,15 @@
             "schema": {
               "type": "string",
               "title": "Target Resource Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           }
         ],
@@ -2756,7 +2804,7 @@
         }
       }
     },
-    "/patches/{patch_id}/apply/{target_resource_id}": {
+    "/projects/{project_id}/patches/{patch_id}/apply/{target_resource_id}": {
       "post": {
         "tags": [
           "patches"
@@ -2781,6 +2829,15 @@
             "schema": {
               "type": "string",
               "title": "Target Resource Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
             }
           }
         ],
@@ -3184,6 +3241,210 @@
                   },
                   "type": "array",
                   "title": "Response Presence-List Locks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "List Projects",
+        "description": "List all projects for the authenticated organization.\n\nPlatform JWT callers are rejected with HTTP 403 because platform\nagents operate inside a single project scope and have no legitimate\nreason to enumerate every project in the tenant.\n\nReturns:\n    Projects ordered by name ascending.",
+        "operationId": "projects-list_projects",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  },
+                  "type": "array",
+                  "title": "Response Projects-List Projects"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create Project",
+        "description": "Create a new project in the caller's organization.\n\nPlatform JWT callers are rejected with HTTP 403: platform agents\ncannot create new projects. Human Clerk sessions and API keys may\ncreate freely within their tenant namespace.\n\nReturns:\n    Created project with server-assigned ID and timestamps.",
+        "operationId": "projects-create_project",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Project",
+        "description": "Get a specific project by ID.\n\nPlatform JWT callers must be scoped to this exact project; the\n``require_project_match`` dependency enforces JWT scope and\nverifies the project exists in the caller's tenant namespace.\n\nReturns:\n    The requested project.\n\nRaises:\n    ProjectNotFoundError: If project not found or belongs to\n        another organization.\n    CrossProjectAccessError: If a platform JWT is scoped to a\n        different project than the URL path.",
+        "operationId": "projects-get_project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Update Project",
+        "description": "Update a project's name.\n\nPlatform JWT callers must be scoped to this exact project; the\n``require_project_match`` dependency enforces JWT scope and\nverifies the project exists in the caller's tenant namespace.\n\nReturns:\n    Updated project record.\n\nRaises:\n    ProjectNotFoundError: If project not found or belongs to\n        another organization.\n    CrossProjectAccessError: If a platform JWT is scoped to a\n        different project than the URL path.",
+        "operationId": "projects-update_project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Delete Project",
+        "description": "Delete a project, with safe and cascade-delete modes.\n\nAccepts a :class:`DeleteProjectRequest` carrying a typed\n``confirmation`` that must equal the project's current ``name`` and\nan ``orphan_resources`` flag that selects between two explicit\nsemantics:\n\n- Safe mode (``orphan_resources=false``, default): the endpoint\n  refuses to delete a project that still owns resources and\n  returns an HTTP 409 listing the blocking resource ids. Callers\n  must deactivate each resource first via the regular\n  ``DELETE /resources/...`` flow so the per-resource ``on_delete``\n  lifecycle runs against provider infrastructure.\n- Cascade mode (``orphan_resources=true``): the endpoint cascade-\n  deletes every owned resource and the project row itself inside\n  a single tenant-scoped SurrealDB transaction. No outbox events\n  are emitted and no provider lifecycle is invoked, so the cloud\n  infrastructure keeps running. This is the explicit opt-out for\n  callers leaving pragma entirely.\n\nBoth paths run in a single ``BEGIN/COMMIT`` block. Because the\nprojects and resources tables live in the same tenant namespace,\nthe delete is atomic \u2014 either everything is removed or nothing is.\n\nRaises:\n    ProjectNotFoundError: If project not found in the caller's\n        tenant namespace.\n    ConfirmationMismatchError: If ``confirmation`` does not match the\n        project's ``name``.\n    PlatformResourceError: If the caller is not allowed to delete a\n        platform-managed project.\n    ProjectHasResourcesError: If ``orphan_resources`` is False and\n        the project still owns resources.",
+        "operationId": "projects-delete_project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -4143,71 +4404,24 @@
         }
       }
     },
-    "/resources/schemas": {
-      "get": {
-        "tags": [
-          "resources"
-        ],
-        "summary": "List Resource Schemas",
-        "description": "List available resource schemas.\n\nReturns schemas from installed providers in the tenant namespace,\nplus platform resources (e.g. pragma/secret) from the shared namespace.\n\nReturns:\n    List of resource schema responses.",
-        "operationId": "resources-list_resource_schemas",
-        "parameters": [
-          {
-            "name": "provider",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by provider name",
-              "title": "Provider"
-            },
-            "description": "Filter by provider name"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ResourceSchemaResponse"
-                  },
-                  "title": "Response Resources-List Resource Schemas"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/resources": {
+    "/projects/{project_id}/resources": {
       "get": {
         "tags": [
           "resources"
         ],
         "summary": "List Resources",
-        "description": "List all resources.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    List of resources matching filters, ordered by name.",
+        "description": "List all resources in a project.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    List of resources matching filters, ordered by name.",
         "operationId": "resources-list_resources",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4324,7 +4538,7 @@
         }
       }
     },
-    "/resources/by-name": {
+    "/projects/{project_id}/resources/by-name": {
       "get": {
         "tags": [
           "resources"
@@ -4333,6 +4547,15 @@
         "description": "Get a specific resource by provider, resource type, and name.\n\nSensitive fields are masked by default. Pass ``reveal=true`` to return\nactual values.\n\nReturns:\n    Resource with complete configuration and state.",
         "operationId": "resources-get_resource",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4411,6 +4634,15 @@
         "operationId": "resources-remove_resource",
         "parameters": [
           {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
             "name": "provider",
             "in": "query",
             "required": true,
@@ -4480,7 +4712,7 @@
         }
       }
     },
-    "/resources/status": {
+    "/projects/{project_id}/resources/status": {
       "get": {
         "tags": [
           "resources"
@@ -4489,6 +4721,15 @@
         "description": "Get resource lifecycle status.\n\nReturns only the lifecycle state, useful for polling without fetching full configuration.\n\nLifecycle states:\n    - draft: Stored but not submitted for processing\n    - waiting: Dependencies not yet ready\n    - pending: Validated and queued for provider\n    - processing: Provider is actively processing\n    - ready: Successfully provisioned and operational\n    - failed: Processing failed (check error field)\n    - deleting: Provider teardown in progress\n\nReturns:\n    ResourceStatus with lifecycle_state and optional error message.",
         "operationId": "resources-get_resource_status",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4547,15 +4788,24 @@
         }
       }
     },
-    "/resources/apply": {
+    "/projects/{project_id}/resources/apply": {
       "post": {
         "tags": [
           "resources"
         ],
         "summary": "Apply Resource",
-        "description": "Apply a resource with declarative lifecycle semantics.\n\nSet lifecycle_state in the resource:\n    - lifecycle_state=\"draft\": Store without processing (default)\n    - lifecycle_state=\"pending\": Validate dependencies and queue for processing\n\nCannot set PROCESSING, READY, FAILED (system-only states).\nCannot modify resources in PENDING or PROCESSING state.\n\nSensitive fields are masked by default in the response. Pass ``reveal=true``\nto return actual values.\n\nReturns:\n    Applied resource with timestamps and server-populated fields.",
+        "description": "Apply a resource with declarative lifecycle semantics.\n\nSet lifecycle_state in the resource:\n    - lifecycle_state=\"draft\": Store without processing (default)\n    - lifecycle_state=\"pending\": Validate dependencies and queue for processing\n\nCannot set PROCESSING, READY, FAILED (system-only states).\nCannot modify resources in PENDING or PROCESSING state.\n\nSensitive fields are masked by default in the response. Pass ``reveal=true``\nto return actual values.\n\nReturns:\n    Applied resource with timestamps and server-populated fields.\n\nRaises:\n    ProjectMismatchError: If the resource body's project_id conflicts with\n        the URL path project_id.",
         "operationId": "resources-apply_resource",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "reveal",
             "in": "query",
@@ -4603,23 +4853,34 @@
         }
       }
     },
-    "/resources/copy": {
+    "/projects/{project_id}/resources/copy": {
       "post": {
         "tags": [
           "resources"
         ],
         "summary": "Copy Resources",
-        "description": "Copy a subgraph of resources.\n\nSelects all resources reachable from the given root IDs via dependency\nedges, then creates a copy of each. Copies are created in DRAFT state\nwith a COPY event dispatched to the provider for actual duplication.\n\nDependency rewiring (enabled by default) ensures that dependencies\nbetween copied resources point to their copies instead of originals.\nDependencies on resources outside the copied subgraph remain unchanged.\n\nReturns:\n    CopyResponse with per-resource results and summary counts.",
+        "description": "Copy a subgraph of resources within the current project.\n\nSelects all resources reachable from the given root IDs via dependency\nedges, then creates a copy of each. Copies are created in DRAFT state\nwith a COPY event dispatched to the provider for actual duplication.\n\nDependency rewiring (enabled by default) ensures that dependencies\nbetween copied resources point to their copies instead of originals.\nDependencies on resources outside the copied subgraph remain unchanged.\n\nSame-project copy is the only supported mode. Every root id must\nalready encode the URL project, and every traversed node must live\ninside the same project; cross-project copy is rejected at the\nengine layer and is not a planned feature.\n\nReturns:\n    CopyResponse with per-resource results and summary counts.\n\nRaises:\n    InvalidResourceIdentityError: If any root resource_id is\n        malformed or belongs to a different project than the URL.\n    ProjectMismatchError: If the engine discovers a traversed\n        resource that escapes the URL project.",
         "operationId": "resources-copy_resources",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CopyRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -4645,7 +4906,7 @@
         }
       }
     },
-    "/resources/deactivate": {
+    "/projects/{project_id}/resources/deactivate": {
       "post": {
         "tags": [
           "resources"
@@ -4654,6 +4915,15 @@
         "description": "Deactivate a resource (soft delete).\n\nTriggers provider teardown. Resource returns to DRAFT state when complete.\nOnly available for READY and FAILED resources.\n\nSensitive fields are masked by default in the response.\n\nReturns:\n    Resource in DELETING state awaiting provider teardown.",
         "operationId": "resources-deactivate_resource",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4724,7 +4994,7 @@
         }
       }
     },
-    "/resources/logs": {
+    "/projects/{project_id}/resources/logs": {
       "get": {
         "tags": [
           "resources"
@@ -4733,6 +5003,15 @@
         "description": "Get logs for a resource by provider, resource type, and name.\n\nProxies log requests to the provider runtime that manages this resource.\n\nResponse modes:\n    - follow=false (default): Returns a JSON array of LogEntry objects\n    - follow=true: Returns an SSE stream of log events\n\nSSE format (when follow=true):\n    event: log\n    data: {\"timestamp\": \"...\", \"level\": \"info\", \"message\": \"...\"}\n\nReturns:\n    List of LogEntry objects (follow=false) or SSE StreamingResponse (follow=true).\n\nRaises:\n    HTTPException: 504 on provider timeout, 502 on provider error or connection failure.",
         "operationId": "resources-get_resource_logs",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4845,7 +5124,7 @@
         }
       }
     },
-    "/resources/health": {
+    "/projects/{project_id}/resources/health": {
       "get": {
         "tags": [
           "resources"
@@ -4854,6 +5133,15 @@
         "description": "Get health status of a resource by provider, resource type, and name.\n\nProxies the health check to the provider runtime that manages this resource.\nThe provider calls the resource's health() method and returns the result.\n\nReturns:\n    ResourceHealth with status (healthy, unhealthy, degraded) and optional details.\n\nRaises:\n    HTTPException: 404 if health check not available, 504 on timeout, 502 on provider error.",
         "operationId": "resources-get_resource_health",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
           {
             "name": "provider",
             "in": "query",
@@ -4895,6 +5183,62 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResourceHealth"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/schemas": {
+      "get": {
+        "tags": [
+          "resources"
+        ],
+        "summary": "List Resource Schemas",
+        "description": "List available resource schemas.\n\nReturns schemas from installed providers in the tenant namespace,\nplus platform resources (e.g. pragma/secret) from the shared namespace.\n\nReturns:\n    List of resource schema responses.",
+        "operationId": "resources-list_resource_schemas",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by provider name",
+              "title": "Provider"
+            },
+            "description": "Filter by provider name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourceSchemaResponse"
+                  },
+                  "title": "Response Resources-List Resource Schemas"
                 }
               }
             }
@@ -4992,6 +5336,149 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RuntimeVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/llm": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Llm Settings",
+        "description": "Return the authenticated organization's LLM settings.\n\nOn first access the service seeds a default row pointing at the\nshared platform default provider so platform agents can always\nresolve a concrete model without forcing the user through the\nsettings screen.\n\nReturns:\n    Current settings for the caller's organization.",
+        "operationId": "settings-get_llm_settings",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Update Llm Settings",
+        "description": "Update the authenticated organization's LLM settings.\n\nEither field may be omitted to preserve the stored value. The\nservice rejects provider selections that are neither the platform\ndefault nor a connected model resource.\n\nReturns:\n    Updated settings row.",
+        "operationId": "settings-update_llm_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/llm/available-providers": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "List Available Providers",
+        "description": "List LLM providers the organization can select in the settings UI.\n\nAlways includes the ``platform_default`` row first, followed by\nconcrete LLM providers known to the catalog with a ``connected``\nflag reflecting whether the organization already owns a matching\nmodel resource.\n\nReturns:\n    Ordered list of provider summary rows for the settings picker.",
+        "operationId": "settings-list_available_providers",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LLMProviderSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Settings-List Available Providers"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/llm/cost-estimate": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Estimate Llm Cost",
+        "description": "Return a monthly cost estimate for a prospective provider choice.\n\nUses the standard assumption documented on\n``pragma_sdk.models.llm.CostEstimate``: 10,000 platform agent\ninvocations per month averaging 2,000 input and 500 output tokens.\nThe response includes a provider comparison table so the settings\nUI can render a side-by-side cost breakdown before the user\ncommits to a selection.\n\nReturns:\n    Cost estimate with per-call, monthly, and comparison data.",
+        "operationId": "settings-estimate_llm_cost",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Provider slug to estimate.",
+              "title": "Provider"
+            },
+            "description": "Provider slug to estimate."
+          },
+          {
+            "name": "performance_profile",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PerformanceProfile",
+              "description": "Performance profile tier to estimate."
+            },
+            "description": "Performance profile tier to estimate."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostEstimate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -7921,6 +8408,43 @@
         "title": "CopyStrategy",
         "description": "Strategy for how a resource should be copied.\n\nAttributes:\n    STATELESS: Config-only copy. The resource is duplicated by creating a new\n        instance with the same (or modified) configuration. No data migration.\n    STATEFUL: Data-bearing copy. The resource needs to clone underlying data\n        (e.g., database contents, vector indices) and may produce patches for\n        ongoing synchronization."
       },
+      "CostEstimate": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "performance_profile": {
+            "$ref": "#/components/schemas/PerformanceProfile"
+          },
+          "monthly_estimate_usd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Monthly Estimate Usd"
+          },
+          "per_call_estimate_usd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Per Call Estimate Usd"
+          },
+          "provider_comparison": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderComparisonRow"
+            },
+            "type": "array",
+            "title": "Provider Comparison"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "performance_profile",
+          "monthly_estimate_usd",
+          "per_call_estimate_usd"
+        ],
+        "title": "CostEstimate",
+        "description": "Cost projection for a proposed LLM provider and performance profile.\n\nReturned by the settings cost preview endpoint so the UI can show a\nlive comparison before the user commits to a change. The standard\nassumption used for the projection is 10,000 platform-agent\ninvocations per month with an average of 2,000 input tokens and 500\noutput tokens per invocation; the API applies this assumption\nuniformly across providers so the comparison is apples-to-apples.\n\nAttributes:\n    provider: Provider slug the estimate targets.\n    performance_profile: Profile tier the estimate targets.\n    monthly_estimate_usd: Projected monthly cost in USD at the\n        standard assumption.\n    per_call_estimate_usd: Projected cost per platform-agent\n        invocation in USD at the standard assumption.\n    provider_comparison: Alternative provider/profile combinations\n        and their monthly cost estimates, for side-by-side display."
+      },
       "CreatePatchRequest": {
         "properties": {
           "definition": {
@@ -7941,6 +8465,22 @@
         ],
         "title": "CreatePatchRequest",
         "description": "Request body for creating a new patch.\n\nAttributes:\n    definition: Patch content describing the action and parameters.\n    constraints: Compatibility constraints for target resource eligibility."
+      },
+      "CreateProjectRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateProjectRequest",
+        "description": "Request body for creating a new project.\n\nAttributes:\n    name: Human-readable project name."
       },
       "DeadLetterEventResponse": {
         "properties": {
@@ -7996,6 +8536,28 @@
         ],
         "title": "DeadLetterEventResponse",
         "description": "Failed event response.\n\nAttributes:\n    event_id: Original event ID.\n    provider: Provider name (e.g., \"postgres\").\n    resource_type: Resource type (e.g., \"database\").\n    resource_name: Resource name from manifest.\n    event_type: Type of lifecycle event (CREATE, UPDATE, DELETE).\n    payload: Resource configuration as JSON object.\n    error_message: Error message from last failed attempt.\n    attempt_count: Number of processing attempts before failure.\n    failed_at: When event failed."
+      },
+      "DeleteProjectRequest": {
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Confirmation"
+          },
+          "orphan_resources": {
+            "type": "boolean",
+            "title": "Orphan Resources",
+            "description": "Opt in to cascade-wipe owned resources without running provider teardown. Defaults to False; non-empty projects are rejected unless this flag is True.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirmation"
+        ],
+        "title": "DeleteProjectRequest",
+        "description": "Request body for deleting a project.\n\nProject deletion requires the caller to echo the project's current\n``name`` as a typed confirmation token. The field is required \u2014 there\nis no boolean shortcut \u2014 and the server rejects any mismatch with\nHTTP 400 so a stale scripted call cannot silently destroy the wrong\nproject.\n\nAttributes:\n    confirmation: Must equal the target project's ``name`` exactly.\n    orphan_resources: When True, cascade-delete every resource in\n        the project in the same transaction without invoking the\n        per-resource ``on_delete`` provider lifecycle. Cloud\n        infrastructure keeps running and pragma forgets it exists.\n        When False (default), the endpoint refuses to delete a\n        non-empty project and returns the list of blocking\n        resources so the caller can deactivate them explicitly."
       },
       "DeploymentResult": {
         "properties": {
@@ -8490,6 +9052,42 @@
         "title": "InstanceStatus",
         "description": "Lifecycle status of an agent instance."
       },
+      "LLMProviderSummary": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "connected": {
+            "type": "boolean",
+            "title": "Connected"
+          },
+          "is_platform_default": {
+            "type": "boolean",
+            "title": "Is Platform Default",
+            "default": false
+          },
+          "tiers_available": {
+            "items": {
+              "$ref": "#/components/schemas/ModelTier"
+            },
+            "type": "array",
+            "title": "Tiers Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "label",
+          "connected"
+        ],
+        "title": "LLMProviderSummary",
+        "description": "Summary entry for the 'available LLM providers' settings picker.\n\nOne summary row per LLM provider the organization can select. Tells\nthe UI which providers are already connected, which tiers each\nprovider supports, and which entry represents the shared platform\ndefault (used when the organization has not connected their own\nprovider yet).\n\nAttributes:\n    slug: Provider slug. Use 'platform_default' for the shared\n        platform-managed provider, otherwise a concrete LLM provider\n        slug like 'anthropic', 'openai', or 'google'.\n    label: Human-readable label for the provider.\n    connected: Whether the organization already has an LLM provider\n        resource configured for this slug. Always True for the\n        platform default entry.\n    is_platform_default: True only for the 'platform_default' entry.\n        Defaults to False.\n    tiers_available: ModelTiers this provider exposes through its\n        catalog. Drives which PerformanceProfile options are\n        selectable when the user picks this provider."
+      },
       "LifecycleEvent": {
         "properties": {
           "id": {
@@ -8679,6 +9277,23 @@
         "title": "LogEntry",
         "description": "A single log entry from a resource.\n\nAttributes:\n    timestamp: ISO-8601 timestamp of when the log was generated.\n    level: Log level (debug, info, warning, error).\n    message: Log message content."
       },
+      "ManagedBy": {
+        "type": "string",
+        "enum": [
+          "user",
+          "platform"
+        ]
+      },
+      "ModelTier": {
+        "type": "string",
+        "enum": [
+          "fast",
+          "balanced",
+          "reasoning"
+        ],
+        "title": "ModelTier",
+        "description": "Classification of a catalog model's capability tier.\n\nTier labels a model in the LLM catalog so the API can pick an appropriate\nconcrete model for a requested PerformanceProfile. Tier and\nPerformanceProfile share the same string values but are semantically\ndistinct: tier describes the model, profile describes the user's selection."
+      },
       "MutationActorType": {
         "type": "string",
         "enum": [
@@ -8763,17 +9378,6 @@
           "status": {
             "$ref": "#/components/schemas/OrganizationStatus",
             "default": "active"
-          },
-          "main_agent_resource_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Main Agent Resource Id"
           }
         },
         "type": "object",
@@ -8783,7 +9387,36 @@
           "slug"
         ],
         "title": "Organization",
-        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nAgent routing:\n    main_agent_resource_id: SurrealDB resource ID of the organization's\n        main conversation agent, used as the entry point for chat routing.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+      },
+      "OrganizationSettings": {
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "performance_profile": {
+            "$ref": "#/components/schemas/PerformanceProfile"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization_id",
+          "provider",
+          "performance_profile",
+          "updated_at"
+        ],
+        "title": "OrganizationSettings",
+        "description": "Per-organization LLM settings for platform agents.\n\nHolds the organization's choice of LLM provider resource and\nperformance profile. The API reads these settings whenever a\nplatform agent is invoked to resolve the concrete model and\ncredentials to use.\n\nAttributes:\n    organization_id: Owning organization.\n    provider: Resource identifier of the LLM provider resource the\n        organization has selected. Opaque string; format matches the\n        rest of the SDK's resource id references (SurrealDB record id\n        shape, e.g. 'resources:anthropic_default_abc123'). Use\n        'platform_default' to reference the shared platform provider.\n    performance_profile: Which tier of catalog model to use for\n        platform agent invocations.\n    updated_at: Timestamp of the last settings change."
       },
       "OrganizationStatus": {
         "type": "string",
@@ -8894,6 +9527,10 @@
             "format": "date-time",
             "title": "Updated At"
           },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
           "provider": {
             "type": "string",
             "title": "Provider"
@@ -8909,12 +9546,13 @@
         },
         "type": "object",
         "required": [
+          "project_id",
           "provider",
           "resource",
           "name"
         ],
         "title": "OwnerReference",
-        "description": "Reference to a resource that owns this resource for lifecycle coordination.\n\nUsed for cascading deletes and ownership tracking. When an owner resource\nis deleted, owned resources can be automatically cleaned up.\n\nA resource can have multiple owners (rare but valid for shared resources).\n\nAttributes:\n    provider: Provider that manages the owner resource.\n    resource: Resource type name.\n    name: Resource instance name."
+        "description": "Reference to a resource that owns this resource for lifecycle coordination.\n\nUsed for cascading deletes and ownership tracking. When an owner resource\nis deleted, owned resources can be automatically cleaned up.\n\nA resource can have multiple owners (rare but valid for shared resources).\n\nAttributes:\n    project_id: Project that owns the referenced resource.\n    provider: Provider that manages the owner resource.\n    resource: Resource type name.\n    name: Resource instance name."
       },
       "PaginatedResponse_Provider_": {
         "properties": {
@@ -9067,6 +9705,16 @@
         ],
         "title": "PathExistsResponse",
         "description": "Response for path existence check.\n\nAttributes:\n    exists: Whether a dependency path exists between the two resources."
+      },
+      "PerformanceProfile": {
+        "type": "string",
+        "enum": [
+          "fast",
+          "balanced",
+          "reasoning"
+        ],
+        "title": "PerformanceProfile",
+        "description": "User-facing LLM performance profile selection.\n\nIdentifies which tier of model an organization wants platform agents to use.\nThe profile is chosen by the user; the API resolves it to a concrete model\nfrom the selected provider's catalog entries."
       },
       "PlanStep": {
         "properties": {
@@ -9243,6 +9891,55 @@
         "title": "PresenceRegisterRequest",
         "description": "Request body for registering presence.\n\nAttributes:\n    agent_id: Unique identifier for the agent or session.\n    agent_type: Type of agent connecting.\n    name: Human-readable display name.\n    activity: Optional current activity description.\n    resource_id: Optional resource being worked on."
       },
+      "Project": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "title": "Organization Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "managed_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "platform"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Managed By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "organization_id",
+          "name"
+        ],
+        "title": "Project",
+        "description": "Project record stored in the tenant SurrealDB namespace.\n\nProjects group resources within an organization. Each resource\nbelongs to exactly one project, enabling scoped access control and\nisolation. Project rows live in the per-tenant SurrealDB namespace\nalongside resources so that lifecycle operations on a project and\nits resources execute inside a single tenant-scoped transaction.\n\nIdentity fields (frozen):\n    project_id: Unique project identifier, used as SurrealDB record ID.\n    organization_id: Owning organization, set at creation and immutable.\n        Denormalised onto the row so platform callers can reason about\n        the owner without re-deriving it from the namespace binding.\n\nMetadata:\n    name: Display name of the project.\n    managed_by: Ownership tier. ``\"platform\"`` projects are seeded by\n        pragma-os itself (e.g. the platform-default project used by\n        platform agents). User-facing write paths reject mutations to\n        platform-managed projects with HTTP 403. ``None`` or ``\"user\"``\n        indicates an ordinary user-created project.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+      },
       "Provider": {
         "properties": {
           "created_at": {
@@ -9352,6 +10049,30 @@
         ],
         "title": "ProviderAuthor",
         "description": "Author metadata for a provider.\n\nAttributes:\n    organization_id: Organization ID of the publishing tenant.\n    org_name: Display name of the publishing organization."
+      },
+      "ProviderComparisonRow": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "performance_profile": {
+            "$ref": "#/components/schemas/PerformanceProfile"
+          },
+          "monthly_estimate_usd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Monthly Estimate Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "performance_profile",
+          "monthly_estimate_usd"
+        ],
+        "title": "ProviderComparisonRow",
+        "description": "One row in the provider comparison table shown in the settings UI.\n\nAttributes:\n    provider: Provider slug (e.g. 'anthropic', 'openai', 'google').\n    performance_profile: Profile tier this row estimates.\n    monthly_estimate_usd: Projected monthly cost in USD at the\n        standard assumption documented on CostEstimate."
       },
       "ProviderInstallationResponse": {
         "properties": {
@@ -9576,6 +10297,10 @@
             "type": "string",
             "title": "Name"
           },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
           "config": {
             "additionalProperties": true,
             "type": "object",
@@ -9707,16 +10432,27 @@
               }
             ],
             "title": "Provider Version"
+          },
+          "managed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManagedBy"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
           "provider",
           "resource",
-          "name"
+          "name",
+          "project_id"
         ],
         "title": "Resource",
-        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nOwnership fields (system-managed):\n    managed_by: Ownership discriminator. ``user`` for resources the\n        caller owns and controls, ``platform`` for pragma-os-managed\n        resources (platform agents, tier resources, platform-default\n        LLM provider) that reject user writes. ``None`` is the legacy\n        unmanaged default for backfilled records.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "Resource-Output": {
         "properties": {
@@ -9742,6 +10478,10 @@
             "type": "string",
             "title": "Name"
           },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
           "config": {
             "additionalProperties": true,
             "type": "object",
@@ -9874,6 +10614,16 @@
             ],
             "title": "Provider Version"
           },
+          "managed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManagedBy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string",
             "title": "Id",
@@ -9886,10 +10636,11 @@
           "provider",
           "resource",
           "name",
+          "project_id",
           "id"
         ],
         "title": "Resource",
-        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for resources with provider/resource identity and 5-state lifecycle.\n\nIdentity fields (frozen - immutable after creation):\n    provider: Provider that manages this resource type.\n    resource: Resource type name.\n    name: Unique resource instance name.\n\nConfiguration fields (mutable):\n    config: Original user-submitted resource configuration. Contains raw field\n        references and dependency markers as submitted by the user.\n    resolved_config: Resolved configuration with field references and dependency\n        markers expanded. Contains __field_ref__ markers with resolved_value and\n        dependency markers with ref data. Set when transitioning to PENDING state.\n        None when resource is in DRAFT state or not yet resolved.\n    dependencies: References to resources this resource depends on.\n    owner_references: References to resources that own this resource for\n        lifecycle coordination and cascading deletes.\n\nOutput fields (provider-managed):\n    outputs: Resource outputs from provider processing.\n    error: Error message when resource is in FAILED state.\n\nLifecycle fields (system-managed):\n    lifecycle_state: Current state (DRAFT/PENDING/PROCESSING/READY/FAILED).\n    pending_event_id: Event ID currently being processed (set on PROCESSING,\n        cleared on READY/FAILED). Used for response idempotency validation.\n    provisioned: Whether the resource was successfully created at least once.\n        Used to distinguish failed creates (retry CREATE) from failed updates\n        (retry UPDATE).\n\nVersioning fields (system-managed):\n    provider_version: Semver of the provider version that last processed this\n        resource. Set automatically when the resource transitions to PENDING.\n        None for platform resources or pre-versioning backfill.\n\nOwnership fields (system-managed):\n    managed_by: Ownership discriminator. ``user`` for resources the\n        caller owns and controls, ``platform`` for pragma-os-managed\n        resources (platform agents, tier resources, platform-default\n        LLM provider) that reject user writes. ``None`` is the legacy\n        unmanaged default for backfilled records.\n\nCategorization fields (mutable):\n    tags: Optional list of tags for categorization and filtering.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "ResourceHealth": {
         "properties": {
@@ -10110,6 +10861,10 @@
             "format": "date-time",
             "title": "Updated At"
           },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
           "provider": {
             "type": "string",
             "title": "Provider"
@@ -10125,12 +10880,13 @@
         },
         "type": "object",
         "required": [
+          "project_id",
           "provider",
           "resource",
           "name"
         ],
         "title": "ResourceReference",
-        "description": "Reference to another resource for dependency tracking.\n\nUsed to express dependencies between resources. At commit time,\nthe API validates that all referenced resources exist and are READY.\n\nAttributes:\n    provider: Provider that manages the referenced resource.\n    resource: Resource type name.\n    name: Resource instance name."
+        "description": "Reference to another resource for dependency tracking.\n\nUsed to express dependencies between resources. At commit time,\nthe API validates that all referenced resources exist and are READY.\n\nAttributes:\n    project_id: Project that owns the referenced resource.\n    provider: Provider that manages the referenced resource.\n    resource: Resource type name.\n    name: Resource instance name."
       },
       "ResourceSchemaResponse": {
         "properties": {
@@ -10375,20 +11131,6 @@
         ],
         "title": "RuntimeVersionCreate",
         "description": "Request body for registering a new runtime version.\n\nAttributes:\n    version: Semver version string (e.g., \"0.40.0\").\n    image_url: Full container image URL for this runtime version.\n    changelog: Optional release notes in markdown."
-      },
-      "SetMainAgentRequest": {
-        "properties": {
-          "agent_resource_id": {
-            "type": "string",
-            "title": "Agent Resource Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "agent_resource_id"
-        ],
-        "title": "SetMainAgentRequest",
-        "description": "Request body for setting the organization's main conversation agent.\n\nAttributes:\n    agent_resource_id: SurrealDB resource ID of the agent to use as\n        the main conversation router."
       },
       "SignedUrlResponse": {
         "properties": {
@@ -11148,6 +11890,50 @@
         "title": "TrustTier",
         "description": "Trust level assigned to providers."
       },
+      "UpdateOrganizationSettingsRequest": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "performance_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "UpdateOrganizationSettingsRequest",
+        "description": "Patch body for ``PATCH /settings/llm``.\n\nEither field may be omitted, in which case the existing value is\npreserved. Callers that want to unset either value must delete and\nrecreate the settings row from the engine side.\n\nAttributes:\n    provider: New LLM provider resource id, or\n        ``\"platform_default\"`` to fall back to the shared\n        platform-managed provider.\n    performance_profile: New performance profile tier."
+      },
+      "UpdateProjectRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "UpdateProjectRequest",
+        "description": "Request body for updating a project.\n\nAttributes:\n    name: New project name."
+      },
       "UpdateProviderRequest": {
         "properties": {
           "display_name": {
@@ -11512,6 +12298,17 @@
                 "type": "null"
               }
             ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
           }
         },
         "type": "object",
@@ -11523,7 +12320,7 @@
           "model"
         ],
         "title": "AgentType",
-        "description": "Domain model for agent types with LLM configuration and tooling.\n\nIdentity fields (frozen - immutable after creation):\n    name: Machine-readable name unique within organization.\n    organization_id: Tenant that owns this agent type.\n\nConfiguration fields (mutable):\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    conversation_routing: Routing rules for conversation assignment.\n\nResource fields (linking to pragma resources):\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n\nAudit fields:\n    created_by: User ID of the creator.\n    version: Schema version for migration support.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for agent types with LLM configuration and tooling.\n\nIdentity fields (frozen - immutable after creation):\n    name: Machine-readable name unique within organization.\n    organization_id: Tenant that owns this agent type.\n\nConfiguration fields (mutable):\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    conversation_routing: Routing rules for conversation assignment.\n\nResource fields (linking to pragma resources):\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n\nPlatform fields (system-managed):\n    role: Optional platform role marker. ``\"main_router\"``\n        identifies the single entry-point agent for\n        ``POST /agents/chat``. ``None`` for user-created types.\n\nAudit fields:\n    created_by: User ID of the creator.\n    version: Schema version for migration support.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "pragma_api__models__presence__AgentType": {
         "type": "string",
