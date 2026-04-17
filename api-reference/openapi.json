@@ -1286,7 +1286,7 @@
           "conversation-routing"
         ],
         "summary": "Get Routing Manifest",
-        "description": "Return assembled routing manifests from all active agent types.\n\nQueries all agent types for the organization and filters to those\nwith conversation_routing configured, returning their routing rules.\n\nReturns:\n    RoutingManifest with entries for each eligible agent type.",
+        "description": "Return assembled routing manifests from all active agent types.\n\nQueries all agent types for the organization and filters to those\nwith conversation_routing configured, returning their routing rules.\nThe tenant SurrealDB namespace keyed by the authenticated caller's\norganization is the isolation boundary \u2014 the dependency on\n``get_surrealdb_client`` resolves the right namespace through the\nauth chain.\n\nReturns:\n    RoutingManifest with entries for each eligible agent type.",
         "operationId": "conversation-routing-get_routing_manifest",
         "responses": {
           "200": {
@@ -1308,7 +1308,7 @@
           "conversation-routing"
         ],
         "summary": "Send Instance Message",
-        "description": "Stream a message to a specific agent instance.\n\nResolves the agent instance's runner URL and streams the SSE response\nback to the client. This is the second hop in the two-hop routing pattern.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.\n    AgentInvokerError: If runner resolution or streaming fails.",
+        "description": "Stream a message to a specific agent instance.\n\nResolves the agent instance's runner URL and streams the SSE response\nback to the client. This is the second hop in the two-hop routing pattern.\n\nAgent instances remain in the shared namespace for this PR (read\nthrough ``shared_db``); agent types and resources live in the\ntenant namespace (read through ``tenant_db``).\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If instance not found or belongs to another organization.\n    AgentInvokerError: If runner resolution or streaming fails.",
         "operationId": "conversation-routing-send_instance_message",
         "parameters": [
           {
@@ -1354,7 +1354,7 @@
           "conversation-routing"
         ],
         "summary": "Chat",
-        "description": "Main entry point for all user chat messages.\n\nImplements the two-hop routing pattern: looks up the organization's main\nagent and streams the response. In v1, this forwards directly to the main\nagent's runner streaming. Future versions will add non-streaming routing\nhop where the main agent selects a target instance before streaming.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main router agent seeded for the organization.",
+        "description": "Main entry point for all user chat messages.\n\nImplements the two-hop routing pattern: looks up the organization's main\nagent and streams the response. In v1, this forwards directly to the main\nagent's runner streaming. Future versions will add non-streaming routing\nhop where the main agent selects a target instance before streaming.\n\nThe tenant SurrealDB namespace keyed by the authenticated caller's\norganization is the isolation boundary for both the agent type and\nthe agent resource lookups the runner resolution traverses.\n\nReturns:\n    SSE stream of the agent's response.\n\nRaises:\n    NotFoundError: If no main router agent seeded for the organization.",
         "operationId": "conversation-routing-chat",
         "requestBody": {
           "content": {
@@ -12152,10 +12152,6 @@
             "type": "string",
             "title": "Name"
           },
-          "organization_id": {
-            "type": "string",
-            "title": "Organization Id"
-          },
           "display_name": {
             "type": "string",
             "title": "Display Name"
@@ -12314,13 +12310,12 @@
         "type": "object",
         "required": [
           "name",
-          "organization_id",
           "display_name",
           "provider",
           "model"
         ],
         "title": "AgentType",
-        "description": "Domain model for agent types with LLM configuration and tooling.\n\nIdentity fields (frozen - immutable after creation):\n    name: Machine-readable name unique within organization.\n    organization_id: Tenant that owns this agent type.\n\nConfiguration fields (mutable):\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    conversation_routing: Routing rules for conversation assignment.\n\nResource fields (linking to pragma resources):\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n\nPlatform fields (system-managed):\n    role: Optional platform role marker. ``\"main_router\"``\n        identifies the single entry-point agent for\n        ``POST /agents/chat``. ``None`` for user-created types.\n\nAudit fields:\n    created_by: User ID of the creator.\n    version: Schema version for migration support.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Domain model for agent types with LLM configuration and tooling.\n\nAgent types live inside the tenant SurrealDB namespace \u2014 the\nnamespace is the organization boundary, so the record itself\ncarries no ``organization_id`` field.\n\nIdentity fields (frozen - immutable after creation):\n    name: Machine-readable name unique within the namespace.\n\nConfiguration fields (mutable):\n    display_name: Human-readable name shown in UI.\n    description: Agent purpose and capabilities.\n    icon: Icon identifier or URL.\n    provider: LLM provider (e.g., \"anthropic\", \"openai\").\n    model: Model identifier (e.g., \"claude-opus-4\", \"gpt-4\").\n    temperature: Sampling temperature for generation.\n    context_window: Maximum context window size in tokens.\n    system_instructions: System prompt for the agent.\n    mcp_servers: MCP server identifiers available to the agent.\n    builtin_tools: Built-in tool identifiers available to the agent.\n    default_plan_template: Default plan steps for new tasks.\n    conversation_routing: Routing rules for conversation assignment.\n\nResource fields (linking to pragma resources):\n    agent_resource_id: SurrealDB resource ID for the agent type.\n    runner_resource_id: SurrealDB resource ID for the runner resource.\n\nPlatform fields (system-managed):\n    role: Optional platform role marker. ``\"main_router\"``\n        identifies the single entry-point agent for\n        ``POST /agents/chat``. ``None`` for user-created types.\n\nAudit fields:\n    created_by: User ID of the creator.\n    version: Schema version for migration support.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "pragma_api__models__presence__AgentType": {
         "type": "string",
