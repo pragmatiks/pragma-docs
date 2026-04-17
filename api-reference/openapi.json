@@ -9377,7 +9377,18 @@
           },
           "status": {
             "$ref": "#/components/schemas/OrganizationStatus",
-            "default": "active"
+            "default": "bootstrapping"
+          },
+          "bootstrap_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bootstrap Error"
           }
         },
         "type": "object",
@@ -9387,7 +9398,7 @@
           "slug"
         ],
         "title": "Organization",
-        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status (active, deactivating, deleted).\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
+        "description": "Organization record stored in shared SurrealDB namespace.\n\nRepresents a Clerk organization synced via webhooks. Stored in the\nshared namespace because organization data must be accessible before\nany organization context exists (e.g., during webhook processing).\n\nIdentity fields (frozen):\n    organization_id: Clerk organization ID, used as SurrealDB record ID.\n\nMetadata:\n    name: Display name of the organization.\n    slug: URL-friendly organization identifier from Clerk.\n\nState (system-managed):\n    status: Lifecycle status.\n    bootstrap_error: Short human-readable message set when\n        bootstrap fails; cleared on successful retry.\n\nInherited from PragmaModel:\n    created_at: Creation timestamp (frozen).\n    updated_at: Last update timestamp (mutable)."
       },
       "OrganizationSettings": {
         "properties": {
@@ -9421,12 +9432,14 @@
       "OrganizationStatus": {
         "type": "string",
         "enum": [
-          "active",
+          "bootstrapping",
+          "ready",
+          "bootstrap_failed",
           "deactivating",
           "deleted"
         ],
         "title": "OrganizationStatus",
-        "description": "Lifecycle status of an organization."
+        "description": "Lifecycle status of an organization.\n\nBootstrap states:\n    BOOTSTRAPPING: Organization row exists, bootstrap worker has not\n        yet finished provisioning tenant namespace resources.\n    READY: Organization is fully provisioned and usable.\n    BOOTSTRAP_FAILED: Bootstrap worker exhausted its retry budget.\n        Recovery is manual during private beta: operators contact\n        support or clear the failure via direct SurrealDB\n        intervention.\n\nTeardown states:\n    DEACTIVATING: Cleanup worker is tearing down tenant resources.\n    DELETED: Organization fully cleaned up."
       },
       "OutboxEventResponse": {
         "properties": {
