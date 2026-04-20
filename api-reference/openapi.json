@@ -944,7 +944,7 @@
           "agent-types"
         ],
         "summary": "Suggest Triggers",
-        "description": "Analyze agent type system instructions and propose trigger configurations.\n\nUses an LLM to generate suggestions based on the agent's described\nresponsibilities. Returns event, schedule, and conversation trigger\nproposals that the user can accept, modify, or reject.\n\nReturns:\n    Trigger suggestions with agent type ID and proposed configurations.\n\nRaises:\n    HTTPException: 400 if agent type has no system instructions.\n    HTTPException: 503 if LLM call fails.",
+        "description": "Analyze agent type system instructions and propose trigger configurations.\n\nUses the trigger-suggester platform agent to generate suggestions\nbased on the agent's described responsibilities. Returns event,\nschedule, and conversation trigger proposals that the user can\naccept, modify, or reject.\n\nReturns:\n    Trigger suggestions with agent type ID and proposed configurations.\n\nRaises:\n    HTTPException: 400 if agent type has no system instructions.\n    HTTPException: 503 if the platform agent call fails or returns\n        an invalid structured response.",
         "operationId": "agent-types-suggest_triggers",
         "parameters": [
           {
