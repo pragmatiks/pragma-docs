@@ -2537,6 +2537,28 @@
         }
       }
     },
+    "/organizations/me/status": {
+      "get": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Get Organization Status",
+        "description": "Return the bootstrap status of the authenticated organization.\n\nExempt from the bootstrap-ready gate so web and CLI clients can\npoll the endpoint while the organization is still in\n``BOOTSTRAPPING``. Collapses the internal lifecycle into three\nstates so clients do not have to learn intermediate deactivation or\ndeletion states:\n\n* ``\"bootstrapping\"`` \u2014 bootstrap worker is still provisioning.\n* ``\"ready\"`` \u2014 every seeded platform resource is READY.\n* ``\"failed\"`` \u2014 the organization is in a terminal non-ready\n  state and will not recover without operator intervention.\n\nA missing organization row is also reported as ``\"bootstrapping\"``\nbecause that is a transient window: the Clerk webhook has not yet\ncreated the row, but will shortly. Clients should keep polling.\n\nReturns:\n    Public status envelope consumed by the web gate and CLI\n    error wrapper.",
+        "operationId": "organizations-get_organization_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organizations/{organization_id}": {
       "get": {
         "tags": [
@@ -9440,6 +9462,25 @@
         ],
         "title": "OrganizationStatus",
         "description": "Lifecycle status of an organization.\n\nBootstrap states:\n    BOOTSTRAPPING: Organization row exists, bootstrap worker has not\n        yet finished provisioning tenant namespace resources.\n    READY: Organization is fully provisioned and usable.\n    BOOTSTRAP_FAILED: Bootstrap worker exhausted its retry budget.\n        Recovery is manual during private beta: operators contact\n        support or clear the failure via direct SurrealDB\n        intervention.\n\nTeardown states:\n    DEACTIVATING: Cleanup worker is tearing down tenant resources.\n    DELETED: Organization fully cleaned up."
+      },
+      "OrganizationStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "bootstrapping",
+              "ready",
+              "failed"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "OrganizationStatusResponse",
+        "description": "Public bootstrap status payload for the authenticated organization.\n\nCollapses the internal :class:`OrganizationStatus` lifecycle into\nthree user-facing states the web and CLI clients can switch on\nwithout learning about intermediate internal states:\n\n* ``\"bootstrapping\"`` \u2014 the organization's platform stack is still\n  being provisioned. Clients should keep polling and block access\n  to tenant-scoped routes.\n* ``\"ready\"`` \u2014 every seeded platform resource has reached\n  ``READY``. The client can stop polling and render the app.\n* ``\"failed\"`` \u2014 the organization is in a terminal non-ready state\n  (``BOOTSTRAP_FAILED``, ``DEACTIVATING``, or ``DELETED``). The\n  client should stop polling and display a support-contact screen.\n\nDeliberately minimal: no resource detail, no error text, no\nretry-after. The bootstrap gate already returns a structured 503\nenvelope for the tenant-scoped routes \u2014 this endpoint exists purely\nto tell clients when to stop polling."
       },
       "OutboxEventResponse": {
         "properties": {
