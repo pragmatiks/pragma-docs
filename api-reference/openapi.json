@@ -2003,7 +2003,7 @@
           "files"
         ],
         "summary": "Download File",
-        "description": "Download file content.\n\nSupports two authentication modes:\n- Bearer token: Standard authenticated request\n- Signed URL: Include token and expires query parameters\n\nReturns:\n    File content with appropriate content-type header.\n\nRaises:\n    HTTPException: 401 if authentication fails.\n    HTTPException: 404 if file not found.",
+        "description": "Download file content.\n\nSupports two authentication modes:\n- Bearer token: Standard authenticated request. Gated on\n  organization readiness so the bearer path cannot reach tenant\n  storage before bootstrap completes.\n- Signed URL: Include token and expires query parameters. Not\n  gated \u2014 signed URLs must stay reachable to preserve the\n  pre-existing public contract.\n\nReturns:\n    File content with appropriate content-type header.\n\nRaises:\n    HTTPException: 401 if authentication fails.\n    HTTPException: 404 if file not found.",
         "operationId": "files-download_file",
         "parameters": [
           {
