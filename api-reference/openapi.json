@@ -2608,7 +2608,7 @@
           "organizations"
         ],
         "summary": "Cleanup Organization",
-        "description": "Manually trigger organization cleanup.\n\nAdmin-only endpoint that initiates cleanup of an organization's resources,\nprovider installations, and database records. Cleanup runs asynchronously\nin the background.\n\nReturns:\n    Status acknowledgement.",
+        "description": "Manually trigger organization cleanup.\n\nAdmin-only endpoint that initiates cleanup of the caller's own\norganization resources, provider installations, and database\nrecords. Cleanup runs asynchronously in the background.\n\nThe path parameter is retained for API compatibility with existing\nCLI and SDK callers but must match the caller's own\n``organization_id``; cross-organization cleanup is rejected so an\n``org:admin`` of one organization cannot wipe another. The Clerk\nwebhook handler is the only legitimate trigger for cleanup of a\ndifferent organization and has its own authenticated path.\n\nReturns:\n    Status acknowledgement.\n\nRaises:\n    HTTPException: 403 if the caller is not an admin, or targets\n        an organization other than their own.",
         "operationId": "organizations-cleanup_organization",
         "parameters": [
           {
