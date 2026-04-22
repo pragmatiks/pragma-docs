@@ -2517,7 +2517,7 @@
           "organizations"
         ],
         "summary": "List Organizations",
-        "description": "List all organizations.\n\nAdmin-only endpoint returning all organization records from the shared namespace.\n\nReturns:\n    List of organization records ordered by name.",
+        "description": "List all organizations on the platform.\n\nStaff-only endpoint returning every organization record from the\nshared namespace. Restricted to pragmatiks staff because the list\ncontains every tenant on the platform \u2014 exposing it to a customer's\n``org:admin`` would be a tenant-enumeration primitive.\n\nReturns:\n    List of organization records ordered by name.\n\nRaises:\n    HTTPException: 403 if the caller is not pragmatiks staff.",
         "operationId": "organizations-list_organizations",
         "responses": {
           "200": {
@@ -2565,7 +2565,7 @@
           "organizations"
         ],
         "summary": "Get Organization",
-        "description": "Get organization details by ID.\n\nReturns a single organization record. Raises 404 if not found\n(handled by exception handler via OrganizationNotFoundError).\n\nReturns:\n    Organization record.",
+        "description": "Get organization details by ID.\n\nAuthenticated callers may read their own organization record.\nReading any other organization's record is restricted to\npragmatiks staff, because otherwise every authenticated user has\nan oracle for the full Clerk organization metadata of every\ntenant on the platform (name, slug, bootstrap status, timestamps).\n\nReturns a single organization record. Raises 404 if not found\n(handled by the exception handler via\n:class:`OrganizationNotFoundError`).\n\nReturns:\n    Organization record.\n\nRaises:\n    HTTPException: 403 if the caller requests an organization\n        other than their own and is not pragmatiks staff.",
         "operationId": "organizations-get_organization",
         "parameters": [
           {
