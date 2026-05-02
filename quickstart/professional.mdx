@@ -3,7 +3,7 @@ title: "Build a Reactive AI Pipeline"
 description: "Create a multi-agent team with tools, knowledge, and reactive dependencies"
 ---
 
-In this quickstart, you'll build a multi-agent research team with web search, an MCP tool server, a knowledge base backed by vector search, and persistent storage. You'll see how pragma-os resolves complex dependency graphs and automatically propagates changes.
+In this quickstart, you'll build a multi-agent research team with web search, an MCP tool server, a knowledge base backed by vector search, and persistent storage. You'll see how Pragmatiks resolves complex dependency graphs and automatically propagates changes.
 
 <Note>
 **Time estimate**: 45 minutes. Assumes you've completed the [amateur quickstart](/quickstart/amateur).
@@ -35,14 +35,14 @@ graph TD
     T --> R
 ```
 
-13 resources, wired together. pragma-os resolves the entire dependency graph in the correct order.
+13 resources, wired together. Pragmatiks resolves the entire dependency graph in the correct order.
 
 ## Prerequisites
 
 - Completed the [amateur quickstart](/quickstart/amateur) (CLI installed, authenticated)
 - An [OpenAI API key](https://platform.openai.com/api-keys) (for embeddings and GPT-4o)
 - A running Qdrant instance ([Qdrant Cloud](https://cloud.qdrant.io/) free tier works)
-- A GKE cluster managed by pragma-os (created in the amateur quickstart)
+- A GKE cluster managed by Pragmatiks (created in the amateur quickstart)
 
 ## Step 1: Secrets
 
@@ -303,7 +303,7 @@ Watch the resources resolve:
 pragma resources list
 ```
 
-All 13 resources should reach `READY` state. pragma-os resolved the dependency graph — secrets first, then models and tools, then agents, then the team, then the runner.
+All 13 resources should reach `READY` state. Pragmatiks resolved the dependency graph — secrets first, then models and tools, then agents, then the team, then the runner.
 
 ## Step 8: Change propagation
 
@@ -354,13 +354,13 @@ pragma resources list
 2. The **research-team** automatically rebuilds because its member changed
 3. The **runner** redeploys because the team spec changed
 
-You changed one line, and pragma-os propagated the change through three resources. No manual coordination needed.
+You changed one line, and Pragmatiks propagated the change through three resources. No manual coordination needed.
 
 ## How it works
 
 Two mechanisms make this possible:
 
-**Dependencies** (`Dependency[T]`) link resources together. When a resource declares a dependency on another, pragma-os tracks the relationship. If the upstream resource changes, the dependent rebuilds.
+**Dependencies** (`Dependency[T]`) link resources together. When a resource declares a dependency on another, Pragmatiks tracks the relationship. If the upstream resource changes, the dependent rebuilds.
 
 ```yaml
 # This declares: "my agent depends on the claude model"
@@ -381,7 +381,7 @@ api_key:
   field: outputs.ANTHROPIC_API_KEY
 ```
 
-Resources can be applied in any order. pragma-os holds unresolved resources in `PENDING` state until their dependencies are ready, then processes them automatically.
+Resources can be applied in any order. Pragmatiks holds unresolved resources in `PENDING` state until their dependencies are ready, then processes them automatically.
 
 ## Full YAML
 

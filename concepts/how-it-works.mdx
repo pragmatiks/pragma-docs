@@ -1,9 +1,9 @@
 ---
 title: "How it works"
-description: "Understanding the operating system for AI infrastructure"
+description: "Understanding how Pragmatiks manages your AI infrastructure"
 ---
 
-pragma-os manages infrastructure through three core concepts: resources, providers, and reactive dependencies.
+Pragmatiks manages infrastructure through three core concepts: resources, providers, and reactive dependencies.
 
 ```mermaid
 graph LR
@@ -19,7 +19,7 @@ graph LR
 
 <CardGroup cols={3}>
   <Card title="Resources" icon="cube">
-    Infrastructure components — AI models, agents, storage buckets, secrets — that you declare and pragma-os provisions.
+    Infrastructure components — AI models, agents, storage buckets, secrets — that you declare and Pragmatiks provisions.
   </Card>
   <Card title="Providers" icon="plug">
     Components that manage specific resource types, handling creation, updates, and deletion.
@@ -47,13 +47,13 @@ config:
   instructions: "You are a helpful assistant."
 ```
 
-pragma-os creates the agent, tracks its state, and manages its lifecycle. Resources can reference each other's outputs through field references and dependency declarations.
+Pragmatiks creates the agent, tracks its state, and manages its lifecycle. Resources can reference each other's outputs through field references and dependency declarations.
 
 ---
 
 ## Providers
 
-Providers manage specific resource types. pragma-os includes providers for AI infrastructure, cloud platforms, and container orchestration.
+Providers manage specific resource types. Pragmatiks includes providers for AI infrastructure, cloud platforms, and container orchestration.
 
 <Tabs>
   <Tab title="Agno Provider">
@@ -81,13 +81,13 @@ Providers manage specific resource types. pragma-os includes providers for AI in
   </Tab>
 </Tabs>
 
-You never interact with providers directly. You declare resources, and pragma-os routes them to the right provider automatically.
+You never interact with providers directly. You declare resources, and Pragmatiks routes them to the right provider automatically.
 
 ---
 
 ## Reactive Dependencies
 
-Infrastructure components depend on each other — an AI agent needs a language model, which needs an API key secret. pragma-os tracks these dependencies and propagates changes automatically.
+Infrastructure components depend on each other — an AI agent needs a language model, which needs an API key secret. Pragmatiks tracks these dependencies and propagates changes automatically.
 
 ```yaml
 provider: agno
@@ -104,7 +104,7 @@ config:
   <Step title="You update a resource">
     The `claude` model's configuration changes.
   </Step>
-  <Step title="pragma-os detects the change">
+  <Step title="Pragmatiks detects the change">
     The dependency graph identifies that `assistant` depends on `claude`.
   </Step>
   <Step title="Dependents automatically update">
@@ -112,7 +112,7 @@ config:
   </Step>
 </Steps>
 
-Changes propagate through your infrastructure dependency graph automatically. You can apply resources in any order — pragma-os resolves dependencies and processes resources when their requirements are met.
+Changes propagate through your infrastructure dependency graph automatically. You can apply resources in any order — Pragmatiks resolves dependencies and processes resources when their requirements are met.
 
 ---
 
@@ -136,4 +136,4 @@ The web UI provides a live graph view of your resources and their dependencies. 
   </Card>
 </CardGroup>
 
-For an introduction to what pragma-os offers, see [Learn More](/learn).
+For an introduction to what Pragmatiks offers, see [Learn More](/learn).

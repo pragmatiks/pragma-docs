@@ -19,7 +19,7 @@ graph LR
     GKE[gcp/gke] --> R
 ```
 
-Four resources, wired together. When you apply them, pragma-os resolves the dependency chain automatically — the secret provisions first, then the model, then the agent, then the runner.
+Four resources, wired together. When you apply them, Pragmatiks resolves the dependency chain automatically — the secret provisions first, then the model, then the agent, then the runner.
 
 ## Prerequisites
 
@@ -95,7 +95,7 @@ This opens your browser. Sign in, and you're connected.
         field: outputs.ANTHROPIC_API_KEY
     ```
 
-    The `api_key` field uses a **field reference**: it points to the `ANTHROPIC_API_KEY` output of the `anthropic-key` secret. pragma-os resolves this automatically.
+    The `api_key` field uses a **field reference**: it points to the `ANTHROPIC_API_KEY` output of the `anthropic-key` secret. Pragmatiks resolves this automatically.
 
     ```bash
     pragma resources apply model.yaml
@@ -221,9 +221,9 @@ You created a **dependency chain** of resources:
 3. **Agent** depends on the model (whole-resource dependency)
 4. **Runner** depends on both the agent and the GKE cluster
 
-pragma-os resolved the entire chain automatically. It figured out the correct order, waited for each resource to become READY before processing its dependents, and wired the values through.
+Pragmatiks resolved the entire chain automatically. It figured out the correct order, waited for each resource to become READY before processing its dependents, and wired the values through.
 
-If you update the secret with a new API key, pragma-os propagates the change: the model rebuilds with the new key, the agent rebuilds with the updated model, and the runner redeploys.
+If you update the secret with a new API key, Pragmatiks propagates the change: the model rebuilds with the new key, the agent rebuilds with the updated model, and the runner redeploys.
 
 ## Full YAML
 
@@ -298,7 +298,7 @@ Apply everything at once:
 pragma resources apply agent-stack.yaml
 ```
 
-pragma-os resolves the dependency order automatically — you don't need to apply resources in sequence.
+Pragmatiks resolves the dependency order automatically — you don't need to apply resources in sequence.
 
 ## Next steps
 

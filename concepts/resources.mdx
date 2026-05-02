@@ -3,7 +3,7 @@ title: "Resources"
 description: "Infrastructure components you declare and configure"
 ---
 
-Resources are the infrastructure components that pragma-os manages: storage buckets, AI models, secrets, agents, and more. You declare resources in YAML, and pragma-os handles provisioning, state tracking, and lifecycle management.
+Resources are the infrastructure components that Pragmatiks manages: storage buckets, AI models, secrets, agents, and more. You declare resources in YAML, and Pragmatiks handles provisioning, state tracking, and lifecycle management.
 
 ## Resource Structure
 
@@ -77,7 +77,7 @@ stateDiagram-v2
 | `failed` | Processing failed, error recorded |
 
 <Note>
-A resource in `pending` state with unready dependencies has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, pragma-os resolves the config and submits the resource for processing.
+A resource in `pending` state with unready dependencies has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, Pragmatiks resolves the config and submits the resource for processing.
 </Note>
 
 ## Config vs Resolved Config
@@ -95,11 +95,11 @@ pragma resources describe agno/agent my-agent -o json
 
 ## Idempotent Apply
 
-Re-applying a resource with identical configuration is a no-op. If the resource is already `ready` and the normalized config matches, pragma-os returns the existing resource without re-processing. This makes it safe to run `pragma resources apply` repeatedly in scripts and CI/CD pipelines.
+Re-applying a resource with identical configuration is a no-op. If the resource is already `ready` and the normalized config matches, Pragmatiks returns the existing resource without re-processing. This makes it safe to run `pragma resources apply` repeatedly in scripts and CI/CD pipelines.
 
 ## Deletion Behavior
 
-When you delete a resource, pragma-os handles its relationships:
+When you delete a resource, Pragmatiks handles its relationships:
 
 ### Soft Detach (Dependencies)
 

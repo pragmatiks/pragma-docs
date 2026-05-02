@@ -1,9 +1,9 @@
 ---
-title: "What is pragma-os"
-description: "The operating system for AI infrastructure - install pre-built resources in minutes, not weeks"
+title: "What is Pragmatiks"
+description: "Install pre-built data and AI infrastructure resources in minutes, not weeks"
 ---
 
-Think of pragma-os like iOS for your data infrastructure. Instead of manually wiring together storage, compute, and AI services, you browse a store of pre-built resources and install what you need. Dependencies resolve automatically. When upstream data changes, downstream resources update themselves.
+Pragmatiks lets you treat your data and AI infrastructure like an app store: instead of manually wiring together storage, compute, and AI services, you browse a catalog of pre-built resources and install what you need. Dependencies resolve automatically. When upstream data changes, downstream resources update themselves.
 
 ## How It Works
 
@@ -15,11 +15,11 @@ Think of pragma-os like iOS for your data infrastructure. Instead of manually wi
     Set your parameters: project, region, naming. Each resource knows what it needs.
   </Step>
   <Step title="Auto-sync">
-    pragma-os provisions everything and keeps it in sync. When sources change, dependent resources automatically update.
+    Pragmatiks provisions everything and keeps it in sync. When sources change, dependent resources automatically update.
   </Step>
 </Steps>
 
-## Why pragma-os
+## Why Pragmatiks
 
 <CardGroup cols={3}>
   <Card title="Install in minutes, not weeks" icon="clock">
@@ -35,7 +35,7 @@ Think of pragma-os like iOS for your data infrastructure. Instead of manually wi
 
 ## Example: RAG Pipeline
 
-Building a RAG pipeline traditionally means weeks of work - setting up storage, configuring vector databases, wiring embedding services, managing sync jobs. With pragma-os, you describe what you want:
+Building a RAG pipeline traditionally means weeks of work - setting up storage, configuring vector databases, wiring embedding services, managing sync jobs. With Pragmatiks, you describe what you want:
 
 ```yaml
 provider: gcp
@@ -61,7 +61,7 @@ depends_on:
 pragma resources apply .
 ```
 
-pragma-os provisions both resources and establishes the dependency. When new documents land in storage, the embeddings dataset knows about it. The full RAG pipeline example with vector search is coming soon.
+Pragmatiks provisions both resources and establishes the dependency. When new documents land in storage, the embeddings dataset knows about it. The full RAG pipeline example with vector search is coming soon.
 
 ## Get Started
 
@@ -70,7 +70,7 @@ pragma-os provisions both resources and establishes the dependency. When new doc
     Install your first resource in 5 minutes.
   </Card>
   <Card title="How It Works" icon="book" href="/concepts/how-it-works">
-    Understand the pragma-os model.
+    Understand the Pragmatiks model.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/cli/overview">
     Complete command reference.

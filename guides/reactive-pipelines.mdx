@@ -62,7 +62,7 @@ config:
 pragma resources apply pipeline.yaml
 ```
 
-pragma-os resolves the dependency order automatically:
+Pragmatiks resolves the dependency order automatically:
 1. The secret is processed first (no dependencies)
 2. Once the secret is `ready`, the model's FieldReference resolves and the model is processed
 3. Once the model is `ready`, the agent's Dependency resolves and the agent is processed
@@ -110,7 +110,7 @@ Apply just the model:
 pragma resources apply pipeline.yaml
 ```
 
-Since only the model's config changed, pragma-os:
+Since only the model's config changed, Pragmatiks:
 1. Re-processes the model with the new `model_id`
 2. Detects that `assistant` depends on `claude`
 3. Automatically re-processes the agent with the updated model data
@@ -119,7 +119,7 @@ The agent rebuilds without you touching it.
 
 ## Step 4: Inspect the Resolution
 
-To see how pragma-os resolved the dependencies, inspect the resolved config:
+To see how Pragmatiks resolved the dependencies, inspect the resolved config:
 
 ```bash
 pragma resources describe agno/agent assistant -o json

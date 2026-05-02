@@ -31,7 +31,7 @@ pragma resources describe agno/agent assistant
 
 ### Stuck Resource Detection
 
-pragma-os automatically detects resources stuck in `processing` state. If a provider fails to respond within the expected timeframe, the platform:
+Pragmatiks automatically detects resources stuck in `processing` state. If a provider fails to respond within the expected timeframe, the platform:
 
 1. Detects the unresponsive operation
 2. Retries the operation automatically
@@ -41,7 +41,7 @@ You don't need to manually intervene for transient failures — the platform han
 
 ### Idempotent Apply
 
-Re-applying a resource with the same configuration is safe. If the resource is already `ready` with identical config, pragma-os returns the existing resource without re-processing. This makes it safe to re-run `pragma resources apply` in scripts without side effects.
+Re-applying a resource with the same configuration is safe. If the resource is already `ready` with identical config, Pragmatiks returns the existing resource without re-processing. This makes it safe to re-run `pragma resources apply` in scripts without side effects.
 
 ## Common Failure Scenarios
 
@@ -218,7 +218,7 @@ Reduce failures by:
 
 - **Using draft mode** — Apply with `--draft` first to validate configuration, then re-apply without `--draft` to deploy
 - **Checking dependencies** — Use `pragma resources describe` to verify dependencies are `ready`
-- **Applying in bulk** — Apply all resources in a single YAML file; pragma-os resolves the dependency order automatically
+- **Applying in bulk** — Apply all resources in a single YAML file; Pragmatiks resolves the dependency order automatically
 - **Monitoring the dead letter queue** regularly for early warning of issues
 
 ## Next Steps

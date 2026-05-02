@@ -3,7 +3,7 @@ title: "Reactive Dependencies"
 description: "Automatic change propagation through your infrastructure dependency graph"
 ---
 
-Reactive dependencies enable automatic change propagation through your infrastructure. When a resource changes, pragma-os identifies all dependent resources and updates them automatically.
+Reactive dependencies enable automatic change propagation through your infrastructure. When a resource changes, Pragmatiks identifies all dependent resources and updates them automatically.
 
 ```mermaid
 graph TD
@@ -51,7 +51,7 @@ The `api_key` field is a **FieldReference** — a structured pointer to another 
 | `name` | Resource name | `anthropic-key` |
 | `field` | Output field path (must start with `outputs.`) | `outputs.api_key` |
 
-When `anthropic-key` updates, pragma-os re-resolves the field reference and sends the new value to the `claude` model's provider.
+When `anthropic-key` updates, Pragmatiks re-resolves the field reference and sends the new value to the `claude` model's provider.
 
 ## Dependency[T] Pattern
 
@@ -80,7 +80,7 @@ class AgentConfig(Config):
     instructions: str
 ```
 
-When the `claude` model resource updates, pragma-os re-resolves the dependency and sends the updated model data to the agent's provider. The provider then decides how to handle the change (e.g., rebuild the agent with the new model).
+When the `claude` model resource updates, Pragmatiks re-resolves the dependency and sends the updated model data to the agent's provider. The provider then decides how to handle the change (e.g., rebuild the agent with the new model).
 
 <Note>
 **FieldReference vs Dependency[T]**: Use a FieldReference when you need a single value from another resource (like a connection URL or API key). Use `Dependency[T]` when the provider needs the full resource context to operate.
@@ -88,7 +88,7 @@ When the `claude` model resource updates, pragma-os re-resolves the dependency a
 
 ## Order-Independent Apply
 
-You can apply resources in any order. If a resource's dependencies aren't ready yet, pragma-os stores it in `pending` state and automatically processes it once all dependencies become available.
+You can apply resources in any order. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `pending` state and automatically processes it once all dependencies become available.
 
 ```bash
 # Apply the agent first — its model dependency doesn't exist yet
@@ -130,20 +130,20 @@ config:
     api_key: "sk-ant-..."
 ```
 
-pragma-os resolves the dependency graph and processes resources in the correct order automatically.
+Pragmatiks resolves the dependency graph and processes resources in the correct order automatically.
 
 ## Change Propagation
 
-When a resource reaches `ready` state, pragma-os checks for dependents and propagates changes:
+When a resource reaches `ready` state, Pragmatiks checks for dependents and propagates changes:
 
 1. **Ready dependents** — Re-resolved with fresh data and sent back to their provider for update
 2. **Pending dependents** (waiting for deps) — Checked to see if all dependencies are now ready; if so, resolved and submitted for initial processing
 
-This propagation is recursive: if updating resource B causes it to reach `ready`, pragma-os then checks B's dependents and propagates further.
+This propagation is recursive: if updating resource B causes it to reach `ready`, Pragmatiks then checks B's dependents and propagates further.
 
 ## Resolved Config
 
-When a resource transitions to `pending` state with all dependencies ready, pragma-os creates a `resolved_config` — a copy of the config where all FieldReferences and Dependency markers have been replaced with actual values. This is what gets sent to the provider.
+When a resource transitions to `pending` state with all dependencies ready, Pragmatiks creates a `resolved_config` — a copy of the config where all FieldReferences and Dependency markers have been replaced with actual values. This is what gets sent to the provider.
 
 You can inspect the resolved config to debug dependency resolution:
 

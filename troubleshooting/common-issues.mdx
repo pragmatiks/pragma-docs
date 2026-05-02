@@ -35,7 +35,7 @@ pragma resources apply resource.yaml
 
 Resources in `processing` state are being handled by a provider. If a resource stays in this state longer than expected:
 
-1. **Wait** — pragma-os automatically detects stuck resources and retries them
+1. **Wait** — Pragmatiks automatically detects stuck resources and retries them
 2. **Check the dead letter queue** — If retries are exhausted, the resource moves to `failed`:
 
 ```bash

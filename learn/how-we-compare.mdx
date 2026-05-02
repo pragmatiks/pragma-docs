@@ -1,9 +1,9 @@
 ---
 title: "How we compare"
-description: "Understand where pragma-os fits in the data infrastructure landscape"
+description: "Understand where Pragmatiks fits in the data infrastructure landscape"
 ---
 
-pragma-os isn't trying to replace everything. Different tools solve different problems. Here's where we fit.
+Pragmatiks isn't trying to replace everything. Different tools solve different problems. Here's where we fit.
 
 <Tabs>
   <Tab title="vs Terraform">
@@ -18,7 +18,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
         - Dependencies resolved at build-time
         - Best for static infrastructure
       </Card>
-      <Card title="pragma-os" icon="p">
+      <Card title="Pragmatiks" icon="p">
         - Provisions **and maintains**
         - Changes propagate automatically
         - Dependencies are runtime reactive
@@ -27,7 +27,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
     </CardGroup>
 
     <Info>
-    **The key difference**: IaC provisions once. When your warehouse changes, you manually update dependent projects and run `terraform apply` again. pragma-os maintains continuously—changes propagate automatically through your dependency graph.
+    **The key difference**: IaC provisions once. When your warehouse changes, you manually update dependent projects and run `terraform apply` again. Pragmatiks maintains continuously—changes propagate automatically through your dependency graph.
     </Info>
   </Tab>
 
@@ -43,7 +43,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
         - Runs workflows on infrastructure
         - Best for data pipelines
       </Card>
-      <Card title="pragma-os" icon="p">
+      <Card title="Pragmatiks" icon="p">
         - Provisions and maintains infrastructure
         - Manages infrastructure-level dependencies
         - Provides the platform layer
@@ -52,11 +52,11 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
     </CardGroup>
 
     <Info>
-    **The key difference**: Orchestrators schedule tasks that run *on* infrastructure. pragma-os manages *that infrastructure*. Your Airflow DAG transforms data in BigQuery—pragma-os ensures BigQuery exists, is configured correctly, and stays in sync.
+    **The key difference**: Orchestrators schedule tasks that run *on* infrastructure. Pragmatiks manages *that infrastructure*. Your Airflow DAG transforms data in BigQuery—Pragmatiks ensures BigQuery exists, is configured correctly, and stays in sync.
     </Info>
 
     <Tip>
-    These tools **complement each other**. pragma-os handles the platform layer so your orchestrator can focus on running pipelines.
+    These tools **complement each other**. Pragmatiks handles the platform layer so your orchestrator can focus on running pipelines.
     </Tip>
   </Tab>
 
@@ -72,7 +72,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
         - Vendor-specific ecosystem
         - Best for specific workloads
       </Card>
-      <Card title="pragma-os" icon="p">
+      <Card title="Pragmatiks" icon="p">
         - Horizontal platform
         - Any tool combination
         - Open ecosystem
@@ -81,7 +81,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
     </CardGroup>
 
     <Info>
-    **The key difference**: PaaS platforms optimize for specific workloads within their ecosystem. pragma-os lets you build custom platforms from any combination of tools.
+    **The key difference**: PaaS platforms optimize for specific workloads within their ecosystem. Pragmatiks lets you build custom platforms from any combination of tools.
     </Info>
 
     This isn't about replacing these platforms—it's about orchestrating them as part of a larger, cohesive system.
@@ -90,7 +90,7 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
 
 ---
 
-## When to Use pragma-os
+## When to Use Pragmatiks
 
 <CardGroup cols={2}>
   <Card title="Multiple Tools" icon="layer-group">
@@ -109,14 +109,14 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
 
 ---
 
-## When pragma-os Might Not Be Right
+## When Pragmatiks Might Not Be Right
 
 <AccordionGroup>
   <Accordion title="You only need one tool">
-    If you're just using BigQuery, use BigQuery directly. pragma-os adds value when you're coordinating multiple systems.
+    If you're just using BigQuery, use BigQuery directly. Pragmatiks adds value when you're coordinating multiple systems.
   </Accordion>
   <Accordion title="Your infrastructure is completely static">
-    If nothing changes after initial setup, Terraform works fine. pragma-os shines when infrastructure is dynamic.
+    If nothing changes after initial setup, Terraform works fine. Pragmatiks shines when infrastructure is dynamic.
   </Accordion>
   <Accordion title="You have a mature platform team">
     If you've built internal tooling that handles dependency propagation, you might not need to adopt something new.
@@ -127,6 +127,6 @@ pragma-os isn't trying to replace everything. Different tools solve different pr
 
 ## Summary
 
-<Card title="pragma-os solves maintenance" icon="wrench">
+<Card title="Pragmatiks solves maintenance" icon="wrench">
   It's not a replacement for Terraform, Airflow, or Snowflake—it's what **ties them together** and keeps them in sync as your infrastructure evolves.
 </Card>

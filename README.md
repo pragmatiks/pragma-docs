@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/wordmark.png" alt="pragma-os" width="800">
+  <img src="assets/wordmark.png" alt="Pragmatiks" width="800">
 </p>
 
-# pragma-os Documentation
+# Pragmatiks Documentation
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pragmatiks/pragma-docs)
 [![Docs](https://img.shields.io/badge/docs-online-brightgreen)](https://docs.pragmatiks.io)
@@ -11,7 +11,7 @@
 
 **[View Documentation](https://docs.pragmatiks.io)** | **[SDK](https://github.com/pragmatiks/pragma-sdk)** | **[CLI](https://github.com/pragmatiks/pragma-cli)** | **[Providers](https://github.com/pragmatiks/pragma-providers)**
 
-Official documentation for the pragma-os platform.
+Official documentation for Pragmatiks.
 
 ## Documentation Structure
 

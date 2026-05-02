@@ -1,13 +1,13 @@
 ---
 title: "Glossary"
-description: "Core terminology and concepts in pragma-os"
+description: "Core terminology and concepts in Pragmatiks"
 ---
 
 ## Resource
 
-The fundamental unit in pragma-os. A resource represents a single infrastructure component that can be provisioned, configured, and managed. Each resource has a unique identifier composed of `provider/resource/name` (e.g., `gcp/storage/data-lake`).
+The fundamental unit in Pragmatiks. A resource represents a single infrastructure component that can be provisioned, configured, and managed. Each resource has a unique identifier composed of `provider/resource/name` (e.g., `gcp/storage/data-lake`).
 
-Resources are declarative: you specify the desired state, and pragma-os ensures the actual state matches.
+Resources are declarative: you specify the desired state, and Pragmatiks ensures the actual state matches.
 
 ## Provider
 
@@ -38,7 +38,7 @@ outputs:
 
 ## depends_on
 
-Declares explicit dependencies between resources. When resource A depends on resource B, pragma-os ensures B reaches READY state before processing A. Dependencies also trigger automatic updates: when B changes, A is notified.
+Declares explicit dependencies between resources. When resource A depends on resource B, Pragmatiks ensures B reaches READY state before processing A. Dependencies also trigger automatic updates: when B changes, A is notified.
 
 ```yaml
 depends_on:
@@ -59,7 +59,7 @@ When the referenced resource updates, the field reference automatically resolves
 
 ## Lifecycle States
 
-Resources move through these states as pragma-os manages them:
+Resources move through these states as Pragmatiks manages them:
 
 | State | Description |
 |-------|-------------|
@@ -69,7 +69,7 @@ Resources move through these states as pragma-os manages them:
 | **READY** | Successfully provisioned and operational |
 | **FAILED** | Operation failed |
 
-State transitions are managed by pragma-os based on provider responses and dependency status.
+State transitions are managed by Pragmatiks based on provider responses and dependency status.
 
 ## Next Steps
 

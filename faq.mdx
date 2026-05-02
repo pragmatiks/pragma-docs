@@ -1,31 +1,31 @@
 ---
 title: "FAQ"
-description: "Frequently asked questions about pragma-os"
+description: "Frequently asked questions about Pragmatiks"
 ---
 
 <AccordionGroup>
   <Accordion title="Is there a free tier?">
-    pragma-os is currently in private beta. During this period, usage is free for beta participants. Pricing will be announced when we move to general availability. Contact support@pragmatiks.io to request beta access.
+    Pragmatiks is currently in private beta. During this period, usage is free for beta participants. Pricing will be announced when we move to general availability. Contact support@pragmatiks.io to request beta access.
   </Accordion>
 
   <Accordion title="What cloud providers are supported?">
-    pragma-os supports **Google Cloud Platform (GCP)** resources including Cloud Storage, CloudSQL, and Secret Manager. It also includes the **Agno** provider for AI agent infrastructure, a **Kubernetes** provider for container workloads, and built-in **Pragma** resources for secrets and file storage. AWS and Azure support is on the roadmap. See the [Store](/providers/overview) for the full list of available resources.
+    Pragmatiks supports **Google Cloud Platform (GCP)** resources including Cloud Storage, CloudSQL, and Secret Manager. It also includes the **Agno** provider for AI agent infrastructure, a **Kubernetes** provider for container workloads, and built-in **Pragma** resources for secrets and file storage. AWS and Azure support is on the roadmap. See the [Store](/providers/overview) for the full list of available resources.
   </Accordion>
 
-  <Accordion title="How does pragma-os handle authentication and security?">
-    pragma-os uses [Clerk](https://clerk.com) for user authentication. When you run `pragma auth login`, you authenticate through a secure browser flow. Your credentials are never stored in plaintext. Provider credentials (like GCP service accounts) are managed separately and securely within the platform. See [Authentication](/cli/authentication) for details.
+  <Accordion title="How does Pragmatiks handle authentication and security?">
+    Pragmatiks uses [Clerk](https://clerk.com) for user authentication. When you run `pragma auth login`, you authenticate through a secure browser flow. Your credentials are never stored in plaintext. Provider credentials (like GCP service accounts) are managed separately and securely within the platform. See [Authentication](/cli/authentication) for details.
   </Accordion>
 
   <Accordion title="What happens if a resource fails?">
-    When a resource operation fails, pragma-os retries it automatically. If retries are exhausted, the failure details are preserved for debugging. You can inspect failures, fix the root cause, and retry. Resources stuck in `processing` state are automatically detected and recovered. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
+    When a resource operation fails, Pragmatiks retries it automatically. If retries are exhausted, the failure details are preserved for debugging. You can inspect failures, fix the root cause, and retry. Resources stuck in `processing` state are automatically detected and recovered. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
   </Accordion>
 
   <Accordion title="What happens when I delete a resource that other resources depend on?">
-    Dependents are **detached**, not cascade-deleted. pragma-os removes the dependency reference from each dependent's config and sends them back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`. This prevents accidental cascade deletions while letting providers handle graceful degradation. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
+    Dependents are **detached**, not cascade-deleted. Pragmatiks removes the dependency reference from each dependent's config and sends them back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`. This prevents accidental cascade deletions while letting providers handle graceful degradation. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
   </Accordion>
 
   <Accordion title="Can I apply resources in any order?">
-    Yes. If a resource's dependencies aren't ready yet, pragma-os stores it in `pending` state and automatically processes it once all dependencies become available. You can define your entire infrastructure in a single YAML file and apply it at once — pragma-os resolves the dependency graph and processes resources in the correct order.
+    Yes. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `pending` state and automatically processes it once all dependencies become available. You can define your entire infrastructure in a single YAML file and apply it at once — Pragmatiks resolves the dependency graph and processes resources in the correct order.
   </Accordion>
 
   <Accordion title="How do I deploy an AI agent?">
@@ -51,8 +51,8 @@ description: "Frequently asked questions about pragma-os"
     Or use the SDK's `upload_file()` method for programmatic uploads. See the [File Uploads](/guides/file-uploads) guide.
   </Accordion>
 
-  <Accordion title="Can I use pragma-os alongside Terraform?">
-    Yes. pragma-os and Terraform solve different problems and can coexist. Use Terraform for static infrastructure that rarely changes (VPCs, IAM, etc.) and pragma-os for dynamic data and AI infrastructure with dependencies that need automatic propagation. See [How We Compare](/learn/how-we-compare) for more details on when to use each tool.
+  <Accordion title="Can I use Pragmatiks alongside Terraform?">
+    Yes. Pragmatiks and Terraform solve different problems and can coexist. Use Terraform for static infrastructure that rarely changes (VPCs, IAM, etc.) and Pragmatiks for dynamic data and AI infrastructure with dependencies that need automatic propagation. See [How We Compare](/learn/how-we-compare) for more details on when to use each tool.
   </Accordion>
 
   <Accordion title="How do I get support?">
