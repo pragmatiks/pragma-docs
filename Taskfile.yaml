@@ -1,10 +1,14 @@
 version: "3"
 
 tasks:
+  check:
+    desc: Validate the Mintlify docs build
+    cmd: mise exec -- npx mintlify@latest validate
+
   dev:
     desc: Start local docs dev server
     cmd: mise exec -- npx mintlify@latest dev --port 3200
 
   build:
-    desc: Build docs for production
-    cmd: mise exec -- npx mintlify@latest build
+    desc: Validate docs for production deploy
+    cmd: mise exec -- npx mintlify@latest validate
