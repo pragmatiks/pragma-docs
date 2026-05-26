@@ -3,7 +3,7 @@
   "theme": "maple",
   "name": "Pragmatiks",
   "api": {
-    "openapi": "api-reference/openapi.json"
+    "openapi": "https://api.pragmatiks.io/openapi.json"
   },
   "colors": {
     "primary": "#E8527A",
@@ -217,7 +217,7 @@
       },
       {
         "tab": "API Reference",
-        "openapi": "api-reference/openapi.json",
+        "openapi": "https://api.pragmatiks.io/openapi.json",
         "groups": [
           {
             "group": "Overview",
