@@ -52,19 +52,18 @@ If unsure whether something is confidential, ASK before including it.
 
 ## Evidence-based authoring
 
-Use MCPs to fact-check before writing docs. The cost of a query is far less than shipping incorrect command syntax or stale screenshots.
+Fact-check with live lookups before writing docs. The cost of a query is far less than shipping incorrect command syntax or stale screenshots.
 
 **Use internal knowledge for**: docs structure, writing style, MDX/Markdown patterns, Mintlify component selection.
 
-**Always query MCPs for**: current Pragmatiks command syntax, current SDK / API shapes, current Mintlify component APIs, anything where being wrong would mislead readers.
+**Always look up**: current Pragmatiks command syntax, current SDK / API shapes, current Mintlify component APIs, anything where being wrong would mislead readers.
 
 If you find yourself thinking "I'm pretty sure `pragma resources apply` takes flag X" or "the SDK exposed Y last time I used it" — STOP and query. Pragmatiks moves fast; the docs are downstream of every other repo.
 
-### MCP routing
+### Lookup routing
 
-- **context7** (`mcp__context7__resolve-library-id`, `mcp__context7__query-docs`) — authoritative current docs for a specific library / framework / SDK / CLI. Use whenever you need to confirm the shape of an external thing you are documenting.
-- **deepwiki** (`mcp__deepwiki__ask_question`, `mcp__deepwiki__read_wiki_contents`, `mcp__deepwiki__read_wiki_structure`) — conversational Q&A over an entire OSS GitHub repository. Use to confirm Pragmatiks SDK / CLI / provider behavior. Pragmatiks repos are indexed at `pragmatiks/{sdk,cli,providers}`.
-- **exa** (`mcp__exa__web_search_exa`, `mcp__exa__get_code_context_exa`, `mcp__exa__crawling_exa`) — live web search (release notes, GitHub issues) and direct code extraction from a GitHub URL. Use when context7 / deepwiki cannot answer.
+- **exa-search** (skill, `~/.claude/skills/exa-search`) — live web search via the Exa Search API over raw HTTP. Use for library / framework / SDK docs, release notes, blog posts, GitHub issues — any external fact-check. Requires `EXA_API_KEY` in the environment.
+- **exa-contents** (skill, `~/.claude/skills/exa-contents`) — extract text, highlights, or summaries from known URLs via the Exa Contents API over raw HTTP. Invoke the `exa-contents` skill when you already have the URL and need its content. Requires `EXA_API_KEY` in the environment.
 - **claude-mem** (`mcp__plugin_claude-mem_mcp-search__smart_search`, `mcp__plugin_claude-mem_mcp-search__search`, `mcp__plugin_claude-mem_mcp-search__get_observations`) — search prior session memory. Use to recover earlier decisions about how a topic should be documented, or to confirm that a topic has not already been written up.
 
 ## Solution preference order
@@ -72,7 +71,7 @@ If you find yourself thinking "I'm pretty sure `pragma resources apply` takes fl
 Before writing custom MDX components or scripts, work through these in order:
 
 1. **Reuse what is already in the project.** Check `docs.json` for an existing Mintlify component, navigation pattern, or theme setting that solves the problem. Grep existing pages for prior patterns. The cheapest correct answer is already on disk.
-2. **Adopt an established Mintlify component.** Mintlify ships a rich component library — prefer official components over hand-rolled JSX. Cross-check the current component list via context7 or the Mintlify docs.
+2. **Adopt an established Mintlify component.** Mintlify ships a rich component library — prefer official components over hand-rolled JSX. Cross-check the current component list via exa or the Mintlify docs.
 3. **Custom MDX, only as a last resort.** Only after 1 and 2 fail should you write a custom component or script.
 
 Prefer the simplest page that reads well. Avoid clever layouts that add maintenance burden.
@@ -249,7 +248,7 @@ Every reviewer dispatch must:
    Severities: 🚨 blocker · ⚠️ important · 💡 nit.
 
 4. Final verdict: `APPROVE` / `APPROVE_WITH_NITS` / `REQUEST_CHANGES`.
-5. **Evidence-check the diff.** If the diff documents command syntax, SDK shapes, or external API behavior you cannot fully verify, query context7 / deepwiki / exa to confirm. Pragmatiks command surface drifts — verify before approving.
+5. **Evidence-check the diff.** If the diff documents command syntax, SDK shapes, or external API behavior you cannot fully verify, query exa to confirm. Pragmatiks command surface drifts — verify before approving.
 6. **Confidentiality scrutiny.** Cross-check the diff against the `## CONFIDENTIAL — DO NOT PUBLISH` section above. Any mention of NATS, JetStream, SurrealDB, KEDA, BuildKit, internal URLs/ports, retry mechanics, or queue depths = blocker. If a new top-level dependency was added, also confirm the new-dependency proposal is in the PR description.
 
 A reviewer who fails to invoke programmatic tooling but only eyeballs the diff is incomplete and should be re-run.
