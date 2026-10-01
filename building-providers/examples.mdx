@@ -14,229 +14,215 @@ This example shows the pattern used by real cloud providers: user-provided crede
 ```python
 """GCP Secret Manager resource - complete annotated example."""
 
-from __future__ import annotations
-
 import json
-from typing import Any, ClassVar
+from typing import Any
 
 from google.api_core.exceptions import AlreadyExists, NotFound
-from google.cloud import secretmanager
+from google.cloud.secretmanager_v1 import AccessSecretVersionResponse, SecretManagerServiceAsyncClient
 from google.oauth2 import service_account
-from pragma_sdk import Config, Outputs, Resource
+from pragma_sdk import Config, Field, ImmutableField, Outputs, Resource
 
 
-# -----------------------------------------------------------------------------
-# Config: What users provide
-# -----------------------------------------------------------------------------
 class SecretConfig(Config):
     """Configuration for a GCP Secret Manager secret.
 
-    Design decisions:
-    - project_id and secret_id are required because they define the secret's
-      identity in GCP. These cannot change after creation.
-    - data is the secret payload. Simple string type handles most use cases.
-    - credentials is required (no ADC fallback) because this is a multi-tenant
-      SaaS platform. Each user operates in their own GCP project with their
-      own service account.
+    ``project_id`` and ``secret_id`` locate the secret in GCP, so they are
+    immutable: the platform refuses a change to either, and no handler checks
+    them. ``data`` changes in place by adding a version. ``credentials`` is
+    required because each user operates in their own GCP project with their
+    own service account; there are no ambient credentials to fall back on.
+
+    Attributes:
+        project_id: GCP project that holds the secret.
+        secret_id: Identifier of the secret within the project.
+        data: Payload stored as the latest version.
+        credentials: Service account key as a dict or a JSON string, usually a
+            FieldReference to a ``pragma/secret`` resource.
     """
 
-    # Identity fields (immutable after creation)
-    project_id: str
-    secret_id: str
-
-    # Payload
-    data: str
-
-    # Authentication - accepts dict or JSON string for flexibility
-    # Users typically pass this via a FieldReference to a pragma/secret
-    credentials: dict[str, Any] | str
+    project_id: ImmutableField[str]
+    secret_id: ImmutableField[str]
+    data: Field[str]
+    credentials: Field[dict[str, Any] | str]
 
 
-# -----------------------------------------------------------------------------
-# Outputs: What dependents can reference
-# -----------------------------------------------------------------------------
 class SecretOutputs(Outputs):
-    """Outputs from GCP Secret Manager secret creation.
+    """Outputs of a GCP Secret Manager secret.
 
-    Design decisions:
-    - resource_name is the full GCP path. Dependents need this to access
-      the secret via GCP APIs.
-    - version_name includes the version so dependents can pin to specific
-      versions if needed.
-    - version_id is just the number for display/logging purposes.
+    Outputs carry identifiers only; the payload stays in the secret.
+
+    Attributes:
+        resource_name: Full GCP path, ``projects/{project}/secrets/{id}``.
+            Dependents read the secret through GCP APIs with it.
+        version_name: Full path of the latest version, so dependents can pin
+            it. ``None`` while the secret holds no version.
+        version_id: Number of the latest version, for display and logging.
+            ``None`` while the secret holds no version.
     """
 
-    resource_name: str   # projects/{project}/secrets/{id}
-    version_name: str    # projects/{project}/secrets/{id}/versions/{version}
-    version_id: str      # Just the version number ("1", "2", etc.)
+    resource_name: str
+    version_name: str | None
+    version_id: str | None
 
 
-# -----------------------------------------------------------------------------
-# Resource: The lifecycle implementation
-# -----------------------------------------------------------------------------
 class Secret(Resource[SecretConfig, SecretOutputs]):
     """GCP Secret Manager secret resource.
 
-    Pattern: Cloud resource with user-provided credentials
-
-    This pattern is common when:
-    - Users manage resources in their own cloud accounts
-    - The platform doesn't have ambient credentials (no Workload Identity)
-    - Multi-tenant isolation requires per-user authentication
+    Pattern: cloud resource with user-provided credentials. It fits when users
+    manage resources in their own cloud accounts, the platform has no ambient
+    credentials, and multi-tenant isolation requires per-user authentication.
     """
 
-    # Class-level metadata for provider registration
-    provider: ClassVar[str] = "gcp"
-    resource: ClassVar[str] = "secret"
+    def build_client(self) -> SecretManagerServiceAsyncClient:
+        """Build an async client authenticated with the user's service account.
 
-    # -------------------------------------------------------------------------
-    # Helper Methods
-    # -------------------------------------------------------------------------
-    def _get_client(self) -> secretmanager.SecretManagerServiceClient:
-        """Get authenticated client using user-provided credentials.
+        Each handler builds its own client, so credentials never outlive the
+        call. The async client lets every GCP call yield to the event loop.
 
-        Why a method instead of an instance variable?
-        - Clients are created fresh for each lifecycle call
-        - Avoids serialization issues with stored credentials
-        - Handles both dict and JSON string credentials formats
+        Returns:
+            Secret Manager client using the user's credentials.
         """
-        creds_data = self.config.credentials
+        credentials_info = self.config.credentials
+        if isinstance(credentials_info, str):
+            credentials_info = json.loads(credentials_info)
 
-        # Support JSON-encoded credentials (common when passed via env vars)
-        if isinstance(creds_data, str):
-            creds_data = json.loads(creds_data)
+        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        return SecretManagerServiceAsyncClient(credentials=credentials)
 
-        credentials = service_account.Credentials.from_service_account_info(
-            creds_data
-        )
-        return secretmanager.SecretManagerServiceClient(credentials=credentials)
+    def build_secret_path(self) -> str:
+        """Build the full GCP path of the secret from its locator fields.
 
-    def _secret_path(self) -> str:
-        """Build the full GCP resource path.
-
-        Extracted to a method because it's used in multiple lifecycle handlers.
+        Returns:
+            Path in the form ``projects/{project}/secrets/{id}``.
         """
         return f"projects/{self.config.project_id}/secrets/{self.config.secret_id}"
 
-    # -------------------------------------------------------------------------
-    # Lifecycle: on_create
-    # -------------------------------------------------------------------------
-    async def on_create(self) -> SecretOutputs:
-        """Create GCP secret with initial version.
+    def build_outputs(self, version_name: str | None) -> SecretOutputs:
+        """Build outputs for the secret and its latest version.
 
-        Idempotency strategy: "Create-or-get"
-        - Try to create the secret
-        - If it already exists (AlreadyExists exception), get the existing one
-        - Always add a new version with the payload
+        Args:
+            version_name: Full path of the latest version, or ``None`` when the
+                secret holds no version.
 
-        This handles retry scenarios where:
-        1. First call: Creates secret + version 1
-        2. Retry (if first call crashed before ack): Gets existing + version 2
-
-        The version increment on retry is acceptable because secret versions
-        are append-only in GCP anyway.
+        Returns:
+            Outputs for the secret.
         """
-        client = self._get_client()
-        parent = f"projects/{self.config.project_id}"
+        return SecretOutputs(
+            resource_name=self.build_secret_path(),
+            version_name=version_name,
+            version_id=version_name.split("/")[-1] if version_name else None,
+        )
 
-        # Step 1: Create or get the secret
+    async def fetch_latest_version(
+        self, client: SecretManagerServiceAsyncClient
+    ) -> AccessSecretVersionResponse | None:
+        """Read the latest version of the secret, payload included.
+
+        Args:
+            client: Authenticated Secret Manager client.
+
+        Returns:
+            The latest version with its resolved name, or ``None`` when the
+            secret holds no version.
+        """
         try:
-            secret = client.create_secret(
+            return await client.access_secret_version(name=f"{self.build_secret_path()}/versions/latest")
+        except NotFound:
+            return None
+
+    async def add_version(self, client: SecretManagerServiceAsyncClient) -> SecretOutputs:
+        """Store ``config.data`` as a new version of the secret.
+
+        Args:
+            client: Authenticated Secret Manager client.
+
+        Returns:
+            Outputs pointing at the new version.
+        """
+        version = await client.add_secret_version(
+            request={
+                "parent": self.build_secret_path(),
+                "payload": {"data": self.config.data.encode("utf-8")},
+            }
+        )
+        return self.build_outputs(version.name)
+
+    async def on_observe(self) -> SecretOutputs | None:
+        """Report the secret at the path its locator fields name.
+
+        Locates the secret from config alone and reads only GCP, never
+        ``self.outputs``. The platform acts on what it reports: ``None`` leads
+        to ``on_create``, outputs lead to ``on_update``.
+
+        Returns:
+            Outputs for the secret and its latest version, or ``None`` when the
+            secret does not exist.
+        """
+        client = self.build_client()
+        try:
+            await client.get_secret(name=self.build_secret_path())
+        except NotFound:
+            return None
+
+        latest = await self.fetch_latest_version(client)
+        return self.build_outputs(latest.name if latest else None)
+
+    async def on_create(self) -> SecretOutputs:
+        """Create the secret with its first version.
+
+        Called only after ``on_observe`` reports the secret absent. A secret
+        that appears between the observation and this call is adopted instead
+        of failing on ``AlreadyExists``.
+
+        Returns:
+            Outputs pointing at the first version.
+        """
+        client = self.build_client()
+        try:
+            await client.create_secret(
                 request={
-                    "parent": parent,
+                    "parent": f"projects/{self.config.project_id}",
                     "secret_id": self.config.secret_id,
                     "secret": {"replication": {"automatic": {}}},
                 }
             )
         except AlreadyExists:
-            # Secret exists from a previous attempt - this is fine
-            secret = client.get_secret(name=self._secret_path())
-
-        # Step 2: Add version with payload (always runs)
-        version = client.add_secret_version(
-            request={
-                "parent": secret.name,
-                "payload": {"data": self.config.data.encode("utf-8")},
-            }
-        )
-
-        return SecretOutputs(
-            resource_name=secret.name,
-            version_name=version.name,
-            version_id=version.name.split("/")[-1],
-        )
-
-    # -------------------------------------------------------------------------
-    # Lifecycle: on_update
-    # -------------------------------------------------------------------------
-    async def on_update(self, previous_config: SecretConfig) -> SecretOutputs:
-        """Update secret by creating new version if data changed.
-
-        Update strategies used here:
-
-        1. Immutable field check: project_id and secret_id cannot change
-           because they define the resource's identity in GCP. Changing them
-           would require delete + recreate.
-
-        2. No-op optimization: If data hasn't changed, return existing outputs
-           without making any API calls. This is important because on_update
-           may be called even when only unrelated fields change.
-
-        3. Append-only update: Secrets use versioning, so "update" means
-           adding a new version rather than modifying in place.
-        """
-        # Validate immutable fields
-        if previous_config.project_id != self.config.project_id:
-            raise ValueError(
-                "Cannot change project_id; delete and recreate resource"
-            )
-
-        if previous_config.secret_id != self.config.secret_id:
-            raise ValueError(
-                "Cannot change secret_id; delete and recreate resource"
-            )
-
-        # No-op if data unchanged (important for efficiency)
-        if previous_config.data == self.config.data and self.outputs is not None:
-            return self.outputs
-
-        # Add new version
-        client = self._get_client()
-        version = client.add_secret_version(
-            request={
-                "parent": self._secret_path(),
-                "payload": {"data": self.config.data.encode("utf-8")},
-            }
-        )
-
-        return SecretOutputs(
-            resource_name=self._secret_path(),
-            version_name=version.name,
-            version_id=version.name.split("/")[-1],
-        )
-
-    # -------------------------------------------------------------------------
-    # Lifecycle: on_delete
-    # -------------------------------------------------------------------------
-    async def on_delete(self) -> None:
-        """Delete secret and all versions.
-
-        Idempotency strategy: "Delete-if-exists"
-        - Try to delete
-        - If not found (NotFound exception), succeed anyway
-
-        This handles:
-        - Normal deletion: Deletes the secret
-        - Retry after successful delete: NotFound, returns success
-        - Resource never existed: NotFound, returns success
-        """
-        client = self._get_client()
-
-        try:
-            client.delete_secret(name=self._secret_path())
-        except NotFound:
-            # Already deleted - idempotent success
             pass
+
+        return await self.add_version(client)
+
+    async def on_update(self, previous_config: SecretConfig | None) -> SecretOutputs:
+        """Converge the latest version on ``config.data``.
+
+        Compares against the live latest version rather than
+        ``previous_config``, so the same path handles a changed payload, an
+        unchanged one, and ``previous_config=None`` (the secret exists but the
+        platform holds no prior configuration for it). Secret versions are
+        append-only, so an update adds a version only when the payload differs.
+
+        Args:
+            previous_config: Configuration last applied, or ``None``.
+
+        Returns:
+            Outputs pointing at the latest version.
+        """
+        client = self.build_client()
+        latest = await self.fetch_latest_version(client)
+        if latest and latest.payload.data == self.config.data.encode("utf-8"):
+            return self.build_outputs(latest.name)
+
+        return await self.add_version(client)
+
+    async def on_delete(self) -> None:
+        """Delete the secret and all its versions.
+
+        Succeeds when the secret is already gone, so a repeated delete after a
+        crash converges instead of failing.
+        """
+        try:
+            await self.build_client().delete_secret(name=self.build_secret_path())
+        except NotFound:
+            return
 ```
 
 ### Key Patterns to Note
@@ -252,9 +238,13 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
     For single-tenant deployments where the provider runs with cluster credentials, you could simplify to:
 
     ```python
-    def _get_client(self) -> secretmanager.SecretManagerServiceClient:
-        # Uses ADC/Workload Identity - no credentials in config
-        return secretmanager.SecretManagerServiceClient()
+    def build_client(self) -> SecretManagerServiceAsyncClient:
+        """Build a client from Application Default Credentials.
+
+        Returns:
+            Secret Manager client using the provider's ambient identity.
+        """
+        return SecretManagerServiceAsyncClient()
     ```
   </Accordion>
 
@@ -264,7 +254,7 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
     - **Immutable**: `project_id`, `secret_id` - Changing these would create a different resource in GCP
     - **Mutable**: `data` - Can be updated in place (via new version)
 
-    The `on_update` method validates immutable fields and raises clear errors explaining the workaround (delete and recreate).
+    The locator fields are declared `ImmutableField`. The platform refuses a change to either, so no handler checks them, and `on_observe` can always locate the secret from its configuration.
   </Accordion>
 
   <Accordion title="Idempotency strategies">
@@ -272,9 +262,10 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
 
     | Method | Strategy | Handles |
     |--------|----------|---------|
-    | `on_create` | Create-or-get | AlreadyExists from retry |
-    | `on_update` | No-op + append | Unchanged configs, version history |
-    | `on_delete` | Delete-if-exists | NotFound from retry |
+    | `on_observe` | Look up by path | Absent secret reported as `None`, secret without a version |
+    | `on_create` | Create-or-adopt | Secret created between the observation and the call |
+    | `on_update` | Compare live, then append | Unchanged payload, `previous_config=None`, version history |
+    | `on_delete` | Delete-if-exists | NotFound after a crash or repeat |
   </Accordion>
 </AccordionGroup>
 
@@ -285,137 +276,119 @@ This example shows a different pattern: integrating with an external webhook-bas
 ```python
 """Slack webhook resource - external API integration pattern."""
 
-from __future__ import annotations
-
-from typing import ClassVar
-
 import httpx
-from pragma_sdk import Config, Field, Outputs, Resource
+from pragma_sdk import Config, Field, HealthStatus, Outputs, Resource, SensitiveField
 
 
 class SlackChannelConfig(Config):
     """Configuration for a Slack notification channel.
 
-    Design decisions:
-    - webhook_url uses Field[str] because users often store webhook URLs
-      in pragma/secret resources and reference them.
-    - channel and username have defaults because Slack webhooks have
-      their own defaults configured in Slack.
-    - icon_emoji is optional for customization.
+    ``webhook_url`` is sensitive because users store webhook URLs in
+    ``pragma/secret`` resources and reference them. ``channel`` and
+    ``icon_emoji`` are optional because Slack webhooks carry their own
+    defaults.
+
+    Attributes:
+        webhook_url: Incoming webhook URL, usually a FieldReference to a secret.
+        channel: Channel that overrides the webhook's default channel.
+        username: Display name of the bot.
+        icon_emoji: Emoji shown as the bot's icon.
     """
 
-    webhook_url: Field[str]              # Often a FieldReference to a secret
-    channel: str | None = None           # Override webhook default
-    username: str = "Pragma"             # Bot display name
-    icon_emoji: str | None = ":robot:"   # Bot icon
+    webhook_url: SensitiveField[str]
+    channel: Field[str] | None = None
+    username: Field[str] = "Pragmatiks"
+    icon_emoji: Field[str] | None = ":robot:"
 
 
 class SlackChannelOutputs(Outputs):
-    """Outputs from Slack channel setup.
+    """Outputs of a Slack channel setup.
 
-    Design decisions:
-    - channel_id is a computed identifier for this channel config
-    - verified indicates whether a test message was sent successfully
-    - No sensitive data in outputs (webhook URL stays in config)
+    Outputs carry no sensitive data; the webhook URL stays in config.
+
+    Attributes:
+        channel_id: Identifier derived from the resource name and channel.
     """
 
     channel_id: str
-    verified: bool
 
 
 class SlackChannel(Resource[SlackChannelConfig, SlackChannelOutputs]):
     """Slack notification channel resource.
 
-    Pattern: External API without server-side state
-
-    This pattern applies when:
-    - The external service doesn't create persistent resources
-    - "Creation" means validating the configuration works
-    - "Deletion" is a no-op (nothing to clean up)
-
-    The resource tracks configuration and verification status rather than
-    managing remote state.
+    Pattern: external API without server-side state. Slack keeps no object
+    for this configuration, so there is nothing to observe: the type declares
+    ``computed = True``, needs no ``on_observe``, and derives its outputs from
+    config alone. Whether the webhook still works changes without a platform
+    write, so ``health()`` reports it instead of outputs.
     """
 
-    provider: ClassVar[str] = "notifications"
-    resource: ClassVar[str] = "slack_channel"
+    computed = True
 
-    def _build_channel_id(self) -> str:
-        """Generate deterministic channel ID from config.
+    def build_outputs(self) -> SlackChannelOutputs:
+        """Build outputs from the resource name and configured channel.
 
-        Using name + channel ensures uniqueness within a tenant's resources.
+        Returns:
+            Outputs holding an identifier unique within the project's resources.
         """
         channel = self.config.channel or "default"
-        return f"slack-{self.name}-{channel}"
+        return SlackChannelOutputs(channel_id=f"slack-{self.name}-{channel}")
 
-    async def _send_test_message(self) -> bool:
-        """Send test message to verify webhook works.
+    def build_test_message(self) -> dict[str, str]:
+        """Build the payload of the test message.
 
-        Returns True if successful, False otherwise.
-        Doesn't raise on failure - verification is informational.
+        Returns:
+            Slack webhook payload carrying the configured display settings.
         """
         payload = {
-            "text": f"Channel configured: {self.name}",
+            "text": f"Channel check: {self.name}",
             "username": self.config.username,
         }
-
         if self.config.channel:
             payload["channel"] = self.config.channel
         if self.config.icon_emoji:
             payload["icon_emoji"] = self.config.icon_emoji
-
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    self.config.webhook_url,  # Resolved from FieldReference
-                    json=payload,
-                    timeout=10.0,
-                )
-                return response.status_code == 200
-            except httpx.HTTPError:
-                return False
+        return payload
 
     async def on_create(self) -> SlackChannelOutputs:
-        """Validate webhook by sending a test message.
+        """Derive the channel outputs from config.
 
-        Idempotency: Multiple creates send multiple test messages.
-        This is acceptable because test messages are informational
-        and don't create server-side state.
+        Returns:
+            Outputs holding the channel identifier.
         """
-        verified = await self._send_test_message()
+        return self.build_outputs()
 
-        return SlackChannelOutputs(
-            channel_id=self._build_channel_id(),
-            verified=verified,
-        )
+    async def on_update(self, previous_config: SlackChannelConfig | None) -> SlackChannelOutputs:
+        """Derive the channel outputs from the current config.
 
-    async def on_update(self, previous_config: SlackChannelConfig) -> SlackChannelOutputs:
-        """Re-verify if webhook URL changed.
+        Args:
+            previous_config: Configuration last applied, or ``None``.
 
-        If only display settings changed (username, emoji), skip verification
-        to avoid unnecessary API calls.
+        Returns:
+            Outputs holding the channel identifier.
         """
-        # Re-verify if webhook URL changed
-        url_changed = previous_config.webhook_url != self.config.webhook_url
-        channel_changed = previous_config.channel != self.config.channel
-
-        if url_changed or channel_changed:
-            verified = await self._send_test_message()
-        else:
-            # Preserve previous verification status
-            verified = self.outputs.verified if self.outputs else False
-
-        return SlackChannelOutputs(
-            channel_id=self._build_channel_id(),
-            verified=verified,
-        )
+        return self.build_outputs()
 
     async def on_delete(self) -> None:
-        """No-op - webhooks don't have server-side resources to clean up.
+        """Nothing to delete: Slack keeps no object for this configuration."""
 
-        Could optionally send a "channel removed" notification here.
+    async def health(self) -> HealthStatus:
+        """Report whether Slack accepts messages on the webhook.
+
+        Each check posts a test message to the channel. A webhook that worked
+        before may have been revoked since, so the result is never cached.
+
+        Returns:
+            Healthy when Slack accepted the test message, unhealthy otherwise.
         """
-        pass
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.config.webhook_url, json=self.build_test_message(), timeout=10.0)
+            except httpx.HTTPError as error:
+                return HealthStatus(status="unhealthy", message=f"Webhook unreachable: {type(error).__name__}")
+        if response.status_code != 200:
+            return HealthStatus(status="unhealthy", message=f"Slack rejected the test message: HTTP {response.status_code}")
+        return HealthStatus(status="healthy")
 ```
 
 ### When to Use This Pattern
@@ -427,8 +400,9 @@ The webhook pattern works well for:
 - **External SaaS**: Services configured via API but not "created"
 
 Key characteristics:
-- External service doesn't persist your configuration
-- "Create" validates the integration works
+- External service doesn't persist your configuration, so the type is computed and has no `on_observe`
+- Outputs derive from config alone; create and update make no external call
+- `health()` checks that the integration works
 - "Delete" has nothing to clean up
 
 ## Comparison of Patterns
@@ -436,54 +410,16 @@ Key characteristics:
 | Aspect | Cloud Resource | Webhook Integration |
 |--------|---------------|---------------------|
 | Server-side state | Yes (secret in GCP) | No (config only) |
-| Create idempotency | Create-or-get | Always succeeds |
+| Observe | `on_observe` looks up the secret by path | None: `computed = True` |
+| Create idempotency | Create-or-get | Pure function of config |
 | Delete idempotency | Delete-if-exists | No-op |
 | Credentials | User-provided SA | Webhook URL (can be ref) |
-| Outputs | Resource identifiers | Verification status |
-
-## Testing Both Patterns
-
-Both patterns test the same way using `ProviderHarness`:
-
-```python
-from pragma_sdk.provider import ProviderHarness
-
-async def test_cloud_resource_idempotent_create(
-    harness: ProviderHarness,
-    mock_client,  # Mock the cloud client
-) -> None:
-    """Verify create handles AlreadyExists."""
-    mock_client.create_secret.side_effect = AlreadyExists("exists")
-
-    result = await harness.invoke_create(Secret, name="test", config=config)
-
-    assert result.success
-    mock_client.get_secret.assert_called_once()  # Fell back to get
-
-
-async def test_webhook_verification(
-    harness: ProviderHarness,
-    httpx_mock,  # Mock HTTP client
-) -> None:
-    """Verify webhook sends test message."""
-    httpx_mock.add_response(status_code=200)
-
-    result = await harness.invoke_create(
-        SlackChannel,
-        name="alerts",
-        config=SlackChannelConfig(webhook_url="https://hooks.slack.com/...")
-    )
-
-    assert result.success
-    assert result.outputs.verified is True
-```
+| Outputs | Resource identifiers | Channel identifier |
+| Live checks | None | `health()` posts a test message |
 
 ## What's Next
 
 <CardGroup cols={2}>
-  <Card title="Testing" icon="flask-vial" href="/building-providers/testing">
-    Learn more about testing patterns with ProviderHarness.
-  </Card>
   <Card title="Deployment" icon="rocket" href="/building-providers/deployment">
     Deploy your provider to the platform.
   </Card>

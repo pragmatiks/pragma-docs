@@ -14,11 +14,12 @@ description: "Define an AI agent with a model, tools, knowledge, and memory"
 | `role` | `string` | No | — | Agent role description |
 | `model` | `Dependency` | **Yes** | — | Reference to `agno/models/anthropic` or `agno/models/openai` |
 | `instructions` | `list[string]` | No | — | System instructions for the agent |
-| `prompt` | `Dependency` | No | — | Reference to `agno/prompt` for reusable instructions |
+| `prompt` | `Dependency` | No | — | Reference to [`agno/prompt`](/providers/agno/prompt); its rendered text replaces `instructions` |
 | `tools` | `list[Dependency]` | No | `[]` | References to `agno/tools/mcp` or `agno/tools/websearch` |
 | `knowledge` | `Dependency` | No | — | Reference to `agno/knowledge` |
 | `db` | `Dependency` | No | — | Reference to `agno/db/postgres` for session storage |
 | `memory` | `Dependency` | No | — | Reference to `agno/memory/manager` |
+| `output_schema` | `object` | No | — | JSON schema for structured responses. The top-level `type` must be `object`. Without it, the agent returns plain text |
 | `markdown` | `boolean` | No | `false` | Format responses as Markdown |
 | `add_datetime_to_context` | `boolean` | No | `false` | Include current datetime in context |
 | `read_chat_history` | `boolean` | No | Auto | Read chat history from DB (auto-enabled when `db` is set) |

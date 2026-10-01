@@ -22,25 +22,19 @@ The Pragmatiks SDK provides Python clients for managing resources programmatical
 
 ## Quick Start
 
+The client auto-discovers credentials from `pragma auth login` or the environment. Resource operations live on a project handle:
+
 ```python
 from pragma_sdk import PragmaClient
 
-# Client auto-discovers credentials from CLI login or environment
 with PragmaClient() as client:
-    # List all resources
-    resources = client.list_resources()
-
-    # Filter by provider
-    gcp_resources = client.list_resources(provider="gcp")
-
-    # Apply a resource
-    result = client.apply_resource({
-        "provider": "gcp",
-        "resource": "storage",
-        "name": "my-bucket",
-        "config": {"location": "EU"}
-    })
+    project = client.project("my-project")
+    resources = project.list_resources()
+    agents = project.list_resources(provider="pragmatiks/agno", resource="agent")
+    agent = project.wait_ready("pragmatiks/agno", "agent", "support-bot")
 ```
+
+To create or update resources from YAML, use [`pragma resources apply`](/cli/resources).
 
 ## Authentication
 
@@ -51,31 +45,17 @@ The SDK discovers credentials in this order:
 3. **Generic environment variable** - `PRAGMA_AUTH_TOKEN`
 4. **CLI credentials file** - Tokens stored by `pragma auth login`
 
-```python
-# Auto-discovery (recommended)
-client = PragmaClient()
-
-# Explicit token
-client = PragmaClient(auth_token="your-token-here")
-
-# Named context
-client = PragmaClient(context="production")
-
-# Require authentication (raises ValueError if no token found)
-client = PragmaClient(require_auth=True)
-
-# Disable authentication
-client = PragmaClient(auth_token=None)
-```
+| Call | Behavior |
+|------|----------|
+| `PragmaClient()` | Auto-discovery (recommended) |
+| `PragmaClient(auth_token="your-token-here")` | Explicit token |
+| `PragmaClient(context="production")` | Token for a named context |
+| `PragmaClient(require_auth=True)` | Raises `ValueError` when no token is found |
+| `PragmaClient(auth_token=None)` | No authentication |
 
 ### Contexts
 
-Contexts allow switching between environments (e.g., development, staging, production):
-
-```python
-# Uses PRAGMA_AUTH_TOKEN_PRODUCTION or credentials file
-client = PragmaClient(context="production")
-```
+Contexts switch between environments, such as development and production. `PragmaClient(context="production")` reads `PRAGMA_AUTH_TOKEN_PRODUCTION` or the credentials file.
 
 Set the default context via environment variable:
 
@@ -92,26 +72,33 @@ Synchronous client for the Pragmatiks API. Use as a context manager to ensure co
 ### Constructor
 
 ```python
-PragmaClient(
-    base_url: str | None = None,      # API URL (default: PRAGMA_API_URL or localhost:8000)
-    timeout: float = 10.0,            # Request timeout in seconds
-    auth_token: str | None = ...,     # Bearer token (omit for auto-discovery)
-    context: str | None = None,       # Named context for token lookup
-    require_auth: bool = False,       # Raise if no token found
-)
+class PragmaClient:
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: float = 30.0,
+        auth_token: str | None = ...,
+        context: str | None = None,
+        require_auth: bool = False,
+    ) -> None: ...
 ```
+
+| Parameter | Description |
+|-----------|-------------|
+| `base_url` | API URL; defaults to `PRAGMA_API_URL` |
+| `timeout` | Request timeout in seconds |
+| `auth_token` | Bearer token; omit for auto-discovery |
+| `context` | Named context for token lookup |
+| `require_auth` | Raise when no token is found |
 
 ### Context Manager
 
-```python
-with PragmaClient() as client:
-    resources = client.list_resources()
-# Connection automatically closed
+The `with` block closes the connection on exit. Without it, call `close()`:
 
-# Or manually close:
+```python
 client = PragmaClient()
 try:
-    resources = client.list_resources()
+    resources = client.project("my-project").list_resources()
 finally:
     client.close()
 ```
@@ -119,7 +106,7 @@ finally:
 ### Health Check
 
 ```python
-def is_healthy() -> bool
+def is_healthy() -> bool: ...
 ```
 
 Check if the API is reachable and healthy.
@@ -135,7 +122,7 @@ with PragmaClient() as client:
 ### Get Current User
 
 ```python
-def get_me() -> UserInfo
+def get_me() -> UserInfo: ...
 ```
 
 Get information about the authenticated user.
@@ -153,123 +140,102 @@ with PragmaClient() as client:
 
 **Raises:** `httpx.HTTPStatusError` if not authenticated (401).
 
+### list_resource_schemas
+
+```python
+def list_resource_schemas(provider: str | None = None) -> list[ResourceSchema]: ...
+```
+
+List the resource types that installed providers register.
+
+```python
+for schema in client.list_resource_schemas(provider="pragmatiks/agno"):
+    print(f"{schema.provider}/{schema.resource}: {schema.description}")
+```
+
+**Returns:** List of `ResourceSchema` with `provider`, `resource`, `config_schema`, `outputs_schema`, and `description`.
+
 ---
 
 ## Resource Operations
+
+`client.project(project_id)` returns a `ProjectResources` handle. Every resource operation is scoped to that project.
+
+```python
+project = client.project("my-project")
+```
 
 ### list_resources
 
 ```python
 def list_resources(
-    provider: str | None = None,      # Filter by provider name
-    resource: str | None = None,      # Filter by resource type
-    tags: list[str] | None = None,    # Filter by tags (must match all)
+    provider: str | None = None,
+    resource: str | None = None,
+    tags: list[str] | None = None,
     *,
-    model: type[ResourceT] | None = None,  # Typed response class
-) -> list[ResourceT] | list[dict[str, Any]]
+    model: type[ResourceT] | None = None,
+    reveal: bool = False,
+) -> list[ResourceT] | list[dict[str, Any]]: ...
 ```
 
-List resources with optional filters. Returns dictionaries by default, or typed instances if `model` is provided.
+List resources, filtered by provider, resource type, and tags (a resource must match every tag). Returns dictionaries by default, or instances of `model`. `reveal=True` includes sensitive values.
 
 ```python
-# List all resources as dictionaries
-resources = client.list_resources()
-
-# Filter by provider
-gcp_resources = client.list_resources(provider="gcp")
-
-# Filter by resource type
-warehouses = client.list_resources(provider="gcp", resource="warehouse")
-
-# Filter by tags
-production = client.list_resources(tags=["env:production"])
-
-# Typed response (see "Typed Responses" section)
-from myapp.models import Database
-databases = client.list_resources(provider="mycloud", resource="database", model=Database)
+resources = project.list_resources()
+agents = project.list_resources(provider="pragmatiks/agno", resource="agent")
+production = project.list_resources(tags=["env:production"])
 ```
-
-### list_resource_types
-
-```python
-def list_resource_types(
-    provider: str | None = None,  # Filter by provider
-) -> list[dict[str, Any]]
-```
-
-List available resource types from deployed providers.
-
-```python
-# List all resource types
-types = client.list_resource_types()
-
-for rt in types:
-    print(f"{rt['provider']}/{rt['resource']}: {rt['description']}")
-
-# Filter by provider
-gcp_types = client.list_resource_types(provider="gcp")
-```
-
-**Returns:** List of resource definitions with `provider`, `resource`, `schema`, and `description`.
 
 ### get_resource
 
 ```python
 def get_resource(
-    provider: str,                    # Provider that manages the resource
-    resource: str,                    # Resource type name
-    name: str,                        # Resource instance name
+    provider: str,
+    resource: str,
+    name: str,
     *,
-    model: type[ResourceT] | None = None,  # Typed response class
-) -> ResourceT | dict[str, Any]
+    model: type[ResourceT] | None = None,
+    reveal: bool = False,
+) -> ResourceT | dict[str, Any]: ...
 ```
 
 Get a single resource by its identifier.
 
 ```python
-# Get as dictionary
-bucket = client.get_resource("gcp", "storage", "my-bucket")
-print(bucket["lifecycle_state"])  # "ready"
-
-# Typed response
-from myapp.models import Bucket
-bucket = client.get_resource("gcp", "storage", "my-bucket", model=Bucket)
-print(bucket.lifecycle_state)  # LifecycleState.READY
+agent = project.get_resource("pragmatiks/agno", "agent", "support-bot")
+print(agent["lifecycle_state"])
 ```
 
-**Raises:** `httpx.HTTPStatusError` if resource not found (404).
+**Raises:** `httpx.HTTPStatusError` if the resource is not found (404).
 
 ### apply_resource
 
 ```python
 def apply_resource(
-    resource: ResourceT | dict[str, Any],  # Resource to create or update
+    resource: ResourceT,
     *,
-    model: type[ResourceT] | None = None,  # Typed response class
-) -> ResourceT | dict[str, Any]
+    model: type[ResourceT] | None = None,
+    reveal: bool = False,
+) -> ResourceT | dict[str, Any]: ...
 ```
 
-Create a new resource or update an existing one.
+Create a resource or update an existing one. The resource's `project_id` must match the handle's project.
+
+**Raises:** `ProjectMismatchError` if `resource.project_id` differs from the handle's project; `httpx.HTTPStatusError` if the API rejects the resource.
+
+### deactivate_resource
 
 ```python
-# Apply from dictionary
-result = client.apply_resource({
-    "provider": "gcp",
-    "resource": "storage",
-    "name": "my-bucket",
-    "config": {"location": "EU", "storage_class": "STANDARD"},
-    "tags": ["env:production"],
-})
-
-# Apply typed resource
-from myapp.models import Bucket, BucketConfig
-bucket = Bucket(
-    name="my-bucket",
-    config=BucketConfig(location="EU", storage_class="STANDARD"),
-    tags=["env:production"],
-)
-result = client.apply_resource(bucket, model=Bucket)
+def deactivate_resource(
+    provider: str,
+    resource: str,
+    name: str,
+    *,
+    dry_run: bool = False,
+) -> TeardownResponse: ...
 ```
+
+Tear down the resource's external object and return the resource to `draft`. `dry_run=True` previews the teardown without changing anything.
 
 ### delete_resource
 
@@ -278,16 +244,39 @@ def delete_resource(
     provider: str,
     resource: str,
     name: str,
-) -> None
+    *,
+    dry_run: bool = False,
+) -> TeardownResponse: ...
 ```
 
 Delete a resource. The resource enters the deletion lifecycle and is removed after cleanup.
 
 ```python
-client.delete_resource("gcp", "storage", "my-bucket")
+preview = project.delete_resource("pragmatiks/agno", "agent", "support-bot", dry_run=True)
+for impact in preview.impact:
+    print(f"{impact.provider}/{impact.resource}/{impact.name}: {impact.action}")
+
+project.delete_resource("pragmatiks/agno", "agent", "support-bot")
 ```
 
-**Raises:** `httpx.HTTPStatusError` if resource not found (404).
+**Returns:** `TeardownResponse` with `lifecycle_state`, `impact` (every resource the teardown reaches, the requested one first), and `dry_run`.
+
+### wait_ready, wait_deactivated, wait_deleted
+
+```python
+def wait_ready(
+    provider: str,
+    resource: str,
+    name: str,
+    *,
+    timeout: float | None = 300.0,
+    poll_interval: float = 2.0,
+) -> dict[str, Any]: ...
+```
+
+Poll a resource until it reaches `ready`. `wait_deactivated` waits for `draft` and `wait_deleted` for `deleted`, with the same parameters. `timeout=0` or `None` waits forever.
+
+**Raises:** `ResourceFailedError` if the resource reaches `failed`; `TimeoutError` if the timeout expires first.
 
 ---
 
@@ -298,28 +287,20 @@ Dead letter events are failed lifecycle events that can be retried or discarded.
 ### list_dead_letter_events
 
 ```python
-def list_dead_letter_events(
-    provider: str | None = None,  # Filter by provider
-) -> list[dict[str, Any]]
+def list_dead_letter_events(provider: str | None = None) -> list[dict[str, Any]]: ...
 ```
 
-List failed events awaiting manual intervention.
+List failed events awaiting manual intervention, optionally for one provider.
 
 ```python
-# List all dead letter events
-events = client.list_dead_letter_events()
-
-# Filter by provider
-gcp_events = client.list_dead_letter_events(provider="gcp")
-
-for event in events:
+for event in client.list_dead_letter_events(provider="pragmatiks/agno"):
     print(f"{event['resource_id']}: {event['error']}")
 ```
 
 ### get_dead_letter_event
 
 ```python
-def get_dead_letter_event(event_id: str) -> dict[str, Any]
+def get_dead_letter_event(event_id: str) -> dict[str, Any]: ...
 ```
 
 Get details of a specific dead letter event.
@@ -333,7 +314,7 @@ print(event["payload"])
 ### retry_dead_letter_event
 
 ```python
-def retry_dead_letter_event(event_id: str) -> None
+def retry_dead_letter_event(event_id: str) -> None: ...
 ```
 
 Retry a single failed event.
@@ -345,7 +326,7 @@ client.retry_dead_letter_event("evt_abc123")
 ### retry_all_dead_letter_events
 
 ```python
-def retry_all_dead_letter_events() -> int
+def retry_all_dead_letter_events() -> int: ...
 ```
 
 Retry all dead letter events. Returns the count of events retried.
@@ -358,7 +339,7 @@ print(f"Retried {count} events")
 ### delete_dead_letter_event
 
 ```python
-def delete_dead_letter_event(event_id: str) -> None
+def delete_dead_letter_event(event_id: str) -> None: ...
 ```
 
 Discard a dead letter event without retrying.
@@ -370,20 +351,13 @@ client.delete_dead_letter_event("evt_abc123")
 ### delete_dead_letter_events
 
 ```python
-def delete_dead_letter_events(
-    provider: str | None = None,  # Delete for this provider only
-    *,
-    all: bool = False,            # Delete all events
-) -> int
+def delete_dead_letter_events(provider: str | None = None, *, all: bool = False) -> int: ...
 ```
 
-Bulk delete dead letter events. Must specify either `provider` or `all=True`.
+Bulk delete dead letter events for one provider, or every event with `all=True`. Returns the count deleted.
 
 ```python
-# Delete all events for a provider
-count = client.delete_dead_letter_events(provider="gcp")
-
-# Delete all events
+count = client.delete_dead_letter_events(provider="pragmatiks/agno")
 count = client.delete_dead_letter_events(all=True)
 ```
 
@@ -391,335 +365,128 @@ count = client.delete_dead_letter_events(all=True)
 
 ---
 
-## Provider Deployment
+## Provider Operations
 
-Deploy custom providers to the platform.
+These methods back the `pragma providers` commands; see the [CLI reference](/cli/providers) for the workflow. Provider names are namespaced as `org/name`.
 
-### list_providers
+| Method | Description |
+|--------|-------------|
+| `list_providers(query=None, scope=None, tags=None, limit=20, offset=0)` | Browse the provider catalog; returns `PaginatedResponse[Provider]` |
+| `get_provider(name)` | Get a catalog entry |
+| `list_provider_versions(name)` | List the published versions of a provider |
+| `publish_provider_version(*, wheel_path, name, version, schemas, metadata, changelog=None)` | Upload a wheel as a new version; raises `ProviderVersionConflictError` when the version already exists |
+| `install_provider(provider_name, version=None, upgrade_policy=UpgradePolicy.MANUAL, config=None)` | Install a provider in your organization |
+| `list_installations()` | List installed providers |
+| `upgrade_provider(name, target_version=None)` | Upgrade an installed provider |
+| `downgrade_provider(name, target_version)` | Move an installed provider to an earlier version |
+| `uninstall_provider(name, *, cascade=False)` | Uninstall a provider; `cascade=True` deletes its resources |
+| `deploy_provider(provider_name, version=None)` | Redeploy an installed provider; returns `DeploymentResult` |
+| `get_deployment_status(provider_name)` | Get the deployment status; returns `DeploymentResult` |
 
 ```python
-def list_providers() -> list[ProviderInfo]
-```
-
-List all providers for the current tenant.
-
-```python
-from pragma_sdk import PragmaClient
+from pragma_sdk import DeploymentStatus
 
 with PragmaClient() as client:
-    providers = client.list_providers()
-
-    for p in providers:
-        print(f"{p.provider_id}: {p.deployment_status or 'not deployed'}")
-        if p.current_version:
-            print(f"  Version: {p.current_version}")
+    client.install_provider("pragmatiks/agno")
+    result = client.get_deployment_status("pragmatiks/agno")
+    if result.status == DeploymentStatus.AVAILABLE:
+        print(f"Version {result.version} is running")
 ```
 
-**Returns:** List of `ProviderInfo` with `provider_id`, `current_version`, `deployment_status`, and `updated_at`.
-
-### list_builds
-
-```python
-def list_builds(provider_id: str) -> list[BuildInfo]
-```
-
-List builds for a provider (newest first, up to 10).
-
-```python
-from pragma_sdk import BuildStatus
-
-builds = client.list_builds("my-provider")
-
-for build in builds:
-    print(f"{build.version}: {build.status}")
-    if build.status == BuildStatus.FAILED:
-        print(f"  Error: {build.error_message}")
-```
-
-**Returns:** List of `BuildInfo` with `provider_id`, `version`, `status`, `error_message`, and `created_at`.
-
-### push_provider
-
-```python
-def push_provider(
-    provider_id: str,   # Provider identifier
-    tarball: bytes,     # Gzipped tarball of source code
-) -> PushResult
-```
-
-Upload provider source code and start a build.
-
-```python
-import tarfile
-import io
-
-# Create tarball from provider directory
-buffer = io.BytesIO()
-with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
-    tar.add("./my-provider", arcname=".")
-tarball = buffer.getvalue()
-
-# Push and start build
-result = client.push_provider("my-provider", tarball)
-print(f"Build version: {result.version}")
-print(f"Status: {result.status}")  # BuildStatus.PENDING
-```
-
-**Returns:** `PushResult` with `version`, `status`, and `message`.
-
-### get_build_status
-
-```python
-def get_build_status(
-    provider_id: str,
-    version: str,        # CalVer version (e.g., "20250115.120000")
-) -> BuildInfo
-```
-
-Check the status of a build by version.
-
-```python
-from pragma_sdk import BuildStatus
-
-result = client.get_build_status("my-provider", "20250115.120000")
-
-if result.status == BuildStatus.SUCCESS:
-    print("Build successful!")
-elif result.status == BuildStatus.FAILED:
-    print(f"Build failed: {result.error_message}")
-elif result.status == BuildStatus.BUILDING:
-    print("Build in progress...")
-```
-
-**Returns:** `BuildInfo` with `provider_id`, `version`, `status`, `error_message` (on failure), and `created_at`.
-
-### stream_build_logs
-
-```python
-def stream_build_logs(
-    provider_id: str,
-    version: str,        # CalVer version (e.g., "20250115.120000")
-) -> ContextManager[httpx.Response]
-```
-
-Stream build logs in real-time.
-
-```python
-with client.stream_build_logs("my-provider", "20250115.120000") as response:
-    for line in response.iter_lines():
-        print(line)
-```
-
-### deploy_provider
-
-```python
-def deploy_provider(
-    provider_id: str,
-    version: str | None = None,  # CalVer version (e.g., "20250115.120000")
-) -> ProviderStatus
-```
-
-Deploy a provider to a specific version. If no version is specified, deploys the latest successful build.
-
-```python
-from pragma_sdk import DeploymentStatus
-
-# Deploy latest version
-result = client.deploy_provider("my-provider")
-print(f"Version: {result.version}")
-print(f"Status: {result.status}")  # DeploymentStatus.PROGRESSING
-print(f"Healthy: {result.healthy}")
-
-# Deploy specific version (useful for rollbacks)
-result = client.deploy_provider("my-provider", version="20250114.120000")
-```
-
-**Returns:** `ProviderStatus` with `status`, `version`, `updated_at`, and `healthy`.
-
-### get_deployment_status
-
-```python
-def get_deployment_status(provider_id: str) -> ProviderStatus
-```
-
-Check deployment status.
-
-```python
-from pragma_sdk import DeploymentStatus
-
-result = client.get_deployment_status("my-provider")
-
-if result.status == DeploymentStatus.AVAILABLE:
-    print(f"Provider is healthy: {result.healthy}")
-    print(f"Version: {result.version}")
-elif result.status == DeploymentStatus.FAILED:
-    print("Deployment failed")
-```
-
-**Returns:** `ProviderStatus` with `status`, `version`, `updated_at`, and `healthy`.
+`DeploymentResult.status` is one of `pending`, `progressing`, `available`, or `failed`.
 
 ---
 
 ## AsyncPragmaClient
 
-Asynchronous client with the same API as `PragmaClient`. All methods are `async`.
+Asynchronous client with the same API as `PragmaClient`. All methods are `async`, and `client.project(project_id)` returns an `AsyncProjectResources` handle.
 
 ```python
 import asyncio
+
 from pragma_sdk import AsyncPragmaClient
 
-async def main():
+
+async def main() -> None:
+    """List agents and wait for one to become ready."""
     async with AsyncPragmaClient() as client:
-        # All methods are awaited
-        resources = await client.list_resources(provider="gcp")
+        project = client.project("my-project")
+        agents = await project.list_resources(provider="pragmatiks/agno", resource="agent")
+        agent = await project.wait_ready("pragmatiks/agno", "agent", "support-bot")
 
-        bucket = await client.get_resource("gcp", "storage", "my-bucket")
-
-        result = await client.apply_resource({
-            "provider": "gcp",
-            "resource": "storage",
-            "name": "new-bucket",
-            "config": {"location": "EU"},
-        })
 
 asyncio.run(main())
 ```
 
 ### Async Context Manager
 
-```python
-async with AsyncPragmaClient() as client:
-    resources = await client.list_resources()
-# Connection automatically closed
+The `async with` block closes the connection on exit. Without it, await `close()`:
 
-# Or manually close:
+```python
 client = AsyncPragmaClient()
 try:
-    resources = await client.list_resources()
+    resources = await client.project("my-project").list_resources()
 finally:
     await client.close()
 ```
 
-### Streaming Build Logs (Async)
-
-```python
-async with client.stream_build_logs("my-provider", "20250115.120000") as response:
-    async for line in response.aiter_lines():
-        print(line)
-```
-
 ### Concurrent Operations
 
-Run multiple independent operations concurrently:
+Run independent operations concurrently:
 
 ```python
 import asyncio
 
-async def fetch_all_resources():
+
+async def list_all_agents(project_ids: list[str]) -> list[dict]:
+    """List the agents of several projects concurrently."""
     async with AsyncPragmaClient() as client:
-        # Fetch from multiple providers concurrently
-        gcp, aws, azure = await asyncio.gather(
-            client.list_resources(provider="gcp"),
-            client.list_resources(provider="aws"),
-            client.list_resources(provider="azure"),
+        results = await asyncio.gather(
+            *(
+                client.project(project_id).list_resources(provider="pragmatiks/agno", resource="agent")
+                for project_id in project_ids
+            )
         )
-        return gcp + aws + azure
+    return [agent for agents in results for agent in agents]
 ```
+
+### Lifecycle Events
+
+`AsyncPragmaClient.stream_lifecycle_events(timeout=None)` yields one frame per resource lifecycle transition in your organization. `timeout=0` or `None` streams until you stop consuming.
 
 ---
 
 ## Typed Responses
 
-Use typed models for better IDE support and validation. Define models using the SDK base classes.
-
-### Resource Model
-
-```python
-from pragma_sdk import Resource, Config, Outputs, LifecycleState
-
-class BucketConfig(Config):
-    location: str
-    storage_class: str = "STANDARD"
-
-class BucketOutputs(Outputs):
-    url: str
-    created_at: str
-
-class Bucket(Resource[BucketConfig, BucketOutputs]):
-    provider = "gcp"
-    resource = "storage"
-```
-
-### Using Typed Models
-
-```python
-# Get with typed response
-bucket = client.get_resource("gcp", "storage", "my-bucket", model=Bucket)
-print(bucket.config.location)      # "EU"
-print(bucket.outputs.url)          # "gs://my-bucket"
-print(bucket.lifecycle_state)      # LifecycleState.READY
-
-# List with typed response
-buckets = client.list_resources(provider="gcp", resource="storage", model=Bucket)
-for bucket in buckets:
-    print(f"{bucket.name}: {bucket.config.location}")
-
-# Apply typed resource
-new_bucket = Bucket(
-    name="new-bucket",
-    config=BucketConfig(location="US"),
-)
-result = client.apply_resource(new_bucket, model=Bucket)
-```
-
-### Lifecycle State Enum
+Pass a provider's resource class as `model` to get typed instances back. The response's `config` and `outputs` are validated against that class, so use the class from the installed provider version:
 
 ```python
 from pragma_sdk import LifecycleState
 
-resource = client.get_resource("gcp", "storage", "my-bucket")
+from mycloud_provider import Database
 
-match resource["lifecycle_state"]:
-    case LifecycleState.DRAFT:
-        print("Not yet submitted")
-    case LifecycleState.PENDING:
-        print("Queued for processing")
-    case LifecycleState.PROCESSING:
-        print("Being created/updated/deleted")
-    case LifecycleState.READY:
-        print("Successfully provisioned")
-    case LifecycleState.FAILED:
-        print(f"Error: {resource['error']}")
+project = client.project("my-project")
+database = project.get_resource("myorg/mycloud", "database", "analytics", model=Database)
+if database.lifecycle_state == LifecycleState.READY:
+    print(database.outputs.connection_url)
+
+databases = project.list_resources(provider="myorg/mycloud", resource="database", model=Database)
 ```
 
----
+### Lifecycle States
 
-## Dependencies
+`LifecycleState` is a string enum, so it compares equal to the `lifecycle_state` string in a dictionary response:
 
-When building providers, you can declare dependencies on other resources using the `Dependency[T]` generic. This provides typed access to the resolved dependency's outputs.
-
-```python
-from pragma_sdk import Resource, Config, Outputs, Dependency
-from my_provider.resources import Database
-
-class AppConfig(Config):
-    # dependency: declares a dependency on a Database resource
-    database: Dependency[Database]
-
-@mycloud.resource("app")
-class App(Resource[AppConfig, AppOutputs]):
-    async def on_create(self) -> AppOutputs:
-        # Access the resolved dependency
-        db = self.config.database
-        
-        # Access outputs (typed)
-        conn_url = db.outputs.connection_url
-        
-        # Access config
-        db_size = db.config.size_gb
-        
-        return AppOutputs(url=f"Connected to {conn_url}")
-```
+| State | Meaning |
+|-------|---------|
+| `draft` | Declared but not submitted, or deactivated |
+| `waiting` | Waiting for a dependency to become ready |
+| `pending` | Queued for processing |
+| `processing` | Being created, updated, or deleted |
+| `ready` | Provisioned |
+| `failed` | Failed; `error` holds the reason |
+| `deleting` | Being torn down |
+| `deleted` | Deleted |
 
 ---
 
@@ -729,63 +496,34 @@ The SDK raises `httpx.HTTPStatusError` for API errors. Handle common cases:
 
 ```python
 import httpx
+
 from pragma_sdk import PragmaClient
 
 with PragmaClient() as client:
     try:
-        resource = client.get_resource("gcp", "storage", "nonexistent")
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
+        resource = client.project("my-project").get_resource("pragmatiks/agno", "agent", "missing")
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code == 404:
             print("Resource not found")
-        elif e.response.status_code == 401:
+        elif error.response.status_code == 401:
             print("Authentication failed")
-        elif e.response.status_code == 403:
+        elif error.response.status_code == 403:
             print("Permission denied")
         else:
-            print(f"API error: {e.response.status_code}")
             raise
 ```
 
 ### Authentication Errors
 
-```python
-from pragma_sdk import PragmaClient
-
-try:
-    # Require authentication
-    client = PragmaClient(require_auth=True)
-except ValueError as e:
-    print(f"No credentials found: {e}")
-    print("Run 'pragma auth login' or set PRAGMA_AUTH_TOKEN")
-```
+`PragmaClient(require_auth=True)` raises `ValueError` when no credentials are found. Run `pragma auth login` or set `PRAGMA_AUTH_TOKEN`.
 
 ### Timeout Handling
 
-```python
-import httpx
-
-with PragmaClient(timeout=30.0) as client:
-    try:
-        result = client.apply_resource(large_resource)
-    except httpx.TimeoutException:
-        print("Request timed out - try increasing timeout")
-```
-
-### Retry Pattern
+Requests that exceed the client's `timeout` raise `httpx.TimeoutException`. Raise the limit for slow calls:
 
 ```python
-import time
-import httpx
-
-def apply_with_retry(client, resource, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            return client.apply_resource(resource)
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code >= 500 and attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
-                continue
-            raise
+with PragmaClient(timeout=60.0) as client:
+    resources = client.project("my-project").list_resources()
 ```
 
 ---
@@ -795,120 +533,79 @@ def apply_with_retry(client, resource, max_retries=3):
 Upload files to Pragmatiks storage programmatically:
 
 ```python
-# Upload a file
-with open("training-data.jsonl", "rb") as f:
+with open("training-data.jsonl", "rb") as file:
     result = client.upload_file(
         name="training-data",
-        content=f.read(),
+        content=file.read(),
         content_type="application/jsonl",
     )
 
-print(result["url"])          # Storage URL
-print(result["public_url"])   # Public download URL
-print(result["size"])         # File size in bytes
-print(result["checksum"])     # Content checksum
+print(result["url"])
+print(result["public_url"])
+print(result["size"])
+print(result["checksum"])
 ```
 
-After uploading, create a `pragma/file` resource to track the file:
-
-```python
-client.apply_resource({
-    "provider": "pragma",
-    "resource": "file",
-    "name": "training-data",
-    "lifecycle_state": "pending",
-    "config": {
-        "content_type": "application/jsonl",
-    },
-})
-```
+**Returns:** A dictionary with `url`, `public_url`, `size`, `content_type`, `checksum`, and `uploaded_at`.
 
 ---
 
 ## Dependencies and Field References
 
-### FieldReference
+A resource config points at another resource in one of two ways:
 
-Reference a specific output field from another resource:
+- **Field reference**: a single output value, written in YAML as `provider`, `resource`, `name`, and `field`. See [Resources](/concepts/resources).
+- **`Dependency[T]`**: a whole resource, with typed access to its config and outputs in provider code.
 
-```python
-from pragma_sdk import FieldReference
-
-# In a resource config, a FieldReference points to another resource's output
-resource = {
-    "provider": "agno",
-    "resource": "anthropic-model",
-    "name": "claude",
-    "lifecycle_state": "pending",
-    "config": {
-        "model_id": "claude-sonnet-4-5-20250929",
-        "api_key": {
-            "provider": "pragma",
-            "resource": "secret",
-            "name": "anthropic-key",
-            "field": "outputs.api_key",
-        },
-    },
-}
-client.apply_resource(resource)
-```
+Owner references, which make a child resource deleted along with its owner, are described in [Resources](/concepts/resources#cascade-delete-owner-references).
 
 ### Dependency[T]
 
-For provider authors, declare whole-resource dependencies with typed access:
+Provider authors declare a whole-resource dependency with `Dependency[T]`. The platform waits for the dependency to be ready before it runs the dependent's handlers, and `resolve()` returns it:
 
 ```python
-from pragma_sdk import Resource, Config, Outputs, Dependency
+from pragma_sdk import Config, Dependency, Field, Outputs, Resource
 
-class ModelConfig(Config):
-    model_id: str
-    api_key: str
+from mycloud_provider.resources import Database
 
-class ModelOutputs(Outputs):
-    model_name: str
 
-class Model(Resource[ModelConfig, ModelOutputs]):
-    provider = "agno"
-    resource = "anthropic-model"
+class AppConfig(Config):
+    """Configuration of an application.
 
-class AgentConfig(Config):
-    model: Dependency[Model]
-    instructions: str
+    Attributes:
+        database: Database the application connects to.
+        image: Container image to run.
+    """
 
-class AgentOutputs(Outputs):
-    agent_id: str
+    database: Dependency[Database]
+    image: Field[str]
 
-@mycloud.resource("agent")
-class Agent(Resource[AgentConfig, AgentOutputs]):
-    async def on_create(self) -> AgentOutputs:
-        model = await self.config.model.resolve()
-        # Access typed config and outputs
-        model_name = model.outputs.model_name
-        return AgentOutputs(agent_id=f"agent-using-{model_name}")
+
+class AppOutputs(Outputs):
+    """Outputs of an application.
+
+    Attributes:
+        database_url: Connection string the application uses.
+    """
+
+    database_url: str
+
+
+class App(Resource[AppConfig, AppOutputs]):
+    """Application connected to a managed database.
+
+    Only ``on_create`` is shown; the other handlers follow the same pattern.
+    """
+
+    async def on_create(self) -> AppOutputs:
+        """Deploy the application against the resolved database.
+
+        Returns:
+            Outputs of the application.
+        """
+        database = await self.config.database.resolve()
+        return AppOutputs(database_url=database.outputs.connection_url)
 ```
-
-### Owner References
-
-Establish parent-child relationships for cascade deletion:
-
-```python
-result = client.apply_resource({
-    "provider": "agno",
-    "resource": "agent",
-    "name": "team-member",
-    "lifecycle_state": "pending",
-    "config": {"instructions": "You are a team member."},
-    "owner_references": [
-        {
-            "provider": "agno",
-            "resource": "team",
-            "name": "my-team",
-        }
-    ],
-})
-```
-
-When the owner resource (`my-team`) is deleted, owned resources (`team-member`) are automatically cascade-deleted.
 
 ---
 
@@ -918,62 +615,106 @@ The SDK also provides utilities for building providers. See [Building Providers]
 
 ### Key Exports
 
+`pragma_sdk` exports the building blocks of a resource: the `Resource`, `Config`, and `Outputs` base classes, the `Provider` registry, the field types, and `HealthStatus`.
+
 ```python
 from pragma_sdk import (
-    # Base classes for resources
-    Resource,
     Config,
-    Outputs,
-
-    # Provider decorator
-    Provider,
-
-    # Enums and types
-    LifecycleState,
-    EventType,
-    ResponseStatus,
-
-    # Field references for dependencies
+    Dependency,
     Field,
     FieldReference,
-    ResourceReference,
-)
-
-from pragma_sdk.provider import (
-    # Testing harness
-    ProviderHarness,
-    LifecycleEvent,
-    LifecycleResult,
+    HealthStatus,
+    ImmutableField,
+    LifecycleState,
+    Outputs,
+    Provider,
+    Resource,
+    SensitiveField,
 )
 ```
 
 ### Quick Example
 
 ```python
-from pragma_sdk import Provider, Resource, Config, Outputs
+import asyncio
 
-mycloud = Provider(name="mycloud")
+from pragma_sdk import Config, Field, ImmutableField, Outputs, Provider, Resource
+
+from mycloud_client import CloudClient, NotFound
+
+mycloud = Provider()
+
 
 class DatabaseConfig(Config):
-    name: str
-    size_gb: int = 10
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name. Locates the database, so it cannot change.
+        size_gb: Storage size in gigabytes.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int] = 10
+
 
 class DatabaseOutputs(Outputs):
+    """Outputs of a managed database.
+
+    Attributes:
+        connection_url: Connection string for the database.
+    """
+
     connection_url: str
+
 
 @mycloud.resource("database")
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
-    async def on_create(self) -> DatabaseOutputs:
-        # Provision database
-        return DatabaseOutputs(connection_url=f"postgres://.../{self.config.name}")
+    """Managed database located by its name."""
 
-    async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
-        # Handle updates
-        return self.outputs
+    async def on_observe(self) -> DatabaseOutputs | None:
+        """Report the database named by config.
+
+        Returns:
+            Outputs for the database, or ``None`` when it does not exist.
+        """
+        try:
+            database = await asyncio.to_thread(CloudClient().get_database, self.config.name)
+        except NotFound:
+            return None
+        return DatabaseOutputs(connection_url=database.connection_url)
+
+    async def on_create(self) -> DatabaseOutputs:
+        """Create the database.
+
+        Returns:
+            Outputs for the new database.
+        """
+        database = await asyncio.to_thread(
+            CloudClient().create_database, self.config.name, self.config.size_gb
+        )
+        return DatabaseOutputs(connection_url=database.connection_url)
+
+    async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOutputs:
+        """Resize the database to the configured size.
+
+        Args:
+            previous_config: Configuration last applied, or ``None`` when the
+                platform holds none for an existing database.
+
+        Returns:
+            Outputs for the resized database.
+        """
+        database = await asyncio.to_thread(
+            CloudClient().resize_database, self.config.name, self.config.size_gb
+        )
+        return DatabaseOutputs(connection_url=database.connection_url)
 
     async def on_delete(self) -> None:
-        # Clean up database
-        pass
+        """Delete the database. Succeeds when it is already gone."""
+        try:
+            await asyncio.to_thread(CloudClient().delete_database, self.config.name)
+        except NotFound:
+            pass
 ```
 
 ---
@@ -985,7 +726,7 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
     Create custom providers with lifecycle methods.
   </Card>
   <Card title="Lifecycle Methods" icon="rotate" href="/building-providers/lifecycle">
-    Deep dive into on_create, on_update, and on_delete.
+    Deep dive into on_observe, on_create, on_update, and on_delete.
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/introduction">
     Full REST API documentation.

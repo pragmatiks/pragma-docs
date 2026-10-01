@@ -1,0 +1,79 @@
+---
+title: "Prompt"
+description: "Reusable instruction templates for agents and teams"
+---
+
+> Defines reusable instructions that agents and teams reference instead of repeating them inline.
+
+## `agno/prompt`
+
+### Config
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `instructions` | `list[string]` | Conditional | `[]` | Instruction lines, joined with newlines. At least one of `instructions` or `template` is required |
+| `template` | `string` | Conditional | — | Template text with `{{variable}}` placeholders. At least one of `instructions` or `template` is required |
+| `variables` | `dict[string, string]` | No | `{}` | Values substituted into `template` placeholders |
+
+### Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `spec` | `object` | Prompt spec with `instructions`, `variables`, and the `rendered` text |
+
+## Dependencies
+
+**Depends on:** Nothing.
+
+**Depended on by:**
+- `agno/agent` — in the `prompt` field
+- `agno/team` — in the `prompt` field
+
+## Example — Instructions
+
+```yaml
+provider: agno
+resource: prompt
+name: support-guidelines
+config:
+  instructions:
+    - "You are a customer support assistant."
+    - "Answer in a friendly, concise tone."
+```
+
+## Example — Template with variables
+
+```yaml
+provider: agno
+resource: prompt
+name: domain-expert
+config:
+  template: "You are an expert in {{domain}}. Answer for a {{audience}} audience."
+  variables:
+    domain: "cloud infrastructure"
+    audience: "beginner"
+```
+
+Reference the prompt from an agent:
+
+```yaml
+provider: agno
+resource: agent
+name: helper
+config:
+  model:
+    provider: agno
+    resource: models/anthropic
+    name: claude
+  prompt:
+    provider: agno
+    resource: prompt
+    name: domain-expert
+```
+
+## Notes
+
+- Rendering: `instructions` are joined with newlines; `template` has its placeholders replaced by `variables`. When both are set, the rendered template is appended after the instructions.
+- Every `{{variable}}` in `template` must have a value in `variables`, or the config is rejected.
+- When an agent or team sets `prompt`, the rendered prompt replaces that agent's or team's own `instructions`.
+- Updating a prompt re-renders it and propagates to every agent and team that references it.

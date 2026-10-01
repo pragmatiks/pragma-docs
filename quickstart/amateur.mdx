@@ -3,7 +3,7 @@ title: "Deploy Your First AI Agent"
 description: "Go from zero to a running AI agent in 20 minutes"
 ---
 
-In this quickstart, you'll deploy an AI agent powered by Claude. You'll create four resources that form a dependency chain: a **secret** stores your API key, a **model** references the secret, an **agent** uses the model, and a **runner** deploys the agent to Kubernetes.
+In this quickstart, you'll deploy an AI agent powered by Claude. You'll create a dependency chain: a **secret** stores your API key, a **model** references the secret, an **agent** uses the model, and a **runner** deploys the agent to a GKE cluster that Pragmatiks also manages.
 
 <Note>
 **Time estimate**: 20 minutes. You'll need an Anthropic API key and a GCP project.
@@ -16,10 +16,14 @@ graph LR
     S[pragma/secret] --> M[agno/models/anthropic]
     M --> A[agno/agent]
     A --> R[agno/runner]
-    GKE[gcp/gke] --> R
+    GS[pragma/secret] --> GKE[gcp/gke]
+    GKE --> KC[kubernetes/config]
+    KC --> NS[kubernetes/namespace]
+    KC --> R
+    NS --> R
 ```
 
-Four resources, wired together. When you apply them, Pragmatiks resolves the dependency chain automatically — the secret provisions first, then the model, then the agent, then the runner.
+Eight resources, wired together. When you apply them, Pragmatiks resolves the dependency graph automatically — secrets first, then the model and the cluster, then the agent and the cluster access, then the runner.
 
 ## Prerequisites
 
@@ -128,9 +132,24 @@ This opens your browser. Sign in, and you're connected.
     ```
   </Step>
   <Step title="Deploy it">
-    The runner deploys your agent to a Kubernetes cluster. It needs two dependencies: the agent to deploy and a GKE cluster to deploy it on.
+    The runner deploys your agent to a Kubernetes cluster. It needs the agents to deploy, a `kubernetes/config` for cluster access, and a `kubernetes/namespace` to deploy into.
 
-    First, create the cluster. Create `cluster.yaml`:
+    First, store your GCP service account key as a secret. Create `gcp-credentials.yaml`:
+
+    ```yaml gcp-credentials.yaml
+    provider: pragma
+    resource: secret
+    name: gcp-credentials
+    config:
+      data:
+        credentials_json: '{"type": "service_account", "project_id": "your-gcp-project-id", ...}'
+    ```
+
+    <Tip>
+    Paste your GCP service account JSON key as the `credentials_json` value. You can get one from the [GCP Console](https://console.cloud.google.com/iam-admin/serviceaccounts) under **Keys > Add Key > JSON**.
+    </Tip>
+
+    Then describe the cluster, how to reach it, and the namespace to deploy into. Create `cluster.yaml`:
 
     ```yaml cluster.yaml
     provider: gcp
@@ -139,28 +158,41 @@ This opens your browser. Sign in, and you're connected.
     config:
       project_id: your-gcp-project-id
       credentials:
-        type: service_account
-        project_id: your-gcp-project-id
-        private_key_id: "..."
-        private_key: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-        client_email: "sa@your-gcp-project-id.iam.gserviceaccount.com"
-        client_id: "..."
-        auth_uri: "https://accounts.google.com/o/oauth2/auth"
-        token_uri: "https://oauth2.googleapis.com/token"
+        provider: pragma
+        resource: secret
+        name: gcp-credentials
+        field: outputs.credentials_json
       location: europe-west4
       name: my-cluster
+    ---
+    provider: kubernetes
+    resource: config
+    name: my-cluster
+    config:
+      mode: gke_cluster
+      cluster:
+        provider: gcp
+        resource: gke
+        name: my-cluster
+    ---
+    provider: kubernetes
+    resource: namespace
+    name: agents
+    config:
+      config:
+        provider: kubernetes
+        resource: config
+        name: my-cluster
     ```
 
-    <Tip>
-    Paste your GCP service account JSON key into the `credentials` field. You can get one from the [GCP Console](https://console.cloud.google.com/iam-admin/serviceaccounts) under **Keys > Add Key > JSON**.
-    </Tip>
+    The `kubernetes/config` resource gives Kubernetes resources access to the GKE cluster, and `kubernetes/namespace` creates the `agents` namespace in it.
 
     ```bash
-    pragma resources apply cluster.yaml
+    pragma resources apply gcp-credentials.yaml cluster.yaml
     ```
 
     <Note>
-    GKE cluster creation takes 5-10 minutes. Wait for it to reach READY state before continuing.
+    GKE cluster creation takes 5-10 minutes. Resources that depend on the cluster wait until it is READY.
     </Note>
 
     Then deploy the agent. Create `runner.yaml`:
@@ -170,14 +202,18 @@ This opens your browser. Sign in, and you're connected.
     resource: runner
     name: my-assistant
     config:
-      agent:
-        provider: agno
-        resource: agent
-        name: my-assistant
-      cluster:
-        provider: gcp
-        resource: gke
+      agents:
+        - provider: agno
+          resource: agent
+          name: my-assistant
+      config:
+        provider: kubernetes
+        resource: config
         name: my-cluster
+      namespace:
+        provider: kubernetes
+        resource: namespace
+        name: agents
     ```
 
     ```bash
@@ -191,15 +227,18 @@ This opens your browser. Sign in, and you're connected.
     pragma resources list
     ```
 
-    You should see all five resources in `READY` state:
+    You should see all eight resources in `READY` state:
 
     ```
-    PROVIDER   RESOURCE            NAME            STATUS
-    pragma     secret              anthropic-key   READY
-    agno       models/anthropic    claude          READY
-    agno       agent               my-assistant    READY
-    gcp        gke                 my-cluster      READY
-    agno       runner              my-assistant    READY
+    PROVIDER     RESOURCE            NAME              STATUS
+    pragma       secret              anthropic-key     READY
+    agno         models/anthropic    claude            READY
+    agno         agent               my-assistant      READY
+    pragma       secret              gcp-credentials   READY
+    gcp          gke                 my-cluster        READY
+    kubernetes   config              my-cluster        READY
+    kubernetes   namespace           agents            READY
+    agno         runner              my-assistant      READY
     ```
 
     Get details about your deployed agent:
@@ -219,7 +258,8 @@ You created a **dependency chain** of resources:
 1. **Secret** stores your API key securely
 2. **Model** references the secret via a field reference (`field: outputs.ANTHROPIC_API_KEY`)
 3. **Agent** depends on the model (whole-resource dependency)
-4. **Runner** depends on both the agent and the GKE cluster
+4. **Cluster**: `gcp/gke` reads its credentials from a second secret; `kubernetes/config` gives access to it and `kubernetes/namespace` creates the `agents` namespace
+5. **Runner** depends on the agent, the Kubernetes config, and the namespace
 
 Pragmatiks resolved the entire chain automatically. It figured out the correct order, waited for each resource to become READY before processing its dependents, and wired the values through.
 
@@ -261,35 +301,61 @@ config:
     - "Be concise and accurate in your responses."
   markdown: true
 ---
+provider: pragma
+resource: secret
+name: gcp-credentials
+config:
+  data:
+    credentials_json: '{"type": "service_account", "project_id": "your-gcp-project-id", ...}'
+---
 provider: gcp
 resource: gke
 name: my-cluster
 config:
   project_id: your-gcp-project-id
   credentials:
-    type: service_account
-    project_id: your-gcp-project-id
-    private_key_id: "your-key-id"
-    private_key: "-----BEGIN PRIVATE KEY-----\nyour-private-key\n-----END PRIVATE KEY-----\n"
-    client_email: "sa@your-gcp-project-id.iam.gserviceaccount.com"
-    client_id: "your-client-id"
-    auth_uri: "https://accounts.google.com/o/oauth2/auth"
-    token_uri: "https://oauth2.googleapis.com/token"
+    provider: pragma
+    resource: secret
+    name: gcp-credentials
+    field: outputs.credentials_json
   location: europe-west4
   name: my-cluster
+---
+provider: kubernetes
+resource: config
+name: my-cluster
+config:
+  mode: gke_cluster
+  cluster:
+    provider: gcp
+    resource: gke
+    name: my-cluster
+---
+provider: kubernetes
+resource: namespace
+name: agents
+config:
+  config:
+    provider: kubernetes
+    resource: config
+    name: my-cluster
 ---
 provider: agno
 resource: runner
 name: my-assistant
 config:
-  agent:
-    provider: agno
-    resource: agent
-    name: my-assistant
-  cluster:
-    provider: gcp
-    resource: gke
+  agents:
+    - provider: agno
+      resource: agent
+      name: my-assistant
+  config:
+    provider: kubernetes
+    resource: config
     name: my-cluster
+  namespace:
+    provider: kubernetes
+    resource: namespace
+    name: agents
 ```
 
 Apply everything at once:

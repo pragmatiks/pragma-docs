@@ -146,13 +146,15 @@ pragma ops dead-letter delete --provider <provider-name>
 
 ## Provider Development
 
-### "Could not detect provider package"
+### "pyproject.toml not found" or "Missing [tool.pragma] section"
 
-Run commands from the provider directory, or specify `--package`:
+`pragma providers publish` reads the provider project's `pyproject.toml`. Run it from the provider directory, or pass the directory:
 
 ```bash
-pragma providers sync --package mycompany_provider
+pragma providers publish ./mycompany-provider
 ```
+
+The `[tool.pragma]` table needs `provider`, `package`, `display_name`, and `description`; `pragma providers init` generates it.
 
 ## Getting Help
 

@@ -19,13 +19,15 @@ Connects to a Model Context Protocol (MCP) server, giving agents access to exter
 | `command` | `string` | Conditional | — | Command to run the MCP server (for `stdio` transport). Mutually exclusive with `url` |
 | `url` | `string` | Conditional | — | URL for SSE or streamable-http transport. Mutually exclusive with `command` |
 | `transport` | `"stdio"` \| `"sse"` \| `"streamable-http"` | No | Auto-detected | Transport protocol. Inferred from `command` (stdio) or `url` (sse) if not set |
-| `env` | `dict[string, Field[string]]` | No | — | Environment variables for the server process |
-| `headers` | `dict[string, Field[string]]` | No | — | Static HTTP headers for remote transports |
+| `env` | `Field[dict[string, string]]` | No | — | Environment variables for the server process |
+| `headers` | `Field[dict[string, string]]` | No | — | Static HTTP headers for remote transports |
 | `include_run_context_headers` | `boolean` | No | `false` | Forward agent run context as headers (`X-User-ID`, `X-Session-ID`, `X-Run-ID`) |
 | `timeout_seconds` | `integer` | No | `10` | Connection timeout in seconds |
 | `include_tools` | `list[string]` | No | — | Only include these tool names |
 | `exclude_tools` | `list[string]` | No | — | Exclude these tool names |
 | `tool_name_prefix` | `string` | No | — | Prefix added to all tool names (avoids collisions) |
+| `requires_confirmation_tools` | `list[string]` | No | — | Tool names that require user confirmation before execution |
+| `external_execution_tools` | `list[string]` | No | — | Tool names that are executed outside the agent |
 
 ### Outputs
 
@@ -42,11 +44,7 @@ name: my-tools
 config:
   url: "https://mcp.example.com/sse"
   headers:
-    Authorization:
-      provider: pragma
-      resource: secret
-      name: mcp-token
-      field: outputs.TOKEN
+    Authorization: "Bearer your-token"
   include_run_context_headers: true
   timeout_seconds: 30
 ```
@@ -60,11 +58,7 @@ name: local-tools
 config:
   command: "npx -y @modelcontextprotocol/server-filesystem /data"
   env:
-    API_KEY:
-      provider: pragma
-      resource: secret
-      name: api-key
-      field: outputs.API_KEY
+    LOG_LEVEL: "info"
 ```
 
   </Tab>
@@ -111,7 +105,7 @@ config:
 
 ## Dependencies
 
-**Depends on:** Nothing directly, but `env` and `headers` fields on MCP tools support FieldReferences.
+**Depends on:** Nothing directly. `env` and `headers` accept a field reference for the whole map.
 
 **Depended on by:**
 - `agno/agent` — in the `tools` list
@@ -121,5 +115,7 @@ config:
 
 - For MCP tools, you must provide exactly one of `command` or `url`.
 - The `transport` type is auto-detected if not specified: `command` implies `stdio`, `url` implies `sse`.
+- `env` and `headers` take either a map of literal strings or a single field reference whose resolved value is the whole map. A field reference on an individual value is rejected when you apply the resource.
+- `env` and `headers` are not sensitive fields: their values are shown as written.
 - The `include_run_context_headers` option forwards the agent's user ID, session ID, and run ID as HTTP headers to the MCP server.
 - Web search requires the `ddgs` package, which is automatically included as a pip dependency.

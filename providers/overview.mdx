@@ -37,7 +37,7 @@ AI agent framework for building and deploying agents and teams. [View documentat
 | [`agno/knowledge/content`](/providers/agno/knowledge) | Content ingestion (URLs, text) |
 | [`agno/memory/manager`](/providers/agno/memory) | Persistent agent memory |
 | [`agno/db/postgres`](/providers/agno/storage) | PostgreSQL storage for sessions and memory |
-| [`agno/prompt`](/providers/agno/agent) | Reusable prompt templates |
+| [`agno/prompt`](/providers/agno/prompt) | Reusable prompt templates |
 | [`agno/runner`](/providers/agno/deployment) | Deploy agents/teams to Kubernetes |
 
 ### GCP Provider
@@ -58,36 +58,13 @@ Core Kubernetes resources for workloads and configuration. [View documentation â
 
 | Resource | Description |
 |----------|-------------|
+| `kubernetes/config` | Authenticated cluster access for the other Kubernetes resources |
+| `kubernetes/namespace` | Namespace isolation |
 | [`kubernetes/deployment`](/providers/kubernetes/deployment) | Stateless workloads with rolling updates |
 | `kubernetes/statefulset` | Stateful workloads with persistent storage |
-| `kubernetes/service` | Network exposure (ClusterIP, LoadBalancer, NodePort) |
+| `kubernetes/service` | Network exposure (ClusterIP, NodePort, LoadBalancer, Headless) |
 | `kubernetes/configmap` | Configuration key-value storage |
 | `kubernetes/secret` | Sensitive data storage |
-
-### Anthropic Provider
-
-Claude AI model integration.
-
-| Resource | Description |
-|----------|-------------|
-| `anthropic/messages` | Claude Messages API for completions |
-
-### OpenAI Provider
-
-OpenAI model integration.
-
-| Resource | Description |
-|----------|-------------|
-| `openai/chat_completions` | Chat Completions API |
-| `openai/embeddings` | Text embeddings API |
-
-### Docling Provider
-
-Document parsing for RAG pipelines.
-
-| Resource | Description |
-|----------|-------------|
-| `docling/parser` | Parse PDF, DOCX, HTML, Markdown with OCR support |
 
 ### Qdrant Provider
 
@@ -95,8 +72,36 @@ Vector database for similarity search.
 
 | Resource | Description |
 |----------|-------------|
-| `qdrant/database` | Deploy Qdrant to GKE via Helm |
+| `qdrant/database` | Deploy Qdrant to a Kubernetes cluster |
 | `qdrant/collection` | Manage vector collections |
+
+### GitHub Provider
+
+GitHub repositories, environments, and secrets.
+
+| Resource | Description |
+|----------|-------------|
+| `github/repository` | Repositories with visibility, features, and branch settings |
+| `github/environment` | Deployment environments with protection rules |
+| `github/secret` | Repository and environment secrets |
+
+### Supabase Provider
+
+Supabase projects.
+
+| Resource | Description |
+|----------|-------------|
+| `supabase/project` | Projects, including their authentication settings |
+
+### Vercel Provider
+
+Vercel projects, deployments, and domains.
+
+| Resource | Description |
+|----------|-------------|
+| `vercel/project` | Projects with framework, build settings, and environment variables |
+| `vercel/deployment` | Deployments of a Vercel project |
+| `vercel/domain` | Custom domains on Vercel projects |
 
 ### Pragma Provider
 

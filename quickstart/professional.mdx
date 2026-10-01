@@ -17,6 +17,9 @@ graph TD
     S2[pragma/secret<br/>openai-key] --> M2[agno/models/openai<br/>gpt4o]
     S2 --> EMB[agno/knowledge/embedder/openai<br/>embedder]
 
+    S3[pragma/secret<br/>qdrant-key] --> COL[qdrant/collection<br/>knowledge-base]
+    S3 --> VDB
+    COL --> VDB
     EMB --> VDB[agno/vectordb/qdrant<br/>embeddings]
     VDB --> KB[agno/knowledge<br/>docs]
 
@@ -31,18 +34,19 @@ graph TD
     A1 --> T[agno/team<br/>research-team]
     A2 --> T
 
-    GKE[gcp/gke<br/>cluster] --> R[agno/runner<br/>research-team]
+    KC[kubernetes/config<br/>my-cluster] --> R[agno/runner<br/>research-team]
+    NS[kubernetes/namespace<br/>agents] --> R
     T --> R
 ```
 
-13 resources, wired together. Pragmatiks resolves the entire dependency graph in the correct order.
+15 new resources, wired together, plus the cluster access and namespace from the amateur quickstart. Pragmatiks resolves the entire dependency graph in the correct order.
 
 ## Prerequisites
 
 - Completed the [amateur quickstart](/quickstart/amateur) (CLI installed, authenticated)
 - An [OpenAI API key](https://platform.openai.com/api-keys) (for embeddings and GPT-4o)
 - A running Qdrant instance ([Qdrant Cloud](https://cloud.qdrant.io/) free tier works)
-- A GKE cluster managed by Pragmatiks (created in the amateur quickstart)
+- The `my-cluster` Kubernetes config and `agents` namespace from the amateur quickstart
 
 ## Step 1: Secrets
 
@@ -137,7 +141,7 @@ pragma resources apply tools.yaml
 
 ## Step 4: Knowledge base
 
-Set up vector search so agents can query a knowledge base. This creates three connected resources: an embedder, a vector database, and the knowledge base itself.
+Set up vector search so agents can query a knowledge base. This creates four connected resources: an embedder, a Qdrant collection, a vector database configuration, and the knowledge base itself.
 
 Create `knowledge.yaml`:
 
@@ -153,18 +157,36 @@ config:
     name: openai-key
     field: outputs.OPENAI_API_KEY
 ---
-provider: agno
-resource: vectordb/qdrant
-name: embeddings
+provider: qdrant
+resource: collection
+name: knowledge-base
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
-  collection: knowledge-base
   api_key:
     provider: pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
-  search_type: hybrid
+  name: knowledge-base
+  vectors:
+    size: 1536
+    distance: Cosine
+---
+provider: agno
+resource: vectordb/qdrant
+name: embeddings
+config:
+  url: "https://your-instance.cloud.qdrant.io:6333"
+  collection:
+    provider: qdrant
+    resource: collection
+    name: knowledge-base
+    field: outputs.name
+  api_key:
+    provider: pragma
+    resource: secret
+    name: qdrant-key
+    field: outputs.QDRANT_API_KEY
   embedder:
     provider: agno
     resource: knowledge/embedder/openai
@@ -183,7 +205,8 @@ config:
 
 Notice the layered dependencies:
 - The **embedder** references the OpenAI secret
-- The **vector database** references the embedder (dependency) and the Qdrant secret (field reference)
+- The **collection** creates the `knowledge-base` collection in Qdrant, sized for the embedder's 1536-dimensional vectors
+- The **vector database** references the embedder (dependency), the collection's name, and the Qdrant secret (field references)
 - The **knowledge base** references the vector database
 
 ```bash
@@ -275,22 +298,25 @@ pragma resources apply team.yaml
 
 ## Step 7: Deploy and observe
 
-Deploy the team to your GKE cluster. Create `runner.yaml`:
+Deploy the team to the `agents` namespace of your cluster. Create `runner.yaml`:
 
 ```yaml runner.yaml
 provider: agno
 resource: runner
 name: research-team
 config:
-  team:
-    provider: agno
-    resource: team
-    name: research-team
-  cluster:
-    provider: gcp
-    resource: gke
+  teams:
+    - provider: agno
+      resource: team
+      name: research-team
+  config:
+    provider: kubernetes
+    resource: config
     name: my-cluster
-  namespace: agents
+  namespace:
+    provider: kubernetes
+    resource: namespace
+    name: agents
 ```
 
 ```bash
@@ -303,7 +329,7 @@ Watch the resources resolve:
 pragma resources list
 ```
 
-All 13 resources should reach `READY` state. Pragmatiks resolved the dependency graph — secrets first, then models and tools, then agents, then the team, then the runner.
+All 15 resources should reach `READY` state. Pragmatiks resolved the dependency graph — secrets first, then models, tools, and the collection, then agents, then the team, then the runner.
 
 ## Step 8: Change propagation
 
@@ -381,11 +407,11 @@ api_key:
   field: outputs.ANTHROPIC_API_KEY
 ```
 
-Resources can be applied in any order. Pragmatiks holds unresolved resources in `PENDING` state until their dependencies are ready, then processes them automatically.
+Resources can be applied in any order. Pragmatiks holds unresolved resources in `WAITING` state until their dependencies are ready, then processes them automatically.
 
 ## Full YAML
 
-<Accordion title="Complete multi-document YAML (all 13 resources)">
+<Accordion title="Complete multi-document YAML (all 15 resources)">
 ```yaml pipeline.yaml
 # --- Secrets ---
 provider: pragma
@@ -459,18 +485,36 @@ config:
     name: openai-key
     field: outputs.OPENAI_API_KEY
 ---
-provider: agno
-resource: vectordb/qdrant
-name: embeddings
+provider: qdrant
+resource: collection
+name: knowledge-base
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
-  collection: knowledge-base
   api_key:
     provider: pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
-  search_type: hybrid
+  name: knowledge-base
+  vectors:
+    size: 1536
+    distance: Cosine
+---
+provider: agno
+resource: vectordb/qdrant
+name: embeddings
+config:
+  url: "https://your-instance.cloud.qdrant.io:6333"
+  collection:
+    provider: qdrant
+    resource: collection
+    name: knowledge-base
+    field: outputs.name
+  api_key:
+    provider: pragma
+    resource: secret
+    name: qdrant-key
+    field: outputs.QDRANT_API_KEY
   embedder:
     provider: agno
     resource: knowledge/embedder/openai
@@ -552,15 +596,18 @@ provider: agno
 resource: runner
 name: research-team
 config:
-  team:
-    provider: agno
-    resource: team
-    name: research-team
-  cluster:
-    provider: gcp
-    resource: gke
+  teams:
+    - provider: agno
+      resource: team
+      name: research-team
+  config:
+    provider: kubernetes
+    resource: config
     name: my-cluster
-  namespace: agents
+  namespace:
+    provider: kubernetes
+    resource: namespace
+    name: agents
 ```
 </Accordion>
 

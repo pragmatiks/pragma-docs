@@ -3,19 +3,26 @@ title: "Lifecycle Methods"
 description: "Deep dive into on_create, on_update, and on_delete lifecycle methods"
 ---
 
-Every resource must implement three lifecycle methods that Pragmatiks calls when managing your resources. These methods define how your resource is created, updated, and deleted.
+Every resource implements lifecycle methods that Pragmatiks calls when managing your resources. Handlers are observe-then-act: each resource owns exactly one external object, findable from its identity and config alone. `on_observe` reports whether that object exists and what it looks like; `on_create`, `on_update`, and `on_delete` converge it to the configuration.
 
 ## Method Signatures
 
 ```python
-from pragma_sdk import Resource, Config, Outputs
+from pragma_sdk import Config, Outputs, Resource
+
 
 class MyResource(Resource[MyConfig, MyOutputs]):
+    """Resource that owns one external object."""
+
     async def on_create(self) -> MyOutputs:
         """Called when creating a new resource."""
         ...
 
-    async def on_update(self, previous_config: MyConfig) -> MyOutputs:
+    async def on_observe(self) -> MyOutputs | None:
+        """Called to report the external object, or None when it does not exist."""
+        ...
+
+    async def on_update(self, previous_config: MyConfig | None) -> MyOutputs:
         """Called when updating an existing resource."""
         ...
 
@@ -24,7 +31,9 @@ class MyResource(Resource[MyConfig, MyOutputs]):
         ...
 ```
 
-All lifecycle methods are `async` and run within the provider runtime.
+All lifecycle methods are `async` and run within the provider runtime. Do I/O through an async client or `await asyncio.to_thread(...)`, so a handler yields to the event loop and can be cancelled.
+
+`on_observe` is mandatory unless the resource is [computed](#computed-resources). Registering a non-computed class without it raises `MissingObserveError` when the provider package is imported, so `pragma providers publish` fails naming the resource type.
 
 ## Instance Attributes
 
@@ -33,8 +42,9 @@ Inside lifecycle methods, you have access to several instance attributes:
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `self.name` | `str` | Resource instance name |
-| `self.config` | `ConfigT` | Current configuration |
-| `self.outputs` | `OutputsT \| None` | Existing outputs (available in `on_update` and `on_delete`) |
+| `self.project_id` | `str` | Project the resource belongs to |
+| `self.config` | `ConfigT` | Current configuration, with dependencies resolved |
+| `self.outputs` | `OutputsT \| None` | Never populated when a handler runs. Read state from the external system instead |
 | `self.tags` | `list[str] \| None` | Tags attached to the resource |
 
 ## on_create
@@ -43,16 +53,14 @@ Called when a resource is first created. Your implementation should provision th
 
 ```python
 async def on_create(self) -> DatabaseOutputs:
-    # Provision the actual resource
-    db = await self.client.create_database(
+    database = await self.client.create_database(
         name=self.config.name,
         size=self.config.size_gb,
     )
 
-    # Return outputs for dependent resources
     return DatabaseOutputs(
-        connection_url=db.connection_string,
-        database_id=db.id,
+        connection_url=database.connection_string,
+        database_id=database.id,
     )
 ```
 
@@ -60,55 +68,85 @@ async def on_create(self) -> DatabaseOutputs:
 
 **Return value:** An instance of your `Outputs` class containing values that other resources can reference.
 
-## on_update
+## on_observe
 
-Called when a resource configuration changes. Receives the previous configuration so you can determine what changed and respond appropriately.
+Reports the external object this resource owns. Locate it solely from identity (`self.project_id`, `self.name`) and `self.config`, including resolved dependencies, never from `self.outputs`. Read only the external system, never other resources; a handler that needs another resource declares a `Dependency`.
 
 ```python
-async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
-    # Detect immutable field changes
-    if previous_config.name != self.config.name:
-        raise ValueError("Cannot rename database; delete and recreate")
+async def on_observe(self) -> DatabaseOutputs | None:
+    try:
+        database = await self.client.get_database(self.config.name)
+    except NotFoundError:
+        return None
 
-    # Handle mutable field changes
-    if previous_config.size_gb != self.config.size_gb:
-        await self.client.resize_database(
-            database_id=self.outputs.database_id,
+    return DatabaseOutputs(
+        connection_url=database.connection_string,
+        database_id=database.id,
+    )
+```
+
+**Return value:** `None` when no object exists for this identity. Otherwise the same `Outputs` the write path returned for that state.
+
+**Errors:** Let anything other than "not found" propagate. An exception means the observation failed, not that the object is absent. When the external system can hold more than one match for the key, raise on more than one match.
+
+**Stable outputs:** Every output field is derived from identity or config, or read from the object once the write path has waited for it to be ready, and `on_observe` reads it the same way. Values that change without a platform write, such as replica readiness, counters, or indexing status, belong in `health()`, never in outputs.
+
+## on_update
+
+Called to converge an existing object to the current configuration. Receives the previous configuration so you can limit the work to what changed.
+
+```python
+async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOutputs:
+    database = await self.client.get_database(self.config.name)
+
+    if previous_config is None or previous_config.size_gb != self.config.size_gb:
+        database = await self.client.resize_database(
+            database_id=database.id,
             new_size=self.config.size_gb,
         )
 
-    # Return updated outputs (or existing if unchanged)
-    return self.outputs
+    return DatabaseOutputs(
+        connection_url=database.connection_string,
+        database_id=database.id,
+    )
 ```
 
-**When called:** Each time the resource configuration changes after initial creation.
+**When called:** Each time the resource configuration changes after initial creation, and when a create finds the object already present.
 
 **Parameters:**
-- `previous_config`: The configuration from the previous successful apply. Use this to detect what changed.
+- `previous_config`: The configuration from the previous successful apply, or `None` when the object exists but the platform holds no prior configuration. On `None`, skip "unchanged, return early" shortcuts and apply the full desired state.
 
-**Return value:** An instance of your `Outputs` class. Return `self.outputs` if nothing relevant changed.
+**Return value:** An instance of your `Outputs` class, read from the converged object.
 
 ### Common Update Patterns
 
-**Immutable fields** - Some fields cannot be changed in-place. Raise an error to force delete and recreate:
+**Immutable fields** - Fields that cannot change in place, and every field `on_observe` reads to locate the object, are declared `ImmutableField` or `ImmutableDependency`. The platform refuses a change to them, so a user changes one by deleting and recreating the resource. The handler never checks them:
 
 ```python
-async def on_update(self, previous_config: SecretConfig) -> SecretOutputs:
-    if previous_config.project_id != self.config.project_id:
-        raise ValueError("Cannot change project_id; delete and recreate resource")
+class SecretConfig(Config):
+    """Configuration for a secret.
+
+    Attributes:
+        project_id: Project holding the secret. Locates the secret, so it cannot change.
+        secret_id: Secret name. Locates the secret, so it cannot change.
+        data: Secret payload.
+    """
+
+    project_id: ImmutableField[str]
+    secret_id: ImmutableField[str]
+    data: SensitiveField[str]
 ```
 
-**No-op when unchanged** - Skip work if the relevant fields haven't changed:
+**No-op when unchanged** - Skip work when the live object already matches the configuration:
 
 ```python
-async def on_update(self, previous_config: SecretConfig) -> SecretOutputs:
-    # If data unchanged, return existing outputs
-    if previous_config.data == self.config.data:
-        return self.outputs
+async def on_update(self, previous_config: SecretConfig | None) -> SecretOutputs:
+    latest = await self.client.get_latest_version(self.config.secret_id)
 
-    # Otherwise, perform the update
-    version = await self.client.add_version(data=self.config.data)
-    return SecretOutputs(version_id=version.id)
+    if latest.data != self.config.data:
+        latest = await self.client.add_version(data=self.config.data)
+
+    return SecretOutputs(version_id=latest.id)
 ```
 
 ## on_delete
@@ -118,10 +156,9 @@ Called when a resource is being removed. Clean up the underlying infrastructure.
 ```python
 async def on_delete(self) -> None:
     try:
-        await self.client.delete_database(self.outputs.database_id)
+        await self.client.delete_database(self.config.name)
     except NotFoundError:
-        # Already deleted - this is fine (idempotent)
-        pass
+        return
 ```
 
 **When called:** When a resource is removed from a graph or explicitly deleted.
@@ -131,7 +168,7 @@ async def on_delete(self) -> None:
 ## Idempotency Requirements
 
 <Warning>
-All lifecycle methods **must be idempotent**. The same method may be called multiple times with the same input, and must produce the same result.
+All lifecycle methods **must be idempotent**. The same method may be called multiple times with the same input, and must produce the same result. Creating an object that already exists converges it through `on_update(previous_config=None)`; deleting an object that is already gone succeeds.
 </Warning>
 
 This happens when:
@@ -141,14 +178,13 @@ This happens when:
 
 ### Idempotent Create
 
-Handle the case where the resource already exists:
+Handle the case where a previous attempt already created the resource by reading it instead:
 
 ```python
 async def on_create(self) -> SecretOutputs:
     try:
         secret = await self.client.create_secret(self.config.secret_id)
     except AlreadyExistsError:
-        # Resource exists from a previous attempt - get it instead
         secret = await self.client.get_secret(self.config.secret_id)
 
     return SecretOutputs(resource_name=secret.name)
@@ -156,27 +192,28 @@ async def on_create(self) -> SecretOutputs:
 
 ### Idempotent Delete
 
-Handle the case where the resource is already gone:
+Handle the case where the resource is already gone; that counts as success:
 
 ```python
 async def on_delete(self) -> None:
     try:
         await self.client.delete_secret(self.config.secret_id)
     except NotFoundError:
-        # Already deleted - success
-        pass
+        return
 ```
 
 ### Idempotent Update
 
-Return existing outputs when nothing needs to change:
+Compare the live object with the configuration and write only the difference. With `previous_config=None`, never assume nothing changed:
 
 ```python
-async def on_update(self, previous_config: MyConfig) -> MyOutputs:
-    if previous_config == self.config:
-        return self.outputs  # No changes needed
+async def on_update(self, previous_config: MyConfig | None) -> MyOutputs:
+    current = await self.client.get_object(self.config.name)
 
-    # Perform update...
+    if current.settings != self.config.settings:
+        current = await self.client.update_object(self.config.name, self.config.settings)
+
+    return MyOutputs(object_id=current.id)
 ```
 
 ## Error Handling
@@ -189,13 +226,13 @@ Raise exceptions to signal failures. The runtime will:
 ```python
 async def on_create(self) -> DatabaseOutputs:
     try:
-        db = await self.client.create_database(self.config.name)
-    except QuotaExceededError as e:
-        raise RuntimeError(f"Quota exceeded: {e}")
-    except InvalidConfigError as e:
-        raise ValueError(f"Invalid configuration: {e}")
+        database = await self.client.create_database(self.config.name)
+    except QuotaExceededError as error:
+        raise RuntimeError(f"Quota exceeded: {error}") from error
+    except InvalidConfigError as error:
+        raise ValueError(f"Invalid configuration: {error}") from error
 
-    return DatabaseOutputs(connection_url=db.url)
+    return DatabaseOutputs(connection_url=database.url)
 ```
 
 Use specific exception types:
@@ -206,75 +243,164 @@ Use specific exception types:
 ## Complete Example
 
 ```python
-from pragma_sdk import Resource, Config, Outputs, Provider
-from mycloud import CloudClient
+from mycloud import CloudClient, CloudDatabase
 from mycloud.exceptions import AlreadyExists, NotFound
+from pragma_sdk import Config, Field, ImmutableField, Outputs, Provider, Resource
 
 
 class DatabaseConfig(Config):
-    name: str
-    size_gb: int = 10
-    region: str = "us-east-1"
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name. Locates the database, so it cannot change.
+        size_gb: Storage size in gigabytes.
+        region: Region hosting the database. Cannot change in place.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int] = 10
+    region: ImmutableField[str] = "us-east-1"
 
 
 class DatabaseOutputs(Outputs):
+    """Outputs of a managed database.
+
+    Attributes:
+        database_id: Identifier assigned by the cloud.
+        connection_url: Connection string for clients.
+        host: Database host name.
+    """
+
     database_id: str
     connection_url: str
     host: str
 
 
-mycloud = Provider(name="mycloud")
+mycloud = Provider()
 
 
 @mycloud.resource("database")
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
-    def _get_client(self) -> CloudClient:
-        return CloudClient()
+    """Managed database located by its name and region."""
 
-    async def on_create(self) -> DatabaseOutputs:
-        client = self._get_client()
+    def build_client(self) -> CloudClient:
+        """Build an async client for the configured region.
 
-        try:
-            db = client.create_database(
-                name=self.config.name,
-                size_gb=self.config.size_gb,
-                region=self.config.region,
-            )
-        except AlreadyExists:
-            # Idempotent: get existing if already created
-            db = client.get_database(self.config.name)
+        Returns:
+            Cloud API client.
+        """
+        return CloudClient(region=self.config.region)
 
+    def build_outputs(self, database: CloudDatabase) -> DatabaseOutputs:
+        """Build outputs from a database read from the cloud.
+
+        Args:
+            database: Database as the cloud API reports it.
+
+        Returns:
+            Outputs for the database.
+        """
         return DatabaseOutputs(
-            database_id=db.id,
-            connection_url=db.connection_string,
-            host=db.host,
+            database_id=database.id,
+            connection_url=database.connection_string,
+            host=database.host,
         )
 
-    async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
-        # Immutable fields
-        if previous_config.name != self.config.name:
-            raise ValueError("Cannot rename database; delete and recreate")
-        if previous_config.region != self.config.region:
-            raise ValueError("Cannot change region; delete and recreate")
+    async def on_create(self) -> DatabaseOutputs:
+        """Create the database, or adopt it when a previous attempt created it.
 
-        # Mutable field: size
-        if previous_config.size_gb != self.config.size_gb:
-            client = self._get_client()
-            client.resize_database(
-                database_id=self.outputs.database_id,
+        Returns:
+            Outputs for the database.
+        """
+        client = self.build_client()
+
+        try:
+            database = await client.create_database(
+                name=self.config.name,
+                size_gb=self.config.size_gb,
+            )
+        except AlreadyExists:
+            database = await client.get_database(self.config.name)
+
+        return self.build_outputs(database)
+
+    async def on_observe(self) -> DatabaseOutputs | None:
+        """Report the database named by config.
+
+        Returns:
+            Outputs for the database, or ``None`` when it does not exist.
+        """
+        try:
+            database = await self.build_client().get_database(self.config.name)
+        except NotFound:
+            return None
+
+        return self.build_outputs(database)
+
+    async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOutputs:
+        """Resize the database when its live size differs from config.
+
+        Args:
+            previous_config: Configuration last applied, or ``None``. Unused,
+                because the live size is compared with config directly.
+
+        Returns:
+            Outputs for the converged database.
+        """
+        client = self.build_client()
+        database = await client.get_database(self.config.name)
+
+        if database.size_gb != self.config.size_gb:
+            database = await client.resize_database(
+                database_id=database.id,
                 new_size_gb=self.config.size_gb,
             )
 
-        return self.outputs
+        return self.build_outputs(database)
 
     async def on_delete(self) -> None:
-        client = self._get_client()
+        """Delete the database.
 
+        Succeeds when the database is already gone.
+        """
         try:
-            client.delete_database(self.outputs.database_id)
+            await self.build_client().delete_database(self.config.name)
         except NotFound:
-            # Idempotent: already deleted
-            pass
+            return
+```
+
+## Computed Resources
+
+A resource with no external object of its own declares `computed = True`. It needs no `on_observe`: its outputs derive from its configuration, or from the subresources it owns. Composition resources that only assemble subresources are computed.
+
+```python
+@mycloud.resource("connection")
+class Connection(Resource[ConnectionConfig, ConnectionOutputs]):
+    """Connection settings derived from configuration alone."""
+
+    computed = True
+
+    async def on_create(self) -> ConnectionOutputs:
+        """Build the connection URL from config.
+
+        Returns:
+            Outputs holding the URL.
+        """
+        return ConnectionOutputs(url=f"postgres://{self.config.host}:{self.config.port}")
+
+    async def on_update(self, previous_config: ConnectionConfig | None) -> ConnectionOutputs:
+        """Rebuild the connection URL from config.
+
+        Args:
+            previous_config: Configuration last applied, or ``None``.
+
+        Returns:
+            Outputs holding the URL.
+        """
+        return await self.on_create()
+
+    async def on_delete(self) -> None:
+        """Nothing to delete: a computed resource owns no external object."""
 ```
 
 ## Creating Subresources
@@ -283,112 +409,94 @@ Providers can create and manage subresources from within lifecycle handlers. Thi
 
 ### The Pattern
 
+Build the subresource instance, set this resource as its owner, and apply it:
+
 ```python
 async def on_create(self) -> AppOutputs:
-    # 1. Create the subresource instance
-    db = DatabaseResource(
+    database = Database(
+        project_id=self.project_id,
         name=f"{self.name}-db",
-        config=DatabaseConfig(size_gb=10),
+        config=DatabaseConfig(name=f"{self.name}-db", size_gb=10),
     )
-
-    # 2. Set ownership for cascading deletes
-    db.set_owner(self)
-
-    # 3. Apply (create) the subresource
-    await db.apply()
-
-    # 4. Wait for it to be ready
-    await db.wait_ready(timeout=120.0)
-
-    # 5. Use its outputs
-    return AppOutputs(db_url=db.outputs.connection_url)
+    database.set_owner(self)
+    await database.apply()
+    return AppOutputs(database_name=database.name)
 ```
+
+The handler never waits for the subresource. `apply()` returns once the platform accepts the subresource, and the platform provisions it after the handler returns. A resource that needs the subresource's outputs, such as its connection string, declares a `Dependency` or a field reference on it; the platform runs that resource only once the subresource is ready, with the values resolved. See [Configuration and Outputs](/building-providers/config-outputs).
 
 ### Methods
 
 **`set_owner(parent)`** - Establishes an ownership relationship. When the parent resource is deleted, owned subresources are automatically cleaned up via cascading deletes. Returns `self` for method chaining.
 
-**`apply()`** - Sends the resource to the API for creation. The resource enters `PENDING` state and a lifecycle event is emitted for the appropriate provider to process. Returns `self` for method chaining.
+**`apply()`** - Sends the resource to the API for creation or update and returns once the API accepts it. The platform then provisions the resource with the provider that handles its type. Returns `self` for method chaining.
 
-**`wait_ready(timeout)`** - Waits for the resource to reach `READY` state. Updates the resource instance with outputs from the completed operation. Raises `TimeoutError` if the timeout is exceeded or `ResourceFailedError` if the resource fails.
+<Warning>
+Never wait inside a handler for another resource to become ready: no `wait_ready`, no `apply(wait=True)`, no sleep or retry loop. Declare the dependency and let the platform sequence the work.
+</Warning>
 
 ### Complete Example
 
-Here's a complete example of an application resource that provisions its own database:
+Here's a complete example of an application resource that provisions its own database, using the `Database` resource from the [complete example](#complete-example) above. The application owns no external object of its own, so it is computed, and its outputs derive from its own identity:
 
 ```python
-from pragma_sdk import Resource, Config, Outputs, Provider
+from pragma_sdk import Config, Field, Outputs, Resource
 
 
 class AppConfig(Config):
-    environment: str = "production"
-    db_size_gb: int = 10
+    """Configuration for an application environment.
+
+    Attributes:
+        database_size_gb: Storage size of the application's database in gigabytes.
+    """
+
+    database_size_gb: Field[int] = 10
 
 
 class AppOutputs(Outputs):
-    app_url: str
-    db_connection_url: str
+    """Outputs of an application environment.
 
+    Attributes:
+        database_name: Name of the database the application owns.
+    """
 
-class DatabaseConfig(Config):
-    size_gb: int
-
-
-class DatabaseOutputs(Outputs):
-    connection_url: str
-
-
-mycloud = Provider(name="mycloud")
-
-
-@mycloud.resource("database")
-class Database(Resource[DatabaseConfig, DatabaseOutputs]):
-    async def on_create(self) -> DatabaseOutputs:
-        # Provision actual database...
-        return DatabaseOutputs(connection_url="postgres://...")
-
-    async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
-        return self.outputs
-
-    async def on_delete(self) -> None:
-        pass
+    database_name: str
 
 
 @mycloud.resource("app")
 class App(Resource[AppConfig, AppOutputs]):
+    """Application environment that owns its database."""
+
+    computed = True
+
     async def on_create(self) -> AppOutputs:
-        # Create a database subresource
-        db = Database(
+        """Apply the owned database.
+
+        Returns:
+            Outputs holding the database name.
+        """
+        database = Database(
+            project_id=self.project_id,
             name=f"{self.name}-db",
-            config=DatabaseConfig(size_gb=self.config.db_size_gb),
+            config=DatabaseConfig(name=f"{self.name}-db", size_gb=self.config.database_size_gb),
         )
-        db.set_owner(self)
-        await db.apply()
-        await db.wait_ready(timeout=120.0)
+        database.set_owner(self)
+        await database.apply()
+        return AppOutputs(database_name=database.name)
 
-        # Deploy the application using the database
-        app_url = await self._deploy_app(db.outputs.connection_url)
+    async def on_update(self, previous_config: AppConfig | None) -> AppOutputs:
+        """Re-apply the database with the current size.
 
-        return AppOutputs(
-            app_url=app_url,
-            db_connection_url=db.outputs.connection_url,
-        )
+        Args:
+            previous_config: Configuration last applied, or ``None``.
 
-    async def on_update(self, previous_config: AppConfig) -> AppOutputs:
-        # Subresource updates are handled automatically via dependencies
-        return self.outputs
+        Returns:
+            Outputs holding the database name.
+        """
+        return await self.on_create()
 
     async def on_delete(self) -> None:
-        # Subresources are deleted automatically via cascading deletes
-        await self._undeploy_app()
-
-    async def _deploy_app(self, db_url: str) -> str:
-        # Deploy logic here...
-        return f"https://{self.name}.example.com"
-
-    async def _undeploy_app(self) -> None:
-        # Cleanup logic here...
-        pass
+        """Nothing to delete: owned subresources are deleted by cascading deletes."""
 ```
 
 ### When to Use Subresources
@@ -402,59 +510,3 @@ class App(Resource[AppConfig, AppOutputs]):
 <Tip>
 Use subresources when the child resource's lifecycle is tightly coupled to the parent. If users might want to manage the child independently, expose it as a separate resource type instead.
 </Tip>
-
-## Testing Lifecycle Methods
-
-Use the `ProviderHarness` to test your lifecycle methods without infrastructure:
-
-```python
-from pragma_sdk.provider import ProviderHarness
-
-async def test_create_database():
-    harness = ProviderHarness()
-
-    result = await harness.invoke_create(
-        Database,
-        name="test-db",
-        config=DatabaseConfig(name="test-db", size_gb=20),
-    )
-
-    assert result.success
-    assert result.outputs.database_id is not None
-
-
-async def test_update_database():
-    harness = ProviderHarness()
-
-    # First create
-    create_result = await harness.invoke_create(
-        Database,
-        name="test-db",
-        config=DatabaseConfig(name="test-db", size_gb=10),
-    )
-
-    # Then update
-    update_result = await harness.invoke_update(
-        Database,
-        name="test-db",
-        config=DatabaseConfig(name="test-db", size_gb=20),
-        previous_config=DatabaseConfig(name="test-db", size_gb=10),
-        current_outputs=create_result.outputs,
-    )
-
-    assert update_result.success
-
-
-async def test_delete_idempotent():
-    harness = ProviderHarness()
-
-    result = await harness.invoke_delete(
-        Database,
-        name="test-db",
-        config=DatabaseConfig(name="test-db"),
-    )
-
-    assert result.success
-```
-
-See the [SDK documentation](/sdk/overview) for more testing patterns.

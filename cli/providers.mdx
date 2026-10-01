@@ -1,11 +1,13 @@
 ---
 title: "Providers"
-description: "Build and deploy providers"
+description: "Build, publish, install, and manage providers"
 ---
+
+Provider names take the form `<org>/<name>`, for example `pragmatiks/postgres`.
 
 ## Initialize
 
-Create a new provider project:
+Create a new provider project from the template:
 
 ```bash
 pragma providers init mycompany
@@ -17,69 +19,123 @@ With options:
 pragma providers init mycompany --output ./providers/mycompany --defaults
 ```
 
+`--description`, `--author`, and `--email` fill in the project metadata; `--defaults` skips the prompts.
+
 ## Update
 
-Update an existing project with template changes:
+Merge template changes into an existing project, keeping your customizations:
 
 ```bash
 pragma providers update
+pragma providers update ./my-provider
 ```
 
-## Push
+## Publish
 
-Build and upload your provider:
+Build the wheel with `uv build`, extract the resource schemas, and upload a new version under your organization:
 
 ```bash
-pragma providers push
+pragma providers publish
 ```
 
-Build and deploy:
+Publish another directory, attach release notes, or upload a prebuilt wheel:
 
 ```bash
-pragma providers push --deploy
+pragma providers publish ./my-provider --changelog NOTES.md
+pragma providers publish --wheel dist/my_provider-1.0.0-py3-none-any.whl
 ```
+
+`publish` reads the `[tool.pragma]` table in `pyproject.toml`. The version comes from the wheel; `--version` must match it. Published versions are immutable.
+
+## Install
+
+Install a provider in your organization. The platform deploys it:
+
+```bash
+pragma providers install pragmatiks/qdrant
+pragma providers install pragmatiks/postgres --version 1.2.0
+pragma providers install pragmatiks/redis --upgrade-policy auto-minor
+pragma providers install pragmatiks/qdrant --config SOME_KEY=some_value
+pragma providers install pragmatiks/qdrant --config-file config.yaml
+```
+
+`--upgrade-policy` is `manual` (the default), `auto-minor`, or `auto-patch`. `--yes` skips the confirmation prompt.
 
 ## List
 
-List all registered providers:
+List providers in the store, or only the installed ones:
 
 ```bash
 pragma providers list
+pragma providers list --installed
+pragma providers list --query postgres
+pragma providers list --scope public --tags ml,vector
+```
+
+## Info
+
+Show a provider's metadata, version history, and installation status:
+
+```bash
+pragma providers info pragmatiks/qdrant
 ```
 
 ## Status
 
-Check the deployment status of a provider:
+Check the deployment status of an installed provider:
 
 ```bash
-pragma providers status mycompany
+pragma providers status pragmatiks/postgres
 ```
 
-## Builds
+## Upgrade and Downgrade
 
-List build history for a provider:
+Move an installed provider to another version:
 
 ```bash
-pragma providers builds mycompany
+pragma providers upgrade pragmatiks/postgres
+pragma providers upgrade pragmatiks/postgres --version 2.0.0
+pragma providers downgrade pragmatiks/postgres --version 1.2.0
 ```
 
-## Delete
+`upgrade` without `--version` targets the latest version. `downgrade` requires `--version`.
 
-Delete a provider:
+## Deploy
+
+Redeploy an installed provider, at the latest version or a given one:
 
 ```bash
-pragma providers delete mycompany
+pragma providers deploy pragmatiks/postgres
+pragma providers deploy pragmatiks/postgres --version 1.2.0
 ```
 
-Delete a provider and all its resources:
+## Uninstall
+
+Uninstall a provider from your organization:
 
 ```bash
-pragma providers delete mycompany --cascade
+pragma providers uninstall pragmatiks/qdrant
+```
+
+Uninstall a provider and delete all its resources:
+
+```bash
+pragma providers uninstall pragmatiks/postgres --cascade
 ```
 
 <Warning>
-The `--cascade` flag will delete all resources managed by the provider. This action cannot be undone.
+The `--cascade` flag deletes all resources managed by the provider. This action cannot be undone.
 </Warning>
+
+## Delete
+
+Delete a provider you authored, with all its versions, from the store:
+
+```bash
+pragma providers delete myorg/my-provider
+```
+
+Deleting from the store does not uninstall the provider from organizations that have it installed. `--yes` skips the confirmation prompt.
 
 ## Next Steps
 
