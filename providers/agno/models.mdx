@@ -17,12 +17,15 @@ Configures an Anthropic Claude model.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | `string` | **Yes** | — | Model identifier (e.g., `claude-sonnet-4-20250514`) |
-| `api_key` | `Field[string]` | **Yes** | — | Anthropic API key. Use a FieldReference to inject from a secret |
+| `api_key` | `SensitiveField[string]` | **Yes** | — | Anthropic API key (sensitive). Use a FieldReference to inject from a secret |
 | `max_tokens` | `integer` | No | `8192` | Maximum tokens in responses |
 | `temperature` | `float` | No | — | Sampling temperature (0.0–1.0) |
 | `top_p` | `float` | No | — | Nucleus sampling parameter |
 | `top_k` | `integer` | No | — | Top-k sampling parameter |
 | `stop_sequences` | `list[string]` | No | — | Sequences that stop generation |
+| `thinking_mode` | `"off"` \| `"extended"` \| `"adaptive"` | No | `"off"` | Thinking mode. `extended` uses a fixed token budget; `adaptive` lets the model pick its budget per turn |
+| `thinking_budget_tokens` | `integer` | Conditional | — | Token budget for `extended` thinking. Required in that mode, at least `1024` and less than `max_tokens`. Must be omitted for `off` and `adaptive` |
+| `effort` | `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` \| `"max"` | No | — | Effort level for `adaptive` thinking. Must be omitted for `off` and `extended` |
 
 ### Outputs
 
@@ -59,7 +62,7 @@ Configures an OpenAI model.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | `string` | **Yes** | — | Model identifier (e.g., `gpt-4o`) |
-| `api_key` | `Field[string]` | **Yes** | — | OpenAI API key. Use a FieldReference to inject from a secret |
+| `api_key` | `SensitiveField[string]` | **Yes** | — | OpenAI API key (sensitive). Use a FieldReference to inject from a secret |
 | `max_tokens` | `integer` | No | — | Maximum tokens in responses |
 | `temperature` | `float` | No | — | Sampling temperature (0.0–2.0) |
 | `top_p` | `float` | No | — | Nucleus sampling parameter |

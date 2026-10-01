@@ -15,7 +15,7 @@ description: "Define a multi-agent team with coordinated members"
 | `members` | `list[Dependency]` | **Yes** | — | References to `agno/agent` resources (at least one) |
 | `model` | `Dependency` | No | — | Optional lead model (`agno/models/anthropic` or `agno/models/openai`) |
 | `instructions` | `list[string]` | No | — | System instructions for the team coordinator |
-| `prompt` | `Dependency` | No | — | Reference to `agno/prompt` for reusable instructions |
+| `prompt` | `Dependency` | No | — | Reference to [`agno/prompt`](/providers/agno/prompt); its rendered text replaces `instructions` |
 | `tools` | `list[Dependency]` | No | `[]` | Team-level tools (`agno/tools/mcp` or `agno/tools/websearch`) |
 | `knowledge` | `Dependency` | No | — | Team-level knowledge base (`agno/knowledge`) |
 | `db` | `Dependency` | No | — | Team-level database (`agno/db/postgres`) |

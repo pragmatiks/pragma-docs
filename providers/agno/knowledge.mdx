@@ -8,23 +8,21 @@ description: "Add semantic search and RAG capabilities to agents"
 Knowledge in Agno is composed of several resources that work together:
 
 ```
-Content (URLs, text)
+Content (text, text/Markdown/JSON URLs)
   └─▶ Knowledge
-        ├─▶ VectorDB (Qdrant)
-        │     └─▶ Embedder (OpenAI)
-        └─▶ Contents DB (Postgres, optional)
+        └─▶ VectorDB (Qdrant)
+              └─▶ Embedder (OpenAI)
 ```
 
 ## `agno/knowledge`
 
-The central knowledge base resource that connects a vector database with optional embedder and content storage.
+The central knowledge base resource that connects a vector database with an optional embedder.
 
 ### Config
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `vector_db` | `Dependency` | **Yes** | — | Reference to `agno/vectordb/qdrant` |
-| `contents_db` | `Dependency` | No | — | Reference to `agno/db/postgres` for content metadata storage |
+| `vector_db` | `Dependency` | **Yes** | — | Reference to `agno/vectordb/qdrant` (immutable) |
 | `embedder` | `Dependency` | No | — | Reference to `agno/knowledge/embedder/openai` for custom embeddings |
 | `max_results` | `integer` | No | `10` | Maximum search results to return |
 
@@ -39,16 +37,16 @@ The central knowledge base resource that connects a vector database with optiona
 
 ## `agno/vectordb/qdrant`
 
-Configures a Qdrant vector database for storing embeddings.
+Configures access to a Qdrant collection that stores embeddings. The collection itself is created by a `qdrant/collection` resource.
 
 ### Config
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `url` | `Field[string]` | **Yes** | — | Qdrant server URL. Supports FieldReferences |
-| `collection` | `Field[string]` | **Yes** | — | Collection name. Supports FieldReferences |
+| `url` | `Field[string]` | **Yes** | — | Qdrant server URL (immutable). Supports FieldReferences |
+| `collection` | `Field[string]` | **Yes** | — | Collection name (immutable). Supports FieldReferences |
 | `api_key` | `Field[string]` | No | — | API key for authentication |
-| `search_type` | `"vector"` \| `"keyword"` \| `"hybrid"` | No | `"hybrid"` | Search strategy |
+| `search_type` | `"vector"` | No | `"vector"` | Search strategy. Only vector search is supported |
 | `embedder` | `Dependency` | No | — | Reference to `agno/knowledge/embedder/openai` |
 
 ### Outputs
@@ -56,7 +54,7 @@ Configures a Qdrant vector database for storing embeddings.
 | Field | Type | Description |
 |-------|------|-------------|
 | `spec` | `object` | Serialized Qdrant config for runtime reconstruction |
-| `pip_dependencies` | `list[string]` | Required packages (includes `fastembed` for hybrid/keyword search) |
+| `pip_dependencies` | `list[string]` | Required Python packages |
 
 ---
 
@@ -86,14 +84,14 @@ Configures an OpenAI embedding model for generating vector embeddings.
 
 ## `agno/knowledge/content`
 
-Represents a content source to ingest into a knowledge base. Supports URLs and inline text.
+Represents a content source to ingest into a knowledge base. Supports inline text and URLs of plain text, Markdown or JSON files.
 
 ### Config
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `knowledge` | `Dependency` | **Yes** | — | Reference to `agno/knowledge` |
-| `url` | `string` | Conditional | — | URL to fetch (website, PDF, remote file). Mutually exclusive with `text_content` |
+| `knowledge` | `Dependency` | **Yes** | — | Reference to `agno/knowledge` (immutable) |
+| `url` | `string` | Conditional | — | URL of a plain text, Markdown or JSON file; the path must end in `.txt`, `.text`, `.md`, `.markdown` or `.json`. Mutually exclusive with `text_content` |
 | `text_content` | `string` | Conditional | — | Inline text content. Mutually exclusive with `url` |
 | `name` | `string` | No | Resource name | Content identifier |
 | `description` | `string` | No | — | Content description |
@@ -105,7 +103,7 @@ Represents a content source to ingest into a knowledge base. Supports URLs and i
 | Field | Type | Description |
 |-------|------|-------------|
 | `spec` | `object` | Content specification |
-| `pip_dependencies` | `list[string]` | Reader packages (`pypdf`, `beautifulsoup4`, `python-docx`, etc.) |
+| `content_hash` | `string` or `null` | Hash of the content the stored chunks were written from. `null` when the stored chunks disagree |
 
 ## Example
 
@@ -144,7 +142,7 @@ config:
     resource: database
     name: main
     field: outputs.api_key
-  search_type: hybrid
+  search_type: vector
   embedder:
     provider: agno
     resource: knowledge/embedder/openai
@@ -170,7 +168,7 @@ config:
     provider: agno
     resource: knowledge
     name: docs-kb
-  url: "https://docs.example.com/guide.pdf"
+  url: "https://docs.example.com/guide.md"
   topics:
     - documentation
     - user-guide
@@ -179,6 +177,8 @@ config:
 ## Notes
 
 - You must provide exactly one of `url` or `text_content` in content resources.
-- Content supports URLs to PDFs, web pages, documents (DOCX, PPTX), arxiv papers, YouTube transcripts, and Wikipedia articles.
-- The `search_type: hybrid` option combines vector and keyword search for better results but requires the `fastembed` package.
-- Content resources are **stateful** — they insert into and delete from the vector database during lifecycle events.
+- Content reads inline text, or a URL of a plain text, Markdown or JSON file whose path ends in `.txt`, `.text`, `.md`, `.markdown` or `.json`. Web pages, PDF, Office, CSV and YouTube URLs are refused, and a URL that serves an HTML page fails. A JSON file must hold an object or array at its top level.
+- `search_type` accepts only `vector`: a `qdrant/collection` holds one unnamed dense vector, and keyword or hybrid search needs sparse vectors.
+- The Qdrant collection must exist before content is written. Apply a `qdrant/collection` sized for the embedder's vector dimensions first; a content resource never creates the collection.
+- Content resources are **stateful** — create and update write the content's chunks into the collection and remove any older chunks the resource wrote; delete removes every chunk the resource wrote.
+- The `knowledge` reference on content, the `vector_db` reference on a knowledge base, and the `url` and `collection` of a vector database are immutable — delete and recreate the resource to change them.

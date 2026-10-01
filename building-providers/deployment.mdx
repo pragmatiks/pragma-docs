@@ -1,113 +1,91 @@
 ---
 title: "Deployment"
-description: "Deploy your provider to the Pragmatiks platform"
+description: "Publish your provider to Pragmatiks and install it in your organization"
 ---
 
-Once your provider passes local tests, deploy it to make your resource types available to users.
+Once your provider is ready, publish a version and install it to make your resource types available to users.
 
 ## Prerequisites
 
-Before deploying, ensure:
+Before publishing, ensure:
 
-- Your provider has been tested locally with `ProviderHarness`
 - You are authenticated: `pragma auth login`
-- You are in your provider project directory (contains `pyproject.toml`)
+- Your `pyproject.toml` has a `[tool.pragma]` table; `pragma providers init` generates it
 
-## Build and Deploy
+## Publish a Version
 
-Build and deploy your provider in a single command:
+From your provider project directory:
 
 ```bash
-pragma providers push --deploy
+pragma providers publish
 ```
 
 This:
-1. Uploads your provider code
-2. Builds the provider
-3. Extracts and registers resource type schemas
-4. Deploys the provider
+1. Builds the wheel with `uv build`
+2. Extracts the resource type schemas from the provider package
+3. Uploads the wheel and schemas as `<org>/<provider>`, where `<org>` is your organization's slug and `<provider>` is the `provider` key of `[tool.pragma]`
 
-Example output:
+The version comes from the wheel, so from `version` in `pyproject.toml`. Published versions are immutable: bump the version before publishing again.
 
-```
-Pushing provider: mycompany
-Source directory: /path/to/mycompany-provider
-
-Created tarball: 12.3 KB
-Build started: build-mycompany-abc123
-Build successful!
-
-Deployment started: provider-mycompany
-Version: 20250115.120000
-Status: progressing
-```
-
-### Stream Build Logs
-
-To see build output in real-time:
+Publish from another directory, attach release notes, or upload a wheel you built yourself:
 
 ```bash
-pragma providers push --logs --deploy
+pragma providers publish ./mycompany-provider
+pragma providers publish --changelog NOTES.md
+pragma providers publish --wheel dist/mycompany_provider-0.2.0-py3-none-any.whl
 ```
 
-### Build Without Deploying
+## Install the Provider
 
-Build only (to verify the build succeeds before deploying):
+Install the published provider in your organization:
 
 ```bash
-pragma providers push
+pragma providers install <org>/mycompany
 ```
 
-Then deploy when ready:
+`install` queues the provider, and the platform deploys it. Pin a version with `--version`:
 
 ```bash
-pragma providers deploy
-```
-
-## Deploy a Specific Version
-
-Deploy a specific version (useful for rollbacks):
-
-```bash
-pragma providers deploy mycompany 20250114.120000
-```
-
-List available versions:
-
-```bash
-pragma providers builds mycompany
+pragma providers install <org>/mycompany --version 0.2.0
 ```
 
 ## Check Deployment Status
 
 ```bash
-pragma providers status mycompany
+pragma providers status <org>/mycompany
 ```
 
-Example output:
+The status shows the deployment state (pending, progressing, available, or failed), the deployed version, its health, and when it last changed.
 
+## Ship a New Version
+
+Publish the new version, then upgrade the installed provider to it:
+
+```bash
+pragma providers publish
+pragma providers upgrade <org>/mycompany --version 0.3.0
 ```
-Provider: mycompany
-Deployment: provider-mycompany
-Status: available
-Replicas: 1/1 ready
-Version: 20250115.120000
+
+To move back to an earlier version:
+
+```bash
+pragma providers downgrade <org>/mycompany --version 0.2.0
 ```
+
+`pragma providers deploy <org>/mycompany --version 0.2.0` redeploys an installed provider at a given version.
 
 ## Verify Deployment
 
-After deployment, verify your resources are available:
+List the resource types your provider registered:
 
 ```bash
-# List your provider's resource types
-pragma resources list --provider mycompany
+pragma resources schemas --provider <org>/mycompany
 ```
 
-Create a test resource to confirm everything works:
+Create a test resource to confirm everything works. Save it as `test-resource.yaml`:
 
 ```yaml
-# test-resource.yaml
-provider: mycompany
+provider: <org>/mycompany
 resource: database
 name: test-db
 config:
@@ -117,18 +95,20 @@ config:
 
 ```bash
 pragma resources apply test-resource.yaml
-pragma resources get mycompany/database test-db
+pragma resources get <org>/mycompany/database/test-db
 ```
 
 ## Troubleshooting
 
-### "Could not detect provider package"
+### "pyproject.toml not found" or "Missing [tool.pragma] section"
 
-Run commands from your provider directory, or specify the package explicitly:
+Run `publish` from your provider directory, or pass the directory:
 
 ```bash
-pragma providers push --package mycompany_provider
+pragma providers publish ./mycompany-provider
 ```
+
+The `[tool.pragma]` table in `pyproject.toml` needs `provider`, `package`, `display_name`, and `description`.
 
 ### "Authentication required"
 
@@ -138,68 +118,51 @@ Log in to the platform:
 pragma auth login
 ```
 
-### Build failed
+### Version already published
 
-Check build logs for details:
+Published versions are immutable. Bump `version` in `pyproject.toml` and publish again.
 
-```bash
-pragma providers push --logs
-```
+### Build or schema extraction failed
 
 Common causes:
 - Missing dependencies in `pyproject.toml`
 - Syntax errors in provider code
-- Invalid resource schemas
+- A `Config` or `Outputs` class without a docstring, or a config field with a bare type instead of `Field[T]`
+- A non-computed resource without `on_observe`
 
 ### Resource type not found
 
-Ensure your resources are properly decorated:
+Ensure your resources are registered with the provider:
 
 ```python
 @provider.resource("database")
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
-    ...
+    """Managed database."""
 ```
 
-Resources must be exported from the package's `__init__.py` for discovery.
+The module that registers them must be imported by the package named in `[tool.pragma]`.
 
-### Deployment not handling events
+### Resources not processing
 
 Verify the provider is running:
 
 ```bash
-pragma providers status mycompany
+pragma providers status <org>/mycompany
 ```
 
-If resources remain in PENDING state, check:
-- Provider deployed successfully
-- Resource configuration is valid
-- Dependencies are in READY state
+If resources stay pending, check:
+- The provider deployed successfully
+- The resource configuration is valid
+- The resource's dependencies are ready
 
 ## Complete Deployment Workflow
 
-Here is the typical workflow for deploying provider changes:
+Publish, then install or upgrade:
 
 ```bash
-# 1. Run local tests
-uv run pytest tests/
-
-# 2. Build and deploy
-pragma providers push --deploy
-
-# 3. Verify deployment
-pragma providers status mycompany
-pragma resources list --provider mycompany
-```
-
-For iterative development:
-
-```bash
-# Build only (to verify the build succeeds)
-pragma providers push
-
-# When ready, deploy
-pragma providers deploy
+pragma providers publish
+pragma providers install <org>/mycompany
+pragma providers status <org>/mycompany
 ```
 
 ## Next Steps

@@ -7,37 +7,62 @@ Config and Outputs are Pydantic models that define your resource's interface. Co
 
 ## Config Basics
 
-Config classes inherit from `Config`, which extends Pydantic's `BaseModel` with `extra="forbid"` to catch typos:
+Config classes inherit from `Config`, which extends Pydantic's `BaseModel` with `extra="forbid"` to catch typos. Every field is declared with one of the SDK's field types, most often `Field[T]`:
 
 ```python
-from pragma_sdk import Config
+from pragma_sdk import Config, Field, ImmutableField
+
 
 class DatabaseConfig(Config):
-    name: str
-    size_gb: int = 10
-    region: str = "us-east-1"
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name. Locates the database, so it cannot change.
+        size_gb: Storage size in gigabytes.
+        region: Region hosting the database. Cannot change in place.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int] = 10
+    region: ImmutableField[str] = "us-east-1"
 ```
 
 **Key behaviors:**
 
 - Unknown fields raise `ValidationError` (catches typos in YAML)
 - Type coercion is automatic (string `"10"` becomes int `10`)
-- All Pydantic validation features work (`Field`, validators, etc.)
+- Validation constraints go inside the field type; see [Validation Patterns](#validation-patterns)
+
+<Warning>
+Two rules are enforced when the class is defined, so a violation fails as soon as the provider package is imported, and `pragma providers publish` fails with it:
+
+- Every config field uses an SDK field type: `Field[T]`, `ImmutableField[T]`, `SensitiveField[T]`, `ImmutableSensitiveField[T]`, `Dependency[T]`, `ImmutableDependency[T]`, `SensitiveDependency[T]`, or a file field. A bare type such as `name: str` raises `TypeError`.
+- Every `Config` and `Outputs` class that declares fields has a class docstring. A class without one raises `TypeError`. Document each field in an `Attributes:` section; a docstring without one only warns.
+</Warning>
 
 ## Outputs Basics
 
-Outputs classes inherit from `Outputs` with the same `extra="forbid"` setting:
+Outputs classes inherit from `Outputs` with the same `extra="forbid"` setting. Output fields use plain types:
 
 ```python
 from pragma_sdk import Outputs
 
+
 class DatabaseOutputs(Outputs):
+    """Outputs of a managed database.
+
+    Attributes:
+        database_id: Identifier assigned by the cloud.
+        connection_url: Connection string for clients.
+        host: Database host name.
+    """
+
     database_id: str
     connection_url: str
     host: str
 ```
 
-Outputs are returned from `on_create` and `on_update` lifecycle methods. Other resources can reference these fields through the dependency system.
+Outputs are returned from `on_observe`, `on_create`, and `on_update`. `on_observe` returns the same outputs the write path returned for the object's current state, so every field is derived from identity or config, or read back from the external object. Values that change without a platform write belong in `health()`, not in outputs. Other resources can reference these fields through the dependency system.
 
 ## Field Types
 
@@ -46,45 +71,88 @@ Outputs are returned from `on_create` and `on_update` lifecycle methods. Other r
 Fields without defaults are required:
 
 ```python
+from pragma_sdk import Config, ImmutableField, SensitiveField
+
+
 class SecretConfig(Config):
-    project_id: str       # Required
-    secret_id: str        # Required
-    data: str             # Required
+    """Configuration for a secret.
+
+    Attributes:
+        project_id: Project holding the secret.
+        secret_id: Secret name within the project.
+        data: Secret payload.
+    """
+
+    project_id: ImmutableField[str]
+    secret_id: ImmutableField[str]
+    data: SensitiveField[str]
 ```
 
 ### Optional Fields with Defaults
 
-Provide sensible defaults for common cases:
+Provide sensible defaults for common cases, and name each default in the docstring:
 
 ```python
+from pragma_sdk import Config, Field, ImmutableField
+
+
 class DatabaseConfig(Config):
-    name: str
-    size_gb: int = 10           # Default: 10 GB
-    region: str = "us-east-1"   # Default: US East
-    backup_enabled: bool = True # Default: backups on
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name.
+        size_gb: Storage size in gigabytes. Defaults to 10.
+        region: Region hosting the database. Defaults to ``us-east-1``.
+        backup_enabled: Whether daily backups run. Defaults to on.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int] = 10
+    region: ImmutableField[str] = "us-east-1"
+    backup_enabled: Field[bool] = True
 ```
 
 ### Optional Fields That May Be Absent
 
-Use `None` default for truly optional fields:
+Use a `None` default for truly optional fields:
 
 ```python
+from pragma_sdk import Config, Field, ImmutableField
+
+
 class DatabaseConfig(Config):
-    name: str
-    description: str | None = None
-    tags: list[str] | None = None
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name.
+        description: Free-text description, if any.
+        labels: Labels attached to the database, if any.
+    """
+
+    name: ImmutableField[str]
+    description: Field[str] | None = None
+    labels: Field[list[str]] | None = None
 ```
 
 ## FieldReference for Dynamic Values
 
-The `Field` type alias allows config fields to accept either a direct value or a reference to another resource's output:
+`Field[T]` accepts either a direct value or a reference to another resource's output:
 
 ```python
-from pragma_sdk import Config, Field, FieldReference
+from pragma_sdk import Config, Field, ImmutableField
+
 
 class AppConfig(Config):
-    name: str
-    database_url: Field[str]  # Can be string OR FieldReference
+    """Configuration for an application.
+
+    Attributes:
+        name: Application name.
+        database_url: Connection string of the database, as a value or a
+            reference to a database's ``connection_url`` output.
+    """
+
+    name: ImmutableField[str]
+    database_url: Field[str]
 ```
 
 Users can provide a direct value:
@@ -115,38 +183,30 @@ config:
 
 ### How FieldReference Works
 
-When the runtime processes a resource, it resolves all `FieldReference` values before calling your lifecycle methods. By the time `on_create` runs, `self.config.database_url` contains the actual string value, not the reference.
+When the runtime processes a resource, it resolves all `FieldReference` values before calling your lifecycle methods. By the time `on_create` runs, `self.config.database_url` contains the actual string value, not the reference. A reference also orders the work: the platform runs the resource only once the referenced resource is ready.
 
 <Note>
 You don't need to handle `FieldReference` resolution in your code. The runtime resolves all references to their actual values before invoking lifecycle methods.
 </Note>
-
-### When to Use Field
-
-Use `Field[T]` for config values that commonly come from other resources:
-
-```python
-class AppConfig(Config):
-    name: str
-    # These might reference outputs from other resources
-    database_url: Field[str]
-    api_key: Field[str]
-
-    # These are always user-provided
-    port: int = 8080
-    log_level: str = "INFO"
-```
 
 ## Dependency for Whole-Resource Access
 
 When you need access to an entire resource (its config, outputs, and methods) rather than just a single field, use `Dependency[T]`:
 
 ```python
-from pragma_sdk import Config, Dependency
+from pragma_sdk import Config, Dependency, ImmutableField
+
 
 class AppConfig(Config):
-    name: str
-    database: Dependency[DatabaseResource]  # Access to full resource
+    """Configuration for an application.
+
+    Attributes:
+        name: Application name.
+        database: Database the application connects to.
+    """
+
+    name: ImmutableField[str]
+    database: Dependency[Database]
 ```
 
 ### Resolving Dependencies
@@ -155,18 +215,17 @@ In your lifecycle methods, call `resolve()` to get the typed resource instance:
 
 ```python
 async def on_create(self) -> AppOutputs:
-    # Get the full database resource
-    db = await self.config.database.resolve()
+    """Create the application against its database.
 
-    # Access any field from config or outputs
-    print(f"Connecting to {db.config.name}")
-    print(f"URL: {db.outputs.connection_url}")
-
-    return AppOutputs(db_url=db.outputs.connection_url)
+    Returns:
+        Outputs holding the database connection string.
+    """
+    database = await self.config.database.resolve()
+    return AppOutputs(database_url=database.outputs.connection_url)
 ```
 
 <Note>
-The runtime resolves dependencies before calling your lifecycle handler. The `resolve()` method returns the pre-resolved instance. If the dependent resource is not yet `READY`, it will raise a `RuntimeError`.
+The platform runs the handler only once the dependency is ready, and resolves it first. `resolve()` returns that pre-resolved instance, and raises `RuntimeError` when the dependency was not resolved. Never wait for a dependency inside a handler.
 </Note>
 
 ### YAML Syntax
@@ -183,7 +242,6 @@ config:
     provider: mycompany
     resource: database
     name: shared-db
-    # No "field" key - this is a whole-resource dependency
 ```
 
 ### Dependency vs FieldReference
@@ -195,26 +253,37 @@ config:
 | Need to call resource methods | `Dependency[T]` | Omit `field` key |
 | Simple string/int value | `Field[T]` | Include `field` key |
 
-**Example comparison:**
+A config can hold both: a `Field[str]` for the one connection string, and a `Dependency[T]` for the whole database:
 
 ```python
-class AppConfig(Config):
-    # FieldReference: just need the connection URL string
-    database_url: Field[str]
+from pragma_sdk import Config, Dependency, Field
 
-    # Dependency: need multiple values or the full resource
-    database: Dependency[DatabaseResource]
+
+class AppConfig(Config):
+    """Configuration for an application.
+
+    Attributes:
+        database_url: Connection string, usually a reference to one output.
+        database: Whole database, for access to its config and outputs.
+    """
+
+    database_url: Field[str]
+    database: Dependency[Database]
 ```
 
+The field reference includes a `field` key and yields a single value:
+
 ```yaml
-# FieldReference usage (gets single value)
 database_url:
   provider: mycompany
   resource: database
   name: shared-db
   field: outputs.connection_url
+```
 
-# Dependency usage (gets full resource)
+The dependency omits it and yields the full resource:
+
+```yaml
 database:
   provider: mycompany
   resource: database
@@ -223,68 +292,134 @@ database:
 
 ## Validation Patterns
 
+A `Field[T]` also accepts a field reference, so a constraint applied to the whole field would also run against the reference. Put constraints inside the type parameter instead, where they apply only to direct values. Before any handler runs, the runtime validates the resolved values against the same class, so a referenced value is checked too.
+
 ### Field Constraints
 
-Use Pydantic's `Field` function for constraints:
+Wrap the value type in `Annotated` with Pydantic's `Field` or `StringConstraints`:
 
 ```python
+from typing import Annotated
+
 from pydantic import Field as PydanticField
-from pragma_sdk import Config
+from pydantic import StringConstraints
+
+from pragma_sdk import Config, Field, ImmutableField
+
 
 class DatabaseConfig(Config):
-    name: str = PydanticField(min_length=3, max_length=63)
-    size_gb: int = PydanticField(ge=10, le=10000, default=10)
-    port: int = PydanticField(ge=1024, le=65535, default=5432)
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name, 3 to 63 characters.
+        size_gb: Storage size in gigabytes, 10 to 10000.
+        port: Listening port, 1024 to 65535.
+    """
+
+    name: ImmutableField[Annotated[str, StringConstraints(min_length=3, max_length=63)]]
+    size_gb: Field[Annotated[int, PydanticField(ge=10, le=10000)]] = 10
+    port: Field[Annotated[int, PydanticField(ge=1024, le=65535)]] = 5432
 ```
 
 <Warning>
-Import Pydantic's `Field` as `PydanticField` to avoid confusion with the SDK's `Field` type alias used for `FieldReference` support.
+Import Pydantic's `Field` as `PydanticField` to avoid confusion with the SDK's `Field` type alias used for `FieldReference` support. Never assign `PydanticField(...)` as the field's default on a `Field[T]` field: the constraint then applies to the reference too, and the class fails to validate references or to build.
 </Warning>
 
 ### Field Validators
 
-Validate individual fields with custom logic:
+Validate individual values with `AfterValidator` inside the type parameter, so references pass through untouched:
 
 ```python
-from pydantic import field_validator
-from pragma_sdk import Config
+from typing import Annotated
+
+from pydantic import AfterValidator
+
+from pragma_sdk import Config, Field, ImmutableField
+
+REGIONS = {"us-east-1", "us-west-2", "eu-west-1"}
+
+
+def require_bucket_name(value: str) -> str:
+    """Accept lowercase bucket names made of letters, numbers, and hyphens.
+
+    Args:
+        value: Bucket name to check.
+
+    Returns:
+        The unchanged name.
+
+    Raises:
+        ValueError: If the name has uppercase letters or other characters.
+    """
+    if not value.islower():
+        raise ValueError("Bucket name must be lowercase")
+    if not value.replace("-", "").isalnum():
+        raise ValueError("Bucket name can only contain letters, numbers, and hyphens")
+    return value
+
+
+def require_region(value: str) -> str:
+    """Accept only supported regions.
+
+    Args:
+        value: Region to check.
+
+    Returns:
+        The unchanged region.
+
+    Raises:
+        ValueError: If the region is not supported.
+    """
+    if value not in REGIONS:
+        raise ValueError(f"Region must be one of: {sorted(REGIONS)}")
+    return value
+
 
 class BucketConfig(Config):
-    name: str
-    region: str
+    """Configuration for a storage bucket.
 
-    @field_validator("name")
-    @classmethod
-    def validate_bucket_name(cls, v: str) -> str:
-        if not v.islower():
-            raise ValueError("Bucket name must be lowercase")
-        if not v.replace("-", "").isalnum():
-            raise ValueError("Bucket name can only contain letters, numbers, and hyphens")
-        return v
+    Attributes:
+        name: Bucket name: lowercase letters, numbers, and hyphens.
+        region: Supported region hosting the bucket.
+    """
 
-    @field_validator("region")
-    @classmethod
-    def validate_region(cls, v: str) -> str:
-        valid_regions = {"us-east-1", "us-west-2", "eu-west-1"}
-        if v not in valid_regions:
-            raise ValueError(f"Region must be one of: {valid_regions}")
-        return v
+    name: ImmutableField[Annotated[str, AfterValidator(require_bucket_name)]]
+    region: Field[Annotated[str, AfterValidator(require_region)]]
 ```
 
 ### Model Validators
 
-Validate relationships between fields:
+Validate relationships between fields. Skip the check while either value is still a reference; it runs again when the runtime validates the resolved values:
 
 ```python
 from pydantic import model_validator
-from pragma_sdk import Config
+
+from pragma_sdk import Config, Field, FieldReference
+
 
 class ReplicaConfig(Config):
-    min_replicas: int = 1
-    max_replicas: int = 10
+    """Configuration for a replica set.
+
+    Attributes:
+        min_replicas: Lowest replica count.
+        max_replicas: Highest replica count; at least ``min_replicas``.
+    """
+
+    min_replicas: Field[int] = 1
+    max_replicas: Field[int] = 10
 
     @model_validator(mode="after")
     def validate_replica_range(self) -> "ReplicaConfig":
+        """Reject a minimum above the maximum.
+
+        Returns:
+            The validated configuration.
+
+        Raises:
+            ValueError: If ``min_replicas`` exceeds ``max_replicas``.
+        """
+        if isinstance(self.min_replicas, FieldReference) or isinstance(self.max_replicas, FieldReference):
+            return self
         if self.min_replicas > self.max_replicas:
             raise ValueError("min_replicas cannot exceed max_replicas")
         return self
@@ -295,42 +430,70 @@ class ReplicaConfig(Config):
 Pydantic automatically coerces compatible types:
 
 ```python
-class DatabaseConfig(Config):
-    name: str
-    size_gb: int
-    enabled: bool
+from pragma_sdk import Config, Field, ImmutableField
 
-# All of these work:
-config = DatabaseConfig(name="db", size_gb="100", enabled="true")
-config = DatabaseConfig(name="db", size_gb=100, enabled=1)
+
+class DatabaseConfig(Config):
+    """Configuration for a managed database.
+
+    Attributes:
+        name: Database name.
+        size_gb: Storage size in gigabytes.
+        enabled: Whether the database accepts connections.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int]
+    enabled: Field[bool]
+
+
+DatabaseConfig(name="db", size_gb="100", enabled="true")
+DatabaseConfig(name="db", size_gb=100, enabled=1)
 ```
 
-For strict typing without coercion, use `strict` mode on fields:
+Both calls produce `size_gb=100` and `enabled=True`. For strict typing without coercion, use a strict type inside the parameter; `count` below rejects the string `"10"`:
 
 ```python
-from pydantic import Field as PydanticField
+from pydantic import StrictInt
+
+from pragma_sdk import Config, Field
+
 
 class StrictConfig(Config):
-    count: int = PydanticField(strict=True)  # Rejects string "10"
+    """Configuration that takes counts only as integers.
+
+    Attributes:
+        count: Number of items; a string is rejected.
+    """
+
+    count: Field[StrictInt]
 ```
 
 ## Output Design Best Practices
 
 ### Expose What Dependents Need
 
-Think about what downstream resources will need:
+Think about what downstream resources will need: connection details for applications, the identifier for management operations, and the resource path for cloud operations:
 
 ```python
+from pragma_sdk import Outputs
+
+
 class DatabaseOutputs(Outputs):
-    # Connection details for apps
+    """Outputs of a managed database.
+
+    Attributes:
+        connection_url: Connection string for applications.
+        host: Database host name.
+        port: Database port.
+        database_id: Identifier for management operations.
+        resource_name: Full cloud resource path.
+    """
+
     connection_url: str
     host: str
     port: int
-
-    # Identity for management operations
     database_id: str
-
-    # Resource path for cloud operations
     resource_name: str
 ```
 
@@ -347,35 +510,28 @@ Follow these conventions:
 
 ### Keep Outputs Stable
 
-Output field names are part of your API. Changing them breaks dependent resources:
-
-```python
-# Good: Stable output names
-class SecretOutputs(Outputs):
-    resource_name: str    # Don't rename to secret_name later
-    version_name: str
-    version_id: str
-
-# Avoid: Adding fields that might be removed
-class SecretOutputs(Outputs):
-    resource_name: str
-    internal_state: dict  # Don't expose internal details
-```
+Output field names are part of your API. Renaming one, say `resource_name` to `secret_name`, breaks every resource that references it. Expose only what dependents use, never internal state such as a raw API response, because a field you remove later breaks its references too.
 
 ### Include Sufficient Context
 
-Provide enough information for dependents to work without additional API calls:
+Provide enough information for dependents to work without additional API calls. A bare `secret_id` makes every dependent rebuild the full path; full paths let them use the secret directly:
 
 ```python
-# Minimal: Dependents need to make additional calls
-class SecretOutputs(Outputs):
-    secret_id: str
+from pragma_sdk import Outputs
 
-# Better: Dependents have what they need
+
 class SecretOutputs(Outputs):
-    resource_name: str   # Full GCP resource path
-    version_name: str    # Full version path
-    version_id: str      # Just the version number
+    """Outputs of a secret.
+
+    Attributes:
+        resource_name: Full cloud resource path of the secret.
+        version_name: Full path of the latest version.
+        version_id: Number of the latest version.
+    """
+
+    resource_name: str
+    version_name: str
+    version_id: str
 ```
 
 ## Complete Example
@@ -383,8 +539,31 @@ class SecretOutputs(Outputs):
 Here's a well-designed Config and Outputs pair:
 
 ```python
-from pydantic import Field as PydanticField, field_validator, model_validator
-from pragma_sdk import Config, Field, Outputs
+from typing import Annotated
+
+from pydantic import AfterValidator
+from pydantic import Field as PydanticField
+from pydantic import StringConstraints, model_validator
+
+from pragma_sdk import Config, Field, FieldReference, ImmutableField, Outputs
+
+
+def require_queue_name(value: str) -> str:
+    """Accept queue names made of letters, numbers, and hyphens, lowercased.
+
+    Args:
+        value: Queue name to check.
+
+    Returns:
+        The name in lowercase.
+
+    Raises:
+        ValueError: If the name has characters other than letters, numbers, and hyphens.
+    """
+    if not value.replace("-", "").isalnum():
+        raise ValueError("Queue name can only contain letters, numbers, and hyphens")
+    return value.lower()
+
 
 class QueueConfig(Config):
     """Configuration for a message queue.
@@ -393,24 +572,28 @@ class QueueConfig(Config):
         name: Queue identifier (lowercase, alphanumeric with hyphens).
         max_message_size_kb: Maximum message size (1-256 KB).
         retention_days: How long to retain messages (1-14 days).
-        dead_letter_queue: Optional DLQ name for failed messages.
+        dead_letter_queue: Optional dead-letter queue name for failed messages.
         encryption_key: KMS key for encryption (can reference a key resource).
     """
-    name: str = PydanticField(min_length=3, max_length=80)
-    max_message_size_kb: int = PydanticField(ge=1, le=256, default=64)
-    retention_days: int = PydanticField(ge=1, le=14, default=4)
-    dead_letter_queue: str | None = None
+
+    name: ImmutableField[Annotated[str, StringConstraints(min_length=3, max_length=80), AfterValidator(require_queue_name)]]
+    max_message_size_kb: Field[Annotated[int, PydanticField(ge=1, le=256)]] = 64
+    retention_days: Field[Annotated[int, PydanticField(ge=1, le=14)]] = 4
+    dead_letter_queue: Field[str] | None = None
     encryption_key: Field[str] | None = None
 
-    @field_validator("name")
-    @classmethod
-    def validate_queue_name(cls, v: str) -> str:
-        if not v.replace("-", "").isalnum():
-            raise ValueError("Queue name can only contain letters, numbers, and hyphens")
-        return v.lower()
-
     @model_validator(mode="after")
-    def validate_dlq_not_self(self) -> "QueueConfig":
+    def validate_dead_letter_queue(self) -> "QueueConfig":
+        """Reject a dead-letter queue that names the queue itself.
+
+        Returns:
+            The validated configuration.
+
+        Raises:
+            ValueError: If ``dead_letter_queue`` equals ``name``.
+        """
+        if isinstance(self.name, FieldReference) or isinstance(self.dead_letter_queue, FieldReference):
+            return self
         if self.dead_letter_queue == self.name:
             raise ValueError("Dead letter queue cannot reference itself")
         return self
@@ -424,6 +607,7 @@ class QueueOutputs(Outputs):
         queue_arn: ARN for IAM policies.
         queue_name: Canonical queue name.
     """
+
     queue_url: str
     queue_arn: str
     queue_name: str
@@ -433,7 +617,7 @@ class QueueOutputs(Outputs):
 
 <CardGroup cols={2}>
   <Card title="Lifecycle Methods" icon="arrows-rotate" href="/building-providers/lifecycle">
-    Implement on_create, on_update, and on_delete handlers.
+    Implement on_observe, on_create, on_update, and on_delete handlers.
   </Card>
   <Card title="Building Providers Overview" icon="cube" href="/building-providers/overview">
     Full guide to creating and deploying providers.

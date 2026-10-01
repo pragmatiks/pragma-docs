@@ -14,7 +14,7 @@ Agno is a Python framework for building AI agents with support for models, tools
 The Agno provider is a first-party provider maintained by Pragmatiks. Install it with:
 
 ```bash
-pragma providers push --deploy
+pragma providers install pragmatiks/agno
 ```
 
 ## Resources
@@ -23,6 +23,7 @@ pragma providers push --deploy
 |----------|------|-------------|
 | [Agent](/providers/agno/agent) | `agno/agent` | AI agent definition with model, tools, and knowledge |
 | [Team](/providers/agno/team) | `agno/team` | Multi-agent team with coordinated members |
+| [Prompt](/providers/agno/prompt) | `agno/prompt` | Reusable instruction templates |
 | [Models](/providers/agno/models) | `agno/models/anthropic`, `agno/models/openai` | LLM configuration (Claude, GPT) |
 | [Tools](/providers/agno/tools) | `agno/tools/mcp`, `agno/tools/websearch` | Agent tool integrations |
 | [Knowledge](/providers/agno/knowledge) | `agno/knowledge`, `agno/vectordb/qdrant`, `agno/knowledge/embedder/openai`, `agno/knowledge/content` | Semantic search and RAG |
@@ -50,5 +51,5 @@ Changes propagate automatically. Updating a model triggers the agent and runner 
 
 The Agno provider depends on:
 
-- **GCP provider** — for `gcp/gke` clusters (required by `agno/runner`)
-- **GCP provider** — for `gcp/secret` (commonly used for API keys)
+- **Kubernetes provider** — `kubernetes/config` and `kubernetes/namespace` (required by `agno/runner`)
+- **Qdrant provider** — `qdrant/collection` (the collection `agno/knowledge/content` writes into)

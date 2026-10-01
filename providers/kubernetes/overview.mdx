@@ -1,39 +1,52 @@
 ---
 title: "Kubernetes Provider"
-description: "Manage Kubernetes workloads and configuration on GKE clusters"
+description: "Manage Kubernetes workloads and configuration on your clusters"
 ---
 
-The Kubernetes provider manages core Kubernetes resources — Deployments, StatefulSets, Services, ConfigMaps, and Secrets — on GKE clusters using your GCP credentials.
+The Kubernetes provider manages core Kubernetes resources — Namespaces, Deployments, StatefulSets, Services, ConfigMaps, and Secrets — on a GKE cluster, an external cluster, or the cluster the provider runs in.
 
 ## Setup
 
-The Kubernetes provider connects to GKE clusters via the `gcp/gke` resource. All Kubernetes resources require a `cluster` dependency pointing to a GKE cluster.
+Cluster access comes from a `kubernetes/config` resource. Every other Kubernetes resource requires a `config` dependency pointing to it. A `kubernetes/config` resource authenticates in one of three modes, set by its immutable `mode` field:
+
+| Mode | Credentials | Extra field |
+|------|-------------|-------------|
+| `in_cluster` | The service account of the cluster the provider runs in | — |
+| `gke_cluster` | Built from a `gcp/gke` resource | `cluster`: reference to `gcp/gke` (immutable) |
+| `kubeconfig_file` | A kubeconfig file | `kubeconfig_path`: absolute path to the kubeconfig file (immutable) |
+
+Its only output is `mode`.
 
 ## Resources
 
 | Resource | Type | Description |
 |----------|------|-------------|
+| Config | `kubernetes/config` | Authenticated cluster access shared by every other Kubernetes resource |
+| Namespace | `kubernetes/namespace` | Cluster-scoped namespace isolation |
 | [Deployment](/providers/kubernetes/deployment) | `kubernetes/deployment` | Stateless workloads with rolling updates |
 | StatefulSet | `kubernetes/statefulset` | Stateful workloads with persistent storage |
-| Service | `kubernetes/service` | Network exposure for pods (ClusterIP, LoadBalancer, NodePort) |
+| Service | `kubernetes/service` | Network exposure for pods (ClusterIP, NodePort, LoadBalancer, Headless) |
 | ConfigMap | `kubernetes/configmap` | Configuration key-value storage |
 | Secret | `kubernetes/secret` | Sensitive data storage with base64 encoding |
 
 ## Architecture
 
-Kubernetes resources depend on a GKE cluster:
+Kubernetes resources depend on a `kubernetes/config` resource, which can depend on a GKE cluster:
 
 ```
-gcp/gke (cluster)
-  ├─▶ kubernetes/deployment
-  ├─▶ kubernetes/statefulset
-  ├─▶ kubernetes/service
-  ├─▶ kubernetes/configmap
-  └─▶ kubernetes/secret
+gcp/gke (cluster, optional)
+  └─▶ kubernetes/config
+        ├─▶ kubernetes/namespace
+        ├─▶ kubernetes/deployment
+        ├─▶ kubernetes/statefulset
+        ├─▶ kubernetes/service
+        ├─▶ kubernetes/configmap
+        └─▶ kubernetes/secret
 ```
 
 ## Notes
 
 - All Kubernetes resources use server-side apply for idempotent create/update operations.
-- The `cluster` and `namespace` fields are immutable on all resources — changing them requires recreation.
+- The `config` and `namespace` fields are immutable on all resources — changing them requires recreation.
 - Workload resources (Deployment, StatefulSet) wait for all replicas to be ready before reporting success.
+- Deleting a Namespace, Deployment, or StatefulSet waits until the object is gone.

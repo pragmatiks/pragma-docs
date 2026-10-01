@@ -164,6 +164,7 @@
               "providers/agno/overview",
               "providers/agno/agent",
               "providers/agno/team",
+              "providers/agno/prompt",
               "providers/agno/models",
               "providers/agno/tools",
               "providers/agno/knowledge",
@@ -195,7 +196,6 @@
               "building-providers/config-outputs",
               "building-providers/lifecycle",
               "building-providers/examples",
-              "building-providers/testing",
               "building-providers/deployment",
               "building-providers/best-practices",
               "store/publishing"

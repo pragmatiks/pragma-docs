@@ -37,7 +37,6 @@ Creates a managed Cloud SQL instance (PostgreSQL, MySQL, or SQL Server).
 | `connection_name` | `string` | Cloud SQL connection name (`project:region:instance`) |
 | `public_ip` | `string` or `null` | Public IP address |
 | `private_ip` | `string` or `null` | Private IP address |
-| `ready` | `boolean` | Whether the instance is running |
 | `console_url` | `string` | URL to GCP Console |
 | `logs_url` | `string` | URL to Cloud Logging |
 
@@ -73,7 +72,7 @@ Creates a database within a Cloud SQL instance.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` |
+| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` (immutable) |
 | `database_name` | `string` | **Yes** | — | Database name (immutable) |
 
 ### Outputs
@@ -83,7 +82,7 @@ Creates a database within a Cloud SQL instance.
 | `database_name` | `string` | Name of the created database |
 | `instance_name` | `string` | Name of the hosting instance |
 | `host` | `string` | Database host (IP address) |
-| `port` | `integer` | Database port (5432 for PostgreSQL, 3306 for MySQL) |
+| `port` | `integer` | Database port (5432 for PostgreSQL, 3306 for MySQL, 1433 for SQL Server) |
 | `url` | `string` | Connection URL (without credentials) |
 
 ### Example
@@ -111,7 +110,7 @@ Creates a database user within a Cloud SQL instance.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` |
+| `instance` | `Dependency` | **Yes** | — | Reference to `gcp/cloudsql/database_instance` (immutable) |
 | `username` | `string` | **Yes** | — | Username (immutable) |
 | `password` | `Field[string]` | **Yes** | — | Password. Supports FieldReferences for secret injection |
 
@@ -153,7 +152,7 @@ gcp/cloudsql/database_instance
   └─▶ gcp/cloudsql/user
 ```
 
-The database and user resources depend on an instance. Changing the instance on a database or user triggers replacement (delete from old, create in new).
+The database and user resources depend on an instance. The `instance` reference is immutable — to move a database or user to another instance, delete and recreate it.
 
 ## Notes
 

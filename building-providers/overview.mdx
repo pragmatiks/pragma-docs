@@ -3,7 +3,7 @@ title: "Building Providers"
 description: "Create custom providers to manage any infrastructure or service"
 ---
 
-Providers let you extend Pragmatiks to manage any tool, service, or infrastructure. A provider packages the logic to create, update, and delete resources of specific types.
+Providers let you extend Pragmatiks to manage any tool, service, or infrastructure. A provider packages the logic to observe, create, update, and delete resources of specific types.
 
 ## Why Build a Provider?
 
@@ -27,7 +27,7 @@ A namespace that groups related resources. Think of it like a FastAPI router tha
 ```python
 from pragma_sdk import Provider
 
-gcp = Provider(name="gcp")
+gcp = Provider()
 ```
 
 ### Resource
@@ -36,30 +36,52 @@ The core abstraction. Each resource type:
 
 - Has a **Config** schema defining what users configure
 - Has an **Outputs** schema defining what it exposes to other resources
-- Implements **lifecycle methods** to handle create, update, and delete events
+- Implements **lifecycle methods** to observe its external object and handle create, update, and delete events
 
 ```python
-from pragma_sdk import Resource, Config, Outputs
+from pragma_sdk import Config, Field, ImmutableField, Outputs, Resource
+
 
 class DatabaseConfig(Config):
-    name: str
-    size_gb: int = 10
+    """Configuration for a database.
+
+    Attributes:
+        name: Database name. Locates the database, so it cannot change.
+        size_gb: Storage size in gigabytes.
+    """
+
+    name: ImmutableField[str]
+    size_gb: Field[int] = 10
+
 
 class DatabaseOutputs(Outputs):
+    """Outputs of a database.
+
+    Attributes:
+        connection_url: Connection string for clients.
+    """
+
     connection_url: str
+
 
 @gcp.resource("database")
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
+    """Database located by its name."""
+
     async def on_create(self) -> DatabaseOutputs:
-        # Create the database, return outputs
+        """Create the database and return its outputs."""
         ...
 
-    async def on_update(self, previous_config: DatabaseConfig) -> DatabaseOutputs:
-        # Handle configuration changes
+    async def on_observe(self) -> DatabaseOutputs | None:
+        """Find the database by name; return its outputs, or None when it does not exist."""
+        ...
+
+    async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOutputs:
+        """Converge the database to the current configuration."""
         ...
 
     async def on_delete(self) -> None:
-        # Clean up the database
+        """Delete the database; succeed when it is already gone."""
         ...
 ```
 
@@ -72,23 +94,25 @@ Both extend Pydantic `BaseModel` with `extra="forbid"` to catch typos and invali
 
 ## Lifecycle Methods
 
-Every resource implements three async methods:
+Every resource implements four async methods:
 
 | Method | Called When | Returns |
 |--------|-------------|---------|
 | `on_create` | Resource is first provisioned | `Outputs` |
-| `on_update` | Configuration changes | `Outputs` |
+| `on_observe` | The platform needs the object's current state | `Outputs`, or `None` when the object does not exist |
+| `on_update` | Configuration changes, or a create finds the object already present (`previous_config=None`) | `Outputs` |
 | `on_delete` | Resource is removed | `None` |
 
-These methods must be **idempotent**. The platform may retry events if delivery fails, so calling a lifecycle method twice with the same input should produce the same result.
+`on_observe` locates the object from the resource's identity and config alone, never from stored outputs. It is mandatory unless the resource declares `computed = True` because it owns no external object; publishing a provider that omits it fails naming the resource type.
+
+These methods must be **idempotent**. The platform may retry events if delivery fails, so calling a lifecycle method twice with the same input should produce the same result. A create that finds the object already made by an earlier attempt reuses it:
 
 ```python
 async def on_create(self) -> SecretOutputs:
-    # Idempotent: handle "already exists" gracefully
     try:
-        secret = client.create_secret(...)
+        secret = await client.create_secret(...)
     except AlreadyExists:
-        secret = client.get_secret(...)  # Reuse existing
+        secret = await client.get_secret(...)
 
     return SecretOutputs(resource_name=secret.name)
 ```
@@ -116,51 +140,30 @@ This creates:
 ```
 mycompany-provider/
 ├── pyproject.toml
-├── src/mycompany_provider/
-│   ├── __init__.py         # Provider instance and exports
-│   └── resources/
-│       ├── __init__.py     # Resource exports for discovery
-│       └── example.py      # Your resource implementations
-└── tests/
-    └── test_example.py     # Tests using ProviderHarness
+├── README.md
+└── src/mycompany_provider/
+    ├── __init__.py
+    └── resources/
+        ├── __init__.py
+        └── example.py
 ```
 
-## Testing Locally
-
-The SDK includes `ProviderHarness` for testing lifecycle methods without deploying:
-
-```python
-from pragma_sdk.provider import ProviderHarness
-from mycompany_provider import Database, DatabaseConfig
-
-async def test_database_creation():
-    harness = ProviderHarness()
-
-    result = await harness.invoke_create(
-        Database,
-        name="test-db",
-        config=DatabaseConfig(name="analytics", size_gb=50)
-    )
-
-    assert result.success
-    assert "postgres://" in result.outputs.connection_url
-```
-
-The harness simulates the runtime environment, letting you verify lifecycle logic before deployment.
+| Path | Holds |
+|------|-------|
+| `pyproject.toml` | Package metadata and the `[tool.pragma]` table `publish` reads |
+| `src/mycompany_provider/__init__.py` | The `Provider` instance and resource registrations |
+| `src/mycompany_provider/resources/` | Your resource implementations |
 
 ## Deploying
 
-Once your provider is ready:
+Once your provider is ready, publish a version and install it in your organization:
 
 ```bash
-# Register resource types with the platform
-pragma providers sync
-
-# Build and deploy
-pragma providers push --deploy
+pragma providers publish
+pragma providers install <org>/mycompany
 ```
 
-After deployment, users can create resources of your types:
+After the platform deploys it, users can create resources of your types:
 
 ```yaml
 provider: mycompany
@@ -183,13 +186,10 @@ Follow this learning path to build and deploy your first provider:
     Design configuration schemas with validation and dependencies.
   </Card>
   <Card title="Lifecycle Methods" icon="rotate" href="/building-providers/lifecycle">
-    Implement on_create, on_update, and on_delete handlers.
-  </Card>
-  <Card title="Testing" icon="flask-vial" href="/building-providers/testing">
-    Test lifecycle methods with ProviderHarness.
+    Implement on_observe, on_create, on_update, and on_delete handlers.
   </Card>
   <Card title="Deployment" icon="cloud-arrow-up" href="/building-providers/deployment">
-    Build, push, and deploy your provider.
+    Publish and install your provider.
   </Card>
   <Card title="Best Practices" icon="lightbulb" href="/building-providers/best-practices">
     Idempotency, error handling, and production patterns.

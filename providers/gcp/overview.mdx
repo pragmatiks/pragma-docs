@@ -23,7 +23,7 @@ The GCP provider lets you manage Google Cloud Platform resources declaratively. 
 
 ### Credential Setup
 
-All GCP resources require a `credentials` field containing your service account JSON. Store credentials securely using a `gcp/secret` resource and reference them via FieldReferences.
+All GCP resources require a `credentials` field containing your service account JSON, as an object or a JSON string. Inject it with a FieldReference to a `pragma/secret` output rather than writing it inline; `gcp/secret` does not output its payload (see [Referencing Secrets](/providers/gcp/secret#referencing-secrets)).
 
 ## Resources
 
@@ -40,7 +40,8 @@ GCP resources often form dependency chains:
 ```
 Secret (credentials)
   └─▶ GKE Cluster
-        └─▶ Kubernetes Deployments
+        └─▶ Kubernetes Config
+              └─▶ Kubernetes workloads
   └─▶ Cloud SQL Instance
         ├─▶ Database
         └─▶ User

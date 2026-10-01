@@ -3,7 +3,7 @@ title: "Create a Custom Provider"
 description: "Build and deploy your own provider to extend Pragmatiks"
 ---
 
-In this quickstart, you'll build a provider that manages webhook endpoints. You'll define a resource schema, implement lifecycle methods, test locally, and deploy to Pragmatiks.
+In this quickstart, you'll build a provider that manages webhook endpoints. You'll define a resource schema, implement lifecycle methods, and publish to Pragmatiks.
 
 <Note>
 **Time estimate**: 60 minutes. Assumes familiarity with Python and the [provider model](/concepts/providers).
@@ -37,40 +37,56 @@ This creates the project structure:
 ```
 webhooks-provider/
 ├── pyproject.toml
-├── src/webhooks_provider/
-│   ├── __init__.py
-│   └── resources/
-│       ├── __init__.py
-│       └── example.py
-└── tests/
-    └── test_example.py
+├── README.md
+└── src/webhooks_provider/
+    ├── __init__.py
+    └── resources/
+        ├── __init__.py
+        └── example.py
 ```
 
 ## Step 2: Define the schema
 
-Replace `src/webhooks_provider/resources/example.py` with your resource definition:
+Delete `src/webhooks_provider/resources/example.py` and create `src/webhooks_provider/resources/endpoint.py` with your resource definition:
+
+<Note>
+`hooks.example.com` stands in for the API of the webhooks service you integrate with; it is not a real service. Substitute your service's endpoint and request format. The handlers show the shape of an observe-then-act provider and work only against a real service.
+</Note>
 
 ```python endpoint.py
-from __future__ import annotations
-
 import hashlib
-import time
-from typing import ClassVar
+from typing import Any
 
-from pragma_sdk import Config, Field, Outputs, Resource
+import httpx
+from pragma_sdk import Config, Field, Outputs, Resource, SensitiveField
+
+WEBHOOKS_API_URL = "https://hooks.example.com/v1/endpoints"
 
 
 class EndpointConfig(Config):
-    """Configuration for a webhook endpoint."""
+    """Configuration for a webhook endpoint.
 
-    url: str
-    events: list[str]
-    secret: Field[str] | None = None
-    active: bool = True
+    Attributes:
+        url: URL that receives the webhook deliveries.
+        events: Event types delivered to the endpoint.
+        secret: Signing secret for deliveries, usually a field reference.
+        active: Whether the endpoint receives deliveries.
+    """
+
+    url: Field[str]
+    events: Field[list[str]]
+    secret: SensitiveField[str] | None = None
+    active: Field[bool] = True
 
 
 class EndpointOutputs(Outputs):
-    """Outputs exposed to other resources."""
+    """Outputs exposed to other resources.
+
+    Attributes:
+        endpoint_id: Identifier of the endpoint at the webhooks service.
+        delivery_url: URL deliveries are sent to.
+        active: Whether the endpoint receives deliveries.
+    """
 
     endpoint_id: str
     delivery_url: str
@@ -78,55 +94,118 @@ class EndpointOutputs(Outputs):
 
 
 class Endpoint(Resource[EndpointConfig, EndpointOutputs]):
-    """Webhook endpoint resource."""
+    """Webhook endpoint registered with the webhooks service."""
 
-    provider: ClassVar[str] = "webhooks"
-    resource: ClassVar[str] = "endpoint"
+    def build_endpoint_id(self) -> str:
+        """Derive the endpoint identifier from the resource identity.
 
-    async def on_create(self) -> EndpointOutputs:
-        endpoint_id = hashlib.sha256(
-            f"{self.name}:{time.time()}".encode()
-        ).hexdigest()[:12]
+        The identifier is stable across runs, so ``on_observe`` locates the
+        endpoint without stored state.
 
-        # Register the webhook with the external service
-        # await http_client.post(self.config.url, ...)
+        Returns:
+            Twelve-character identifier unique to this project and name.
+        """
+        return hashlib.sha256(f"{self.project_id}:{self.name}".encode()).hexdigest()[:12]
 
+    def build_endpoint_url(self) -> str:
+        """Build the service URL of this endpoint.
+
+        Returns:
+            URL of the endpoint at the webhooks service.
+        """
+        return f"{WEBHOOKS_API_URL}/{self.build_endpoint_id()}"
+
+    def build_outputs(self, registration: dict[str, Any]) -> EndpointOutputs:
+        """Build outputs from the registration the service reports.
+
+        Args:
+            registration: Endpoint registration as the service returns it.
+
+        Returns:
+            Outputs for the endpoint.
+        """
+        endpoint_id = self.build_endpoint_id()
         return EndpointOutputs(
             endpoint_id=endpoint_id,
-            delivery_url=f"{self.config.url}/{endpoint_id}",
-            active=self.config.active,
+            delivery_url=registration["url"],
+            active=registration["active"],
         )
 
-    async def on_update(self, previous_config: EndpointConfig) -> EndpointOutputs:
-        # Update the webhook registration
-        # Re-register if URL or events changed
-        return EndpointOutputs(
-            endpoint_id="existing-id",
-            delivery_url=f"{self.config.url}/existing-id",
-            active=self.config.active,
-        )
+    async def write_registration(self) -> EndpointOutputs:
+        """Create or replace the registration with the current configuration.
+
+        Returns:
+            Outputs for the registered endpoint.
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                self.build_endpoint_url(),
+                json={
+                    "url": self.config.url,
+                    "events": self.config.events,
+                    "secret": self.config.secret,
+                    "active": self.config.active,
+                },
+            )
+        response.raise_for_status()
+        return self.build_outputs(response.json())
+
+    async def on_observe(self) -> EndpointOutputs | None:
+        """Report the endpoint registered for this resource.
+
+        Returns:
+            Outputs for the endpoint, or ``None`` when it is not registered.
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.get(self.build_endpoint_url())
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return self.build_outputs(response.json())
+
+    async def on_create(self) -> EndpointOutputs:
+        """Register the endpoint.
+
+        Returns:
+            Outputs for the registered endpoint.
+        """
+        return await self.write_registration()
+
+    async def on_update(self, previous_config: EndpointConfig | None) -> EndpointOutputs:
+        """Replace the registration with the current configuration.
+
+        The replacement carries the full desired state, so it converges the
+        endpoint whether or not ``previous_config`` is known.
+
+        Args:
+            previous_config: Configuration last applied, or ``None``.
+
+        Returns:
+            Outputs for the registered endpoint.
+        """
+        return await self.write_registration()
 
     async def on_delete(self) -> None:
-        # Deregister the webhook
-        pass
+        """Deregister the endpoint. Succeeds when it is already gone."""
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(self.build_endpoint_url())
+        if response.status_code != 404:
+            response.raise_for_status()
 ```
 
 Key points:
 
 - **Config** defines what users provide. `Field[str]` means a field that accepts either a direct value or a field reference from another resource.
 - **Outputs** defines what this resource exposes. Other resources can reference `endpoint_id` or `delivery_url` via field references.
-- **Lifecycle methods** must be idempotent — calling `on_create` twice with the same input should produce the same result.
+- **Lifecycle methods** are observe-then-act. `on_observe` reports whether the endpoint exists, locating it from the resource identity and config alone; the platform then calls `on_create` for an absent endpoint and `on_update` for a present one. `on_observe` is mandatory: a resource without it fails to register.
+- **Handlers await their I/O**, here through `httpx.AsyncClient`, and must be idempotent — repeating a handler with the same input produces the same result.
 
 ## Step 3: Register the resource
 
 Update `src/webhooks_provider/resources/__init__.py` to export your resource:
 
 ```python __init__.py
-from webhooks_provider.resources.endpoint import (
-    Endpoint,
-    EndpointConfig,
-    EndpointOutputs,
-)
+from webhooks_provider.resources.endpoint import Endpoint, EndpointConfig, EndpointOutputs
 
 __all__ = ["Endpoint", "EndpointConfig", "EndpointOutputs"]
 ```
@@ -136,77 +215,25 @@ Update `src/webhooks_provider/__init__.py` to register it with the provider:
 ```python __init__.py
 from pragma_sdk import Provider
 
-from webhooks_provider.resources.endpoint import Endpoint
+from webhooks_provider.resources import Endpoint
 
-provider = Provider(name="webhooks")
-provider.register(Endpoint)
+webhooks = Provider()
+
+webhooks.resource("endpoint")(Endpoint)
 ```
 
-## Step 4: Test locally
+## Step 4: Publish and install
 
-Write a test using `ProviderHarness`. Replace `tests/test_example.py`:
-
-```python test_endpoint.py
-import pytest
-from pragma_sdk.provider import ProviderHarness
-
-from webhooks_provider.resources.endpoint import Endpoint, EndpointConfig
-
-
-@pytest.mark.asyncio
-async def test_create_endpoint():
-    harness = ProviderHarness()
-
-    result = await harness.invoke_create(
-        Endpoint,
-        name="test-webhook",
-        config=EndpointConfig(
-            url="https://api.example.com/webhooks",
-            events=["deploy.created"],
-        ),
-    )
-
-    assert result.success
-    assert result.outputs.endpoint_id
-    assert "api.example.com" in result.outputs.delivery_url
-    assert result.outputs.active is True
-
-
-@pytest.mark.asyncio
-async def test_delete_endpoint():
-    harness = ProviderHarness()
-
-    result = await harness.invoke_delete(
-        Endpoint,
-        name="test-webhook",
-        config=EndpointConfig(
-            url="https://api.example.com/webhooks",
-            events=["deploy.created"],
-        ),
-    )
-
-    assert result.success
-```
-
-Run the tests:
+Publish the provider version, then install it in your organization:
 
 ```bash
-task test
+pragma providers publish
+pragma providers install <org>/webhooks
 ```
 
-## Step 5: Deploy
+`publish` builds the wheel, extracts the resource schemas, and uploads both under `<org>/webhooks`, where `<org>` is your organization's slug. `install` queues the provider for your organization, and the platform deploys it.
 
-Sync your resource schemas with the platform, then build and deploy:
-
-```bash
-# Register resource types
-pragma providers sync
-
-# Build and deploy
-pragma providers push --deploy
-```
-
-## Step 6: Use it
+## Step 5: Use it
 
 Now users can create webhook endpoints as Pragmatiks resources:
 
@@ -249,13 +276,10 @@ The [Building Providers](/building-providers/overview) guide covers everything i
     Schema design with validation, dependencies, and field references.
   </Card>
   <Card title="Lifecycle Methods" icon="rotate" href="/building-providers/lifecycle">
-    Implementing idempotent create, update, and delete handlers.
-  </Card>
-  <Card title="Testing" icon="flask-vial" href="/building-providers/testing">
-    Testing with ProviderHarness and mocking external services.
+    Implementing idempotent observe, create, update, and delete handlers.
   </Card>
   <Card title="Deployment" icon="cloud-arrow-up" href="/building-providers/deployment">
-    Building, pushing, and deploying your provider.
+    Publishing, installing, and deploying your provider.
   </Card>
   <Card title="Best Practices" icon="lightbulb" href="/building-providers/best-practices">
     Idempotency patterns, error handling, and production readiness.

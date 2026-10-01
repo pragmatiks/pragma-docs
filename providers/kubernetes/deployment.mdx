@@ -9,7 +9,7 @@ description: "Manage Kubernetes Deployments for stateless workloads"
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `cluster` | `Dependency` | **Yes** | — | Reference to `gcp/gke` providing Kubernetes credentials |
+| `config` | `Dependency` | **Yes** | — | Reference to `kubernetes/config` providing cluster access (immutable) |
 | `namespace` | `string` | No | `"default"` | Kubernetes namespace (immutable) |
 | `replicas` | `integer` | No | `1` | Number of pod replicas |
 | `selector` | `dict[string, string]` | **Yes** | — | Label selector for pods (immutable) |
@@ -60,13 +60,11 @@ description: "Manage Kubernetes Deployments for stateless workloads"
 | `name` | `string` | Deployment name |
 | `namespace` | `string` | Kubernetes namespace |
 | `replicas` | `integer` | Desired replica count |
-| `ready_replicas` | `integer` | Currently ready replicas |
-| `available_replicas` | `integer` | Currently available replicas |
 
 ## Dependencies
 
 **Depends on:**
-- `gcp/gke` (required) — Kubernetes cluster
+- `kubernetes/config` (required) — access to the target cluster
 
 **Depended on by:**
 - `agno/runner` creates Kubernetes Deployments internally
@@ -78,9 +76,9 @@ provider: kubernetes
 resource: deployment
 name: my-app
 config:
-  cluster:
-    provider: gcp
-    resource: gke
+  config:
+    provider: kubernetes
+    resource: config
     name: my-cluster
   namespace: production
   replicas: 3
@@ -109,7 +107,7 @@ config:
 
 ## Notes
 
-- The deployment waits up to 5 minutes for all replicas to become ready before timing out.
-- The `cluster`, `namespace`, and `selector` fields are **immutable** — changing them requires deleting and recreating the resource.
+- Create and update wait up to 5 minutes for all replicas to become ready before timing out. Delete waits until the Deployment is gone.
+- The `config`, `namespace`, and `selector` fields are **immutable** — changing them requires deleting and recreating the resource.
 - Environment variables from Kubernetes Secrets use the format `"secret_name.key"` in `env_from_secret`.
 - Rolling updates use 25% max surge and 25% max unavailable by default.

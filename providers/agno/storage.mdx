@@ -36,6 +36,7 @@ Supports two connection patterns:
 | `db_schema` | `string` | No | `"ai"` | Database schema for Agno tables |
 | `session_table` | `string` | No | — | Custom table name for sessions |
 | `memory_table` | `string` | No | — | Custom table name for memories |
+| `approvals_table` | `string` | No | — | Custom table name for human-in-the-loop approvals |
 
 ### Outputs
 
@@ -51,7 +52,6 @@ Supports two connection patterns:
 - `agno/agent` — in the `db` field
 - `agno/team` — in the `db` field
 - `agno/memory/manager` — in the `db` field
-- `agno/knowledge` — in the `contents_db` field
 
 ## Example — Using Cloud SQL outputs
 
