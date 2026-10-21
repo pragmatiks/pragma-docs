@@ -6,7 +6,7 @@
 
 ## Deployment
 
-Deployed via **Mintlify** — push to `main` auto-deploys. Mintlify provides preview URLs for PRs.
+Deployed via **Mintlify** — every merge to `main` auto-deploys. `main` changes only through pull requests (squash or rebase); the org ruleset refuses direct pushes, force-pushes and deletion. Mintlify provides preview URLs for PRs.
 
 **Config**: `docs.json` defines navigation, theme, and settings.
 
