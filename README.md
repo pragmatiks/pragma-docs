@@ -30,19 +30,20 @@ Official documentation for Pragmatiks.
 
 ## Local Development
 
-Install the Mintlify CLI:
+On a fresh clone, install the locked toolchain (task comes from mise), then the project setup:
 
 ```bash
-npm i -g mintlify
+mise trust && mise install --locked
+task install
 ```
 
 Start the local development server:
 
 ```bash
-mintlify dev
+task dev
 ```
 
-View your changes at `http://localhost:3000`.
+View your changes at `http://localhost:3200`.
 
 ## Project Structure
 

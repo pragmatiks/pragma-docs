@@ -1,6 +1,40 @@
 version: "3"
 
+vars:
+  MISE_VERSION_PIN: "2026.10.17"
+
 tasks:
+  install:
+    desc: Install the pinned toolchain from mise.lock
+    cmds:
+      - task: install:mise-ceiling
+      - mise install --locked
+
+  install:mise-ceiling:
+    desc: Write the gitignored .miserc.toml that keeps mise in .claude/worktrees checkouts from loading the primary checkout's config
+    cmd: |
+      primary_checkout=$(cd "$(git rev-parse --path-format=absolute --git-common-dir)/.." && pwd -P)
+      worktrees_directory="$primary_checkout/.claude/worktrees"
+      ceiling_line="ceiling_paths = [\"$worktrees_directory\"]"
+
+      if [ -f .miserc.toml ] && grep -qF "\"$worktrees_directory\"" .miserc.toml; then
+        exit 0
+      fi
+
+      if [ -f .miserc.toml ] && grep -v '^[[:space:]]*$' .miserc.toml | grep -qvx 'ceiling_paths = \["[^"]*"\]'; then
+        echo ".miserc.toml holds other settings, so it was left unchanged. Add $worktrees_directory to its ceiling_paths, for example: $ceiling_line" >&2
+        exit 1
+      fi
+
+      printf '%s\n' "$ceiling_line" > .miserc.toml
+
+  lock:toolchain:
+    desc: Regenerate mise.lock for macOS arm64 and Linux x86_64 (never bumps)
+    cmds:
+      - test "$(mise --version | cut -d' ' -f1)" = "{{.MISE_VERSION_PIN}}"
+      - test "$(uname -sm)" = "Darwin arm64" || test "$(uname -sm)" = "Linux x86_64"
+      - mise lock --platform macos-arm64,linux-x64
+
   check:
     desc: Validate the Mintlify docs build
     cmd: mise exec -- npx mintlify@latest validate

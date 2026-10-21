@@ -10,6 +10,17 @@ Deployed via **Mintlify** — push to `main` auto-deploys. Mintlify provides pre
 
 **Config**: `docs.json` defines navigation, theme, and settings.
 
+## Development
+
+mise is the only toolchain source: `mise.toml` pins node and task, and `mise.lock` plus `.mise/locks/` lock them for macOS arm64 and Linux x64. On a fresh clone run `mise trust && mise install --locked` first (task comes from mise), then `task install`.
+
+| Command | Purpose |
+|---------|---------|
+| `task install` | Install the locked toolchain |
+| `task dev` | Start the local docs server on port 3200 |
+| `task check` | Validate the Mintlify docs build |
+| `task lock:toolchain` | Re-lock the toolchain after editing `mise.toml` (needs mise at `MISE_VERSION_PIN`) |
+
 ---
 
 ## CONFIDENTIAL — DO NOT PUBLISH
