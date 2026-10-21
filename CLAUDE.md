@@ -12,7 +12,7 @@ Deployed via **Mintlify** — push to `main` auto-deploys. Mintlify provides pre
 
 ## Development
 
-mise is the only toolchain source: `mise.toml` pins node and task, and `mise.lock` plus `.mise/locks/` lock them for macOS arm64 and Linux x64. On a fresh clone run `mise trust && mise install --locked` first (task comes from mise), then `task install`.
+mise is the only toolchain source: `mise.toml` pins node and task, and `mise.lock` plus `.mise/locks/` lock them for macOS arm64 and Linux x64. On a fresh clone run `mise trust && mise install` first (task comes from mise), then `task install`.
 
 | Command | Purpose |
 |---------|---------|

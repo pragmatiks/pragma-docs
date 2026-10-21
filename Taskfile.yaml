@@ -8,7 +8,7 @@ tasks:
     desc: Install the pinned toolchain from mise.lock
     cmds:
       - task: install:mise-ceiling
-      - mise install --locked
+      - mise install
 
   install:mise-ceiling:
     desc: Write the gitignored .miserc.toml that keeps mise in .claude/worktrees checkouts from loading the primary checkout's config

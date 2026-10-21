@@ -33,7 +33,7 @@ Official documentation for Pragmatiks.
 On a fresh clone, install the locked toolchain (task comes from mise), then the project setup:
 
 ```bash
-mise trust && mise install --locked
+mise trust && mise install
 task install
 ```
 
