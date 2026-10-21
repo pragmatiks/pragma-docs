@@ -1,0 +1,8 @@
+min_version = "2026.10.17"
+
+[tools]
+node = "26"
+task = "3.52.0"
+
+[settings]
+locked = true
