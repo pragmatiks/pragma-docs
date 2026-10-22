@@ -12,14 +12,16 @@ Deployed via **Mintlify** — every merge to `main` auto-deploys. `main` changes
 
 ## Development
 
-mise is the only toolchain source: `mise.toml` pins node and task, and `mise.lock` plus `.mise/locks/` lock them for macOS arm64 and Linux x64. On a fresh clone run `mise trust && mise install` first (task comes from mise), then `task install`.
+mise is the only toolchain source: `mise.toml` pins node, and `mise.lock` locks it for macOS arm64 and Linux x64. On a fresh clone run `mise trust`, then `mise run install`.
+
+Use mise tasks (`mise tasks` lists them all):
 
 | Command | Purpose |
 |---------|---------|
-| `task install` | Install the locked toolchain |
-| `task dev` | Start the local docs server on port 3200 |
-| `task check` | Validate the Mintlify docs build |
-| `task lock:toolchain` | Re-lock the toolchain after editing `mise.toml` (needs mise at `MISE_VERSION_PIN`) |
+| `mise run install` | Install the locked toolchain |
+| `mise run dev` | Start the local docs server on port 3200 |
+| `mise run check` | Validate the Mintlify docs build |
+| `mise run lock:toolchain` | Re-lock the toolchain after editing `mise.toml` (needs mise at the `min_version` in `mise.toml`) |
 
 ---
 
@@ -111,7 +113,7 @@ This section is an embedded copy of the pragma-os repo's `docs/engineering-princ
 
 | Layer | What | Where |
 |---|---|---|
-| 1. Style + standard smells | `ruff` (Python), `eslint` (TS) with curated rule set | per-repo `task check` / `pnpm lint` |
+| 1. Style + standard smells | `ruff` (Python), `eslint` (TS) with curated rule set | per-repo `mise run check` / `pnpm lint` |
 | 2. Complexity gating | `radon` / `xenon` (Python), `eslint-plugin-sonarjs/cognitive-complexity` (TS) | CI fail on regression |
 | 3. Pragmatiks-specific rules | `semgrep` ruleset (cross-language) + custom scripts | shared via `pragmatiks-lint` (PyPI) and `@pragmatiks/lint` (npm) |
 
@@ -250,7 +252,7 @@ Provider event `on_delete` stays (provider deletes external object).
 **Programmatic check**:
 - `eslint-plugin-unicorn/prevent-abbreviations` (TS) — direct fit, allowlist config.
 - `pra-no-abbreviations-python` semgrep rule (Python) — regex matching forbidden short identifiers, allowlist.
-- `packages/api/scripts/check_openapi_spec.py` (`task api:check`) — flags infrastructure terms in generated OpenAPI spec. Kubernetes, pod, namespace, and vendor names not in term list yet — reviewer scans for them.
+- `packages/api/scripts/check_openapi_spec.py` (`mise run api:check`) — flags infrastructure terms in generated OpenAPI spec. Kubernetes, pod, namespace, and vendor names not in term list yet — reviewer scans for them.
 
 **Reviewer hint**: `db`, `cfg`, `k8s` in any new code = blocker. Banned synonym from vocabulary table on any surface = blocker.
 
