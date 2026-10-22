@@ -133,16 +133,13 @@ To update your provider's store metadata (display name, description, tags), upda
 ## Complete Workflow
 
 ```bash
-# 1. Test your provider locally
-task test
-
-# 2. Publish to the store
+# 1. Publish to the store
 pragma providers publish --version 1.0.0 --changelog "Initial release"
 
-# 3. Verify in the store
+# 2. Verify in the store
 pragma store info mydb
 
-# 4. Test installation
+# 3. Test installation
 pragma store install mydb --tier free
 ```
 

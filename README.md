@@ -30,17 +30,17 @@ Official documentation for Pragmatiks.
 
 ## Local Development
 
-On a fresh clone, install the locked toolchain (task comes from mise), then the project setup:
+On a fresh clone, trust the configuration, then install the locked toolchain:
 
 ```bash
-mise trust && mise install
-task install
+mise trust
+mise run install
 ```
 
 Start the local development server:
 
 ```bash
-task dev
+mise run dev
 ```
 
 View your changes at `http://localhost:3200`.
