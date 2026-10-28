@@ -148,8 +148,7 @@
             "group": "Concepts",
             "pages": [
               "store/trust-tiers",
-              "store/resource-tiers",
-              "store/upgrade-policies"
+              "store/resource-tiers"
             ]
           },
           {

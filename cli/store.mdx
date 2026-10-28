@@ -116,7 +116,6 @@ pragma store install <NAME> [VERSION] [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--tier` | `standard` | Resource tier (`free`, `standard`, `performance`) |
-| `--upgrade-policy` | `manual` | Upgrade policy (`auto`, `manual`) |
 | `-y`, `--yes` | — | Skip confirmation prompt |
 
 **Examples:**
@@ -129,7 +128,7 @@ pragma store install qdrant
 pragma store install postgres 1.2.0
 
 # Install with options
-pragma store install redis --tier performance --upgrade-policy auto
+pragma store install redis --tier performance
 
 # Skip confirmation
 pragma store install qdrant -y

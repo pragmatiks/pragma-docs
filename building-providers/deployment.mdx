@@ -43,19 +43,26 @@ Install the published provider in your organization:
 pragma providers install <org>/mycompany
 ```
 
-`install` queues the provider, and the platform deploys it. Pin a version with `--version`:
+`install` prints the version it targets and queues the installation. Pin a version with `--version`:
 
 ```bash
 pragma providers install <org>/mycompany --version 0.2.0
 ```
 
-## Check Deployment Status
+## Follow the Installation
 
 ```bash
-pragma providers status <org>/mycompany
+pragma providers list --installed
+pragma providers history <org>/mycompany
 ```
 
-The status shows the deployment state (pending, progressing, available, or failed), the deployed version, its health, and when it last changed.
+`list --installed` shows the installation's state (`Queued`, `Starting`, `Running`, `Failed` or `Uninstalling`), the version it serves, its latest operation with the version it targets, and the failure message when it failed. `history` lists every transition, newest first, with its time, operation, version, message and cause; it is kept for 30 days, also after an uninstall.
+
+A failed installation is recovered by installing it again:
+
+```bash
+pragma providers install <org>/mycompany --version 0.2.0
+```
 
 ## Ship a New Version
 
@@ -72,7 +79,7 @@ To move back to an earlier version:
 pragma providers downgrade <org>/mycompany --version 0.2.0
 ```
 
-`pragma providers deploy <org>/mycompany --version 0.2.0` redeploys an installed provider at a given version.
+Both print the target version and point to `pragma providers history`. The installed version keeps serving until the new one runs.
 
 ## Verify Deployment
 
@@ -147,11 +154,12 @@ The module that registers them must be imported by the package named in `[tool.p
 Verify the provider is running:
 
 ```bash
-pragma providers status <org>/mycompany
+pragma providers list --installed
+pragma providers history <org>/mycompany
 ```
 
 If resources stay pending, check:
-- The provider deployed successfully
+- The installation is `Running`, not `Failed`
 - The resource configuration is valid
 - The resource's dependencies are ready
 
@@ -162,7 +170,7 @@ Publish, then install or upgrade:
 ```bash
 pragma providers publish
 pragma providers install <org>/mycompany
-pragma providers status <org>/mycompany
+pragma providers history <org>/mycompany
 ```
 
 ## Next Steps

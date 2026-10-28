@@ -272,11 +272,14 @@ pragma providers publish
 pragma providers install <org>/jsonstore
 ```
 
-`publish` builds the wheel with `uv build`, extracts the resource schemas, and uploads both as `<org>/jsonstore` version `0.1.0`, where `<org>` is your organization's slug. Published versions are immutable, so bump `version` in `pyproject.toml` before publishing again. `install` queues the provider for your organization, and the platform deploys it. Check the deployment with:
+`publish` builds the wheel with `uv build`, extracts the resource schemas, and uploads both as `<org>/jsonstore` version `0.1.0`, where `<org>` is your organization's slug. Published versions are immutable, so bump `version` in `pyproject.toml` before publishing again. `install` prints the version it targets and queues the installation for your organization. Follow it until its state is `Running`:
 
 ```bash
-pragma providers status <org>/jsonstore
+pragma providers list --installed
+pragma providers history <org>/jsonstore
 ```
+
+A failed installation shows its reason in both; install it again to recover.
 
 ## Step 5: Create a Resource
 

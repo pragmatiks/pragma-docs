@@ -377,25 +377,33 @@ These methods back the `pragma providers` commands; see the [CLI reference](/cli
 | `declare_provider_version(declaration)` | Declare a provider version before uploading its wheel; returns a `DeclaredProviderVersion` carrying the `operation_id` to upload under: `awaiting_wheel` when new, or the version already in flight when the declaration is identical |
 | `upload_provider_wheel(operation_id, wheel_path)` | Upload the wheel of a declared version and start its admission; returns the `ProviderVersion` |
 | `publish_provider_version(wheel_path, *, changelog=None)` | Declare the wheel's version, then upload the wheel only while the version awaits it; returns the `ProviderVersion` |
-| `install_provider(provider_name, version=None, upgrade_policy=UpgradePolicy.MANUAL, config=None)` | Install a provider in your organization |
-| `list_installations()` | List installed providers |
-| `upgrade_provider(name, target_version=None)` | Upgrade an installed provider |
-| `downgrade_provider(name, target_version)` | Move an installed provider to an earlier version |
+| `install_provider(provider_name, version=None, config=None)` | Install a provider in your organization; returns the `ProviderInstallation` |
+| `list_installations()` | List installed providers; returns `list[ProviderInstallation]` |
+| `upgrade_provider(name, target_version=None)` | Upgrade an installed provider; returns the `ProviderInstallation` |
+| `downgrade_provider(name, target_version)` | Move an installed provider to an earlier version; returns the `ProviderInstallation` |
 | `uninstall_provider(name, *, cascade=False)` | Uninstall a provider; `cascade=True` deletes its resources |
-| `deploy_provider(provider_name, version=None)` | Redeploy an installed provider; returns `DeploymentResult` |
-| `get_deployment_status(provider_name)` | Get the deployment status; returns `DeploymentResult` |
+| `list_provider_history(provider_name)` | List an installed provider's history, newest first; returns `list[ProviderInstallationEvent]` |
 
 ```python
-from pragma_sdk import DeploymentStatus
-
 with PragmaClient() as client:
-    client.install_provider("pragmatiks/agno")
-    result = client.get_deployment_status("pragmatiks/agno")
-    if result.status == DeploymentStatus.AVAILABLE:
-        print(f"Version {result.version} is running")
+    installation = client.install_provider("pragmatiks/agno")
+    print(f"Installing version {installation.operation_version}")
+
+    for event in client.list_provider_history("pragmatiks/agno"):
+        print(event.occurred_at, event.from_state, event.to_state, event.message)
 ```
 
-`DeploymentResult.status` is one of `pending`, `progressing`, `available`, or `failed`.
+A `ProviderInstallation` describes where an installation is:
+
+| Field | Description |
+|-------|-------------|
+| `lifecycle_state` | `pending` (queued), `processing` (starting), `ready` (running), `failed`, or `deleting` (uninstalling) |
+| `operation_type` | The latest operation: `install`, `upgrade`, `downgrade`, `start` (a restart), or `uninstall` |
+| `operation_version` | The version the latest operation targets; installing again without a version installs it |
+| `installed_version` | The version the installation last served, or `None` before it first runs |
+| `failure_message` | Why the latest operation failed, set only while `lifecycle_state` is `failed` |
+
+A `ProviderInstallationEvent` is one entry of the history, kept for 30 days and still available after an uninstall: `from_state`, `to_state` (`uninstalled` once the uninstall removed the installation), `operation_id`, `operation_type`, `version`, `message`, `cause`, and `occurred_at`.
 
 ---
 

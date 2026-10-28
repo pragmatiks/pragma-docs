@@ -231,7 +231,7 @@ pragma providers publish
 pragma providers install <org>/webhooks
 ```
 
-`publish` builds the wheel, extracts the resource schemas, and uploads both under `<org>/webhooks`, where `<org>` is your organization's slug. `install` queues the provider for your organization, and the platform deploys it.
+`publish` builds the wheel, extracts the resource schemas, and uploads both under `<org>/webhooks`, where `<org>` is your organization's slug. `install` prints the version it targets and queues the installation; follow it with `pragma providers history <org>/webhooks` until it is running.
 
 ## Step 5: Use it
 
