@@ -49,17 +49,25 @@ pragma providers publish --wheel dist/my_provider-1.0.0-py3-none-any.whl
 
 ## Install
 
-Install a provider in your organization. The platform deploys it:
+Install a provider in your organization:
 
 ```bash
 pragma providers install pragmatiks/qdrant
 pragma providers install pragmatiks/postgres --version 1.2.0
-pragma providers install pragmatiks/redis --upgrade-policy auto-minor
 pragma providers install pragmatiks/qdrant --config SOME_KEY=some_value
 pragma providers install pragmatiks/qdrant --config-file config.yaml
 ```
 
-`--upgrade-policy` is `manual` (the default), `auto-minor`, or `auto-patch`. `--yes` skips the confirmation prompt.
+Without `--version`, the latest version is installed. `--yes` skips the confirmation prompt.
+
+The command prints the version the installation targets and the command to follow it:
+
+```text
+Installed: pragmatiks/qdrant v1.4.0
+Follow it with: pragma providers history pragmatiks/qdrant
+```
+
+The installation then continues on its own: it is queued, starts, and ends running or failed. See [Installation lifecycle](#installation-lifecycle).
 
 ## List
 
@@ -72,6 +80,18 @@ pragma providers list --query postgres
 pragma providers list --scope public --tags ml,vector
 ```
 
+`--installed` shows one row per installed provider:
+
+| Column | Shows |
+|--------|-------|
+| Provider | The provider name |
+| State | `Queued`, `Starting`, `Running`, `Failed` or `Uninstalling` |
+| Version | The version the installation serves; a dash until it first runs |
+| Operation | The latest operation (`install`, `upgrade`, `downgrade`, `restart`, `uninstall`) and the version it targets |
+| Message | Why the installation failed, when it failed |
+
+With `-o json` or `-o yaml`, each record carries `installed_version`, `lifecycle_state` (`pending`, `processing`, `ready`, `failed` or `deleting`), `operation_type`, `operation_version` and `failure_message`.
+
 ## Info
 
 Show a provider's metadata, version history, and installation status:
@@ -80,13 +100,25 @@ Show a provider's metadata, version history, and installation status:
 pragma providers info pragmatiks/qdrant
 ```
 
-## Status
+## History
 
-Check the deployment status of an installed provider:
+Show the history of an installed provider, newest first:
 
 ```bash
-pragma providers status pragmatiks/postgres
+pragma providers history pragmatiks/postgres
+pragma providers history pragmatiks/postgres -o json
 ```
+
+| Column | Shows |
+|--------|-------|
+| Time | When the transition happened |
+| Transition | The states it moved between, such as `Queued -> Starting`; `Uninstalled` once the provider is uninstalled |
+| Operation | The operation behind it: `install`, `upgrade`, `downgrade`, `restart` or `uninstall` |
+| Version | The version that operation targets |
+| Message | What happened, such as `started` or the failure message |
+| Cause | The detail behind a failure |
+
+The history is kept for 30 days, also after the provider is uninstalled. `-o json` and `-o yaml` print the entries as records.
 
 ## Upgrade and Downgrade
 
@@ -98,16 +130,41 @@ pragma providers upgrade pragmatiks/postgres --version 2.0.0
 pragma providers downgrade pragmatiks/postgres --version 1.2.0
 ```
 
-`upgrade` without `--version` targets the latest version. `downgrade` requires `--version`.
+`upgrade` without `--version` targets the latest version. `downgrade` requires `--version`. Like `install`, both print the target version and point to `pragma providers history`. The installed version keeps serving until the new one runs.
 
-## Deploy
-
-Redeploy an installed provider, at the latest version or a given one:
+An upgrade or downgrade is refused while another operation on the provider is running. A failed installation cannot be downgraded; install the version you want instead:
 
 ```bash
-pragma providers deploy pragmatiks/postgres
-pragma providers deploy pragmatiks/postgres --version 1.2.0
+pragma providers install pragmatiks/postgres --version 1.2.0
 ```
+
+## Installation lifecycle
+
+An install, upgrade or downgrade goes through these states:
+
+| State | Meaning |
+|-------|---------|
+| `Queued` | The operation is accepted and waits to start |
+| `Starting` | Pragmatiks is preparing and starting the provider at the target version |
+| `Running` | The provider serves its resources |
+| `Failed` | The operation did not finish; the message says why |
+| `Uninstalling` | `pragma providers uninstall` is removing the provider |
+
+A running provider that restarts shows `Starting` until it serves again, and its history records when it stopped, why, and when it started again.
+
+When an installation fails, `pragma providers list --installed` and `pragma providers history` show the reason, for example:
+
+```text
+Installing acme/pipeline 2.0.0 did not finish in time. Install it again.
+```
+
+Recover by installing it again, at the version you want:
+
+```bash
+pragma providers install acme/pipeline --version 2.0.0
+```
+
+The web console shows the same state on the provider page, an **Install again** button for a failed installation, and the installation history.
 
 ## Uninstall
 

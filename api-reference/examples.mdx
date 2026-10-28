@@ -315,17 +315,18 @@ curl -H "Authorization: Bearer $TOKEN" \
   "$API/providers/my-provider/builds/build-my-provider-abc123/logs"
 ```
 
-### Deploy a Provider
+### Install a Provider
 
-Deploy the provider to a specific version (or latest if omitted):
+Install a provider in your organization, at a specific version or the latest when omitted:
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "$API/providers/my-provider/deploy" \
+  "$API/providers/install" \
   -d '{
-    "version": "20250115.120000"
+    "provider_name": "acme/pipeline",
+    "version": "2.0.0"
   }'
 ```
 
@@ -333,30 +334,56 @@ curl -X POST \
 
 ```json
 {
-  "deployment_name": "provider-my-provider",
-  "status": "progressing",
-  "available_replicas": 0,
-  "ready_replicas": 0
+  "prefix": "acme",
+  "name": "pipeline",
+  "installed_version": null,
+  "config": null,
+  "installed_at": "2026-10-28T12:00:00Z",
+  "created_at": "2026-10-28T12:00:00Z",
+  "updated_at": "2026-10-28T12:00:00Z",
+  "lifecycle_state": "pending",
+  "operation_type": "install",
+  "operation_version": "2.0.0",
+  "failure_message": null
 }
 ```
 
-### Check Deployment Status
+The installation moves from `pending` (queued) to `processing` (starting) and ends `ready` (running) or `failed`, with the reason in `failure_message`. Installing again recovers a failed installation.
+
+### List Installed Providers
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "$API/providers/my-provider/deployment"
+  "$API/providers/installed"
 ```
 
-**Response (available):**
+Each entry carries the same fields as the install response.
+
+### Read an Installation's History
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/providers/installed/acme/pipeline/history"
+```
+
+**Response:**
 
 ```json
-{
-  "deployment_name": "provider-my-provider",
-  "status": "available",
-  "available_replicas": 1,
-  "ready_replicas": 1
-}
+[
+  {
+    "from_state": "processing",
+    "to_state": "ready",
+    "operation_id": "6f1c2a9e3b4d4e8f9a1b2c3d4e5f6a7b",
+    "operation_type": "install",
+    "version": "2.0.0",
+    "message": "started",
+    "cause": null,
+    "occurred_at": "2026-10-28T12:01:00Z"
+  }
+]
 ```
+
+Entries are newest first and kept for 30 days, also after an uninstall.
 
 ## Resource Definitions
 

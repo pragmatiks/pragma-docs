@@ -161,18 +161,6 @@ A field reference points to a non-existent output:
 
 **Solution**: Check that the provider code archive is valid.
 
-### Deployment Errors (404/500)
-
-#### Deployment Not Found
-
-```json
-{
-  "detail": "Deployment not found: provider-my-provider"
-}
-```
-
-**Solution**: Deploy the provider first with the deploy endpoint.
-
 ## Lifecycle State Reference
 
 Understanding lifecycle states helps interpret errors:
@@ -190,5 +178,5 @@ Understanding lifecycle states helps interpret errors:
 1. **Check response status codes** before parsing the body
 2. **Retry with backoff** for 5xx errors
 3. **Don't retry** 4xx errors without fixing the request
-4. **Poll status endpoints** for async operations (builds, deployments)
+4. **Poll status endpoints** for async operations (builds, installations)
 5. **Log correlation IDs** from responses for debugging

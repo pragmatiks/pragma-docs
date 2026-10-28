@@ -1,121 +1,114 @@
 ---
 title: "Installing Providers"
-description: "Install providers from the store into your workspace"
+description: "Install providers into your organization and follow each installation until it runs"
 ---
 
-Installing a provider from the store deploys it into your workspace and makes all its resource types available.
+Installing a provider from the store makes all its resource types available in your organization.
 
 ## Prerequisites
 
 - Authenticated with the platform: `pragma auth login`
-- Active workspace context: `pragma config current-context`
+- Active context: `pragma config current-context`
 
 ## Install via CLI
 
 ### Basic Install
 
-Install the latest version with default settings:
+Install the latest version:
 
 ```bash
-pragma store install qdrant
+pragma providers install pragmatiks/qdrant
 ```
 
-```
-Provider: Qdrant (qdrant)
+```text
+Provider: Qdrant (pragmatiks/qdrant)
 Version:  1.2.0
-Tier:     standard
 
 Install this provider? [y/N]: y
-Installed: qdrant v1.2.0
+Installed: pragmatiks/qdrant v1.2.0
+Follow it with: pragma providers history pragmatiks/qdrant
 ```
+
+The command prints the version the installation targets. The installation then continues on its own; follow it with `pragma providers history` or `pragma providers list --installed`.
 
 ### Install a Specific Version
 
 ```bash
-pragma store install qdrant 1.1.0
+pragma providers install pragmatiks/qdrant --version 1.1.0
 ```
 
-### Choose a Resource Tier
+### Pass Configuration
 
-The resource tier controls how much compute is allocated to the provider's deployment. Choose based on your workload:
+Configuration values reach only this provider:
 
 ```bash
-# Minimal resources for testing
-pragma store install qdrant --tier free
-
-# Balanced for production (default)
-pragma store install qdrant --tier standard
-
-# Maximum resources for high-throughput workloads
-pragma store install qdrant --tier performance
+pragma providers install pragmatiks/qdrant --config SOME_KEY=some_value
+pragma providers install pragmatiks/qdrant --config-file config.yaml --config OVERRIDE_KEY=value
 ```
-
-See [Resource Tiers](/store/resource-tiers) for details on what each tier provides.
-
-### Set an Upgrade Policy
-
-Control how future updates are applied:
-
-```bash
-# Manual upgrades (default) — you control when to upgrade
-pragma store install qdrant --upgrade-policy manual
-
-# Auto upgrades — new versions deploy automatically
-pragma store install redis --upgrade-policy auto
-```
-
-See [Upgrade Policies](/store/upgrade-policies) for details.
 
 ### Skip Confirmation
 
 Use `-y` to skip the confirmation prompt (useful in scripts):
 
 ```bash
-pragma store install qdrant -y
-```
-
-### Full Example
-
-```bash
-pragma store install redis 1.0.0 --tier performance --upgrade-policy auto -y
+pragma providers install pragmatiks/qdrant -y
 ```
 
 ## Install via Web UI
 
-In the Pragmatiks dashboard, navigate to the **Store** tab, select a provider, choose your resource tier and upgrade policy, and click **Install**.
+In the Pragmatiks dashboard, navigate to the **Store** tab, select a provider and click **Install**. The provider page then shows the installation's state and its history.
 
-## Verify Installation
+## Installation Lifecycle
 
-After installing, verify the provider is available:
+An install, upgrade or downgrade moves through these states:
+
+| State | Meaning |
+|-------|---------|
+| **Queued** | The operation is accepted and waits to start |
+| **Starting** | Pragmatiks is preparing and starting the provider at the target version |
+| **Running** | The provider serves its resources |
+| **Failed** | The operation did not finish; its message says why |
+
+Check the state of every installed provider:
 
 ```bash
-# List all installed providers
-pragma store installed
+pragma providers list --installed
 ```
 
-```
-Provider   Version   Tier       Upgrade Policy   Installed At          Upgrade Available
-qdrant     1.2.0     standard   manual           2026-02-20 14:30:00   -
-redis      1.0.0     performance auto            2026-02-20 14:35:00   -
+The table shows each provider's **State**, the **Version** it serves (a dash until it first runs), its latest **Operation** with the version it targets, and the failure **Message** when it failed.
+
+See every transition of one provider, newest first:
+
+```bash
+pragma providers history pragmatiks/qdrant
 ```
 
-You can also verify that the provider's resource types are available:
+The history lists the time, the transition (such as `Queued -> Starting`), the operation, the version, the message and, for a failure, its cause. It is kept for 30 days, also after the provider is uninstalled.
+
+Once a provider is **Running**, its resource types are available:
 
 ```bash
 pragma resources types
 ```
 
-## What Happens During Install
+## When an Installation Fails
 
-When you install a provider:
+A failed installation shows its reason in `pragma providers list --installed`, in `pragma providers history`, and on the provider page in the web console. For example:
 
-1. The platform pulls the provider image for the selected version
-2. A deployment is created in your workspace with the resource allocation matching your chosen tier
-3. The provider connects and begins listening for resource events
-4. All resource types from the provider become available in your workspace
+```text
+Installing acme/pipeline 2.0.0 did not finish in time. Install it again.
+```
+
+Recover by installing it again, at the version you want:
+
+```bash
+pragma providers install acme/pipeline --version 2.0.0
+```
+
+In the web console, the **Install again** button on the provider page does the same.
 
 <Note>
-If the provider was previously installed and has active resources, you will receive a conflict error. Uninstall the existing provider first, or upgrade to a new version instead.
+Some refusals stop an install before it starts. Installing a provider that embeds other providers names the missing ones and the command to install each. A version that has not finished publishing, or whose publish failed, cannot be installed.
 </Note>
 
 ## Next Steps
@@ -124,7 +117,7 @@ If the provider was previously installed and has active resources, you will rece
   <Card title="Upgrading & Uninstalling" icon="arrows-rotate" href="/store/upgrading">
     Manage installed provider versions.
   </Card>
-  <Card title="Resource Tiers" icon="gauge" href="/store/resource-tiers">
-    Understand compute allocation for providers.
+  <Card title="CLI Reference" icon="terminal" href="/cli/providers">
+    Full command reference for providers.
   </Card>
 </CardGroup>

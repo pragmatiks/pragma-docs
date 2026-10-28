@@ -1,6 +1,6 @@
 ---
 title: "Upgrading & Uninstalling"
-description: "Manage provider versions and lifecycle"
+description: "Move installed providers between versions or remove them"
 ---
 
 Keep your installed providers up to date or remove them when no longer needed.
@@ -9,88 +9,89 @@ Keep your installed providers up to date or remove them when no longer needed.
 
 - Install the CLI: see [Installation](/cli/installation)
 - Authenticate: `pragma auth login`
-- Verify workspace context: `pragma config current-context`
+- Verify context: `pragma config current-context`
 
-## Checking for Upgrades
+## Checking Installed Versions
 
-View your installed providers and their upgrade status:
+View your installed providers, their state and the version each serves:
 
 ```bash
-pragma store installed
+pragma providers list --installed
 ```
 
-```
-Provider   Version   Tier          Upgrade Policy   Installed At          Upgrade Available
-qdrant     1.1.0     standard      manual           2026-01-15 10:00:00   yes (1.2.0)
-redis      1.0.0     standard      auto             2026-02-01 14:00:00   -
-agno       2.0.0     performance   manual           2026-02-10 09:00:00   yes (2.1.0)
-```
+Compare with the versions a provider has published:
 
-The **Upgrade Available** column shows when a newer version exists in the store.
+```bash
+pragma providers versions pragmatiks/qdrant
+```
 
 ## Upgrading a Provider
 
 ### Upgrade to Latest
 
 ```bash
-pragma store upgrade qdrant
+pragma providers upgrade pragmatiks/qdrant
 ```
 
-```
-Upgrading: qdrant -> latest
+```text
+Upgrading: pragmatiks/qdrant -> latest
 
-Proceed with upgrade? [y/N]: y
-Upgraded: qdrant -> 1.2.0
+Upgrade pragmatiks/qdrant to latest? [y/N]: y
+Upgraded: pragmatiks/qdrant -> v1.2.0
+Follow it with: pragma providers history pragmatiks/qdrant
 ```
 
 ### Upgrade to a Specific Version
 
 ```bash
-pragma store upgrade qdrant 1.2.0
+pragma providers upgrade pragmatiks/qdrant --version 1.2.0
+```
+
+### Downgrade
+
+```bash
+pragma providers downgrade pragmatiks/qdrant --version 1.1.0
 ```
 
 ### Skip Confirmation
 
 ```bash
-pragma store upgrade qdrant -y
+pragma providers upgrade pragmatiks/qdrant -y
 ```
 
-### What Happens During Upgrade
+### What Happens During an Upgrade
 
-When you upgrade a provider:
+An upgrade or downgrade is queued, then starts the target version, and ends **Running** or **Failed**, like an install (see [Installation Lifecycle](/store/installing#installation-lifecycle)). The installed version keeps serving your resources until the new one runs. Follow it with:
 
-1. The platform pulls the new version's image
-2. A rolling deployment replaces the existing provider
-3. Existing resources continue to work throughout the upgrade
-4. No downtime for active resources
+```bash
+pragma providers history pragmatiks/qdrant
+```
 
-<Note>
-If the provider is already on the requested version, the command returns a warning and exits without changes.
-</Note>
+An upgrade or downgrade is refused while another operation on the provider is running; wait for it to finish, then run the command again. A failed installation cannot be downgraded; install the version you want instead:
 
-## Auto-Upgrade
-
-Providers installed with `--upgrade-policy auto` are upgraded automatically when a new version is published. The platform checks for updates periodically and performs rolling upgrades with zero downtime.
-
-To change a provider's upgrade policy after installation, uninstall and reinstall with the desired policy.
+```bash
+pragma providers install pragmatiks/qdrant --version 1.1.0
+```
 
 ## Uninstalling a Provider
 
 ### Basic Uninstall
 
 ```bash
-pragma store uninstall qdrant
+pragma providers uninstall pragmatiks/qdrant
 ```
 
-```
-Provider: qdrant
+```text
+Provider: pragmatiks/qdrant
 
 Are you sure you want to UNINSTALL provider? [y/N]: y
-Uninstalled: qdrant
+Uninstalled: pragmatiks/qdrant
 ```
 
+While it is removed, the provider shows **Uninstalling** in `pragma providers list --installed`. Its history stays available for 30 days.
+
 <Warning>
-If the provider has active resources, the uninstall will fail. You must either delete the resources manually or use `--cascade`.
+If the provider has active resources, the uninstall fails. Delete the resources first, or use `--cascade`.
 </Warning>
 
 ### Cascade Delete
@@ -98,40 +99,24 @@ If the provider has active resources, the uninstall will fail. You must either d
 Uninstall the provider and delete all resources it manages:
 
 ```bash
-pragma store uninstall qdrant --cascade
-```
-
-```
-Provider: qdrant
-Warning: --cascade will delete all resources for this provider
-
-Are you sure you want to UNINSTALL provider and delete all its resources? [y/N]: y
-Uninstalled: qdrant
+pragma providers uninstall pragmatiks/qdrant --cascade
 ```
 
 The `--cascade` flag deletes every resource created by the provider before removing the provider itself.
 
-### Force Uninstall
-
-Skip the confirmation prompt:
+### Skip Confirmation
 
 ```bash
-pragma store uninstall qdrant --force
-```
-
-### Cascade + Force
-
-```bash
-pragma store uninstall qdrant --cascade --force
+pragma providers uninstall pragmatiks/qdrant --cascade -y
 ```
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Upgrade Policies" icon="gear" href="/store/upgrade-policies">
-    Learn about manual and auto upgrade policies.
+  <Card title="Installing Providers" icon="download" href="/store/installing">
+    Install providers and follow each installation.
   </Card>
-  <Card title="CLI Reference" icon="terminal" href="/cli/store">
-    Full command reference for store operations.
+  <Card title="CLI Reference" icon="terminal" href="/cli/providers">
+    Full command reference for providers.
   </Card>
 </CardGroup>
