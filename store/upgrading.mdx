@@ -37,7 +37,7 @@ pragma providers upgrade pragmatiks/qdrant
 Upgrading: pragmatiks/qdrant -> latest
 
 Upgrade pragmatiks/qdrant to latest? [y/N]: y
-Upgraded: pragmatiks/qdrant -> v1.2.0
+Upgrade queued: pragmatiks/qdrant -> v1.2.0
 Follow it with: pragma providers history pragmatiks/qdrant
 ```
 
@@ -95,7 +95,8 @@ pragma providers uninstall pragmatiks/qdrant
 Provider: pragmatiks/qdrant
 
 Are you sure you want to UNINSTALL provider? [y/N]: y
-Uninstalled: pragmatiks/qdrant
+Uninstall queued: pragmatiks/qdrant
+Follow it with: pragma providers history pragmatiks/qdrant
 ```
 
 While it is removed, the provider shows **Uninstalling** in `pragma providers list --installed`. Its history stays available for 30 days.
