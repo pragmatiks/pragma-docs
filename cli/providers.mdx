@@ -114,7 +114,7 @@ pragma providers history pragmatiks/postgres -o json
 | Time | When the transition happened |
 | Transition | The states it moved between, such as `Queued -> Starting`; `Uninstalled` once the provider is uninstalled |
 | Operation | The operation behind it: `install`, `upgrade`, `downgrade`, `restart` or `uninstall` |
-| Version | The version that operation targets |
+| Version | The version the installation runs once the change is done; after a failed upgrade or downgrade, the installed version that keeps serving (the message names the target) |
 | Message | What happened, such as `started` or the failure message |
 | Cause | The detail behind a failure |
 

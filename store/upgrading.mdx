@@ -61,11 +61,21 @@ pragma providers upgrade pragmatiks/qdrant -y
 
 ### What Happens During an Upgrade
 
-An upgrade or downgrade is queued, then starts the target version, and ends **Running** or **Failed**, like an install (see [Installation Lifecycle](/store/installing#installation-lifecycle)). The installed version keeps serving your resources until the new one runs. Follow it with:
+An upgrade or downgrade is queued, then starts the target version alongside the installed one, like an install (see [Installation Lifecycle](/store/installing#installation-lifecycle)). It ends **Running** on the target version, or **Failed** if it does not finish in time. The installed version keeps serving your resources until the new one runs. Follow it with:
 
 ```bash
 pragma providers history pragmatiks/qdrant
 ```
+
+If the target version cannot start, the provider returns to **Running** on the installed version, which keeps serving your resources. `pragma providers list --installed` shows the failure message, such as:
+
+```text
+Upgrading pragmatiks/qdrant to 1.2.0 failed: The provider worker stopped before it could serve. The installed version keeps serving; publish a new version and upgrade to it.
+```
+
+The history records the failure under the installed version, and its message names the target version that failed. To try again, run the upgrade or downgrade again once the cause is fixed.
+
+Install, upgrade, downgrade and uninstall affect only the provider you name: your organization's other providers keep serving without a restart.
 
 An upgrade or downgrade is refused while another operation on the provider is running; wait for it to finish, then run the command again. A failed installation cannot be downgraded; install the version you want instead:
 
