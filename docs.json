@@ -116,6 +116,7 @@
               "cli/resources",
               "cli/providers",
               "cli/store",
+              "cli/organizations",
               "cli/operations"
             ]
           }
