@@ -431,6 +431,10 @@ The handler never waits for the subresource. `apply()` returns once the platform
 
 **`apply()`** - Sends the resource to the API for creation or update and returns once the API accepts it. The platform then provisions the resource with the provider that handles its type. Returns `self` for method chaining.
 
+<Note>
+A subresource belongs to the provider that defines its type, not to the provider whose handler applies it. When your provider applies a resource of a type it imports from another provider, such as a Kubernetes deployment, that resource names the other provider, and the other provider creates, updates and deletes it. Your organization needs that provider installed too.
+</Note>
+
 <Warning>
 Never wait inside a handler for another resource to become ready: no `wait_ready`, no `apply(wait=True)`, no sleep or retry loop. Declare the dependency and let the platform sequence the work.
 </Warning>

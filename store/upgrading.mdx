@@ -83,6 +83,60 @@ An upgrade or downgrade is refused while another operation on the provider is ru
 pragma providers install pragmatiks/qdrant --version 1.1.0
 ```
 
+## Compatibility Checks
+
+Pragmatiks refuses an install, upgrade, downgrade or uninstall that would break something you run. The refusal says what to do, and nothing changes until you do it.
+
+### Providers That Embed Other Providers
+
+A provider can embed other providers. It can be installed only when every provider it embeds, directly or through another provider, is installed. The refusal names each missing provider with the command and version to install:
+
+```text
+acme/outer embeds acme/inner and acme/middle, which are not installed. Run: pragma providers install acme/inner --version 1.0.0; pragma providers install acme/middle --version 1.2.0
+```
+
+### Changes That Would Break an Embedding Provider
+
+An install, upgrade or downgrade is refused when it would break an installed provider that embeds another. This happens in two cases.
+
+An upgrade of the embedded provider drops or changes outputs, or configuration fields, that an embedding provider reads:
+
+```text
+Upgrading acme/p to 2.0.0 drops or changes outputs acme/c reads: embedded.imported_packages. Upgrade acme/c to a version built against acme/p 2.0.0, or keep the installed version.
+```
+
+An embedding provider expects outputs the installed provider does not provide:
+
+```text
+acme/c 1.1.0 reads outputs installed acme/p 1.0.0 does not provide: embedded.zone. Upgrade acme/p first, or upgrade acme/c to a version built against acme/p 1.0.0. Run: pragma providers upgrade acme/p --version 1.1.0
+```
+
+Adding outputs never breaks an embedding provider.
+
+### Resource Types That Would Disappear
+
+A version change is refused when the new version drops a resource type that your resources still use. Resources in draft do not count. The refusal names the resources:
+
+```text
+Upgrading acme/p to 4.0.0 drops resource type embedded, which 2 resources use: acme/p/embedded/a, acme/p/embedded/b. Delete them first, or keep the installed version.
+```
+
+### Applying Resources
+
+Applying a resource is refused while its provider is being uninstalled:
+
+```text
+provider acme/p is being uninstalled. Wait for the uninstall to finish, then install it again before applying resources of its types.
+```
+
+It is also refused when the installed version does not define the resource type:
+
+```text
+pragmatiks/gcp 8.0.0 does not define resource type cloudsql/user. Upgrade or downgrade pragmatiks/gcp to a version that does, or delete the resource.
+```
+
+Resources that a provider creates for you belong to the provider that defines their type, so that provider must be installed too. See [Resource Lifecycle](/building-providers/lifecycle).
+
 ## Uninstalling a Provider
 
 ### Basic Uninstall
@@ -100,6 +154,14 @@ Follow it with: pragma providers history pragmatiks/qdrant
 ```
 
 While it is removed, the provider shows **Uninstalling** in `pragma providers list --installed`. Its history stays available for 30 days.
+
+<Warning>
+An uninstall is refused while an installed provider embeds this one. The refusal lists them with the command to uninstall each:
+
+```text
+acme/c and acme/d depend on acme/p. Run: pragma providers uninstall acme/c; pragma providers uninstall acme/d
+```
+</Warning>
 
 <Warning>
 If the provider has active resources, the uninstall fails. Delete the resources first, or use `--cascade`.

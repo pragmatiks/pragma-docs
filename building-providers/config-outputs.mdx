@@ -42,7 +42,7 @@ Two rules are enforced when the class is defined, so a violation fails as soon a
 
 ## Outputs Basics
 
-Outputs classes inherit from `Outputs` with the same `extra="forbid"` setting. Output fields use plain types:
+Outputs classes inherit from `Outputs`, which ignores properties the class does not declare (`extra="ignore"`). Outputs recorded by another version of your provider, one that added a field, still read as your class. Output fields use plain types:
 
 ```python
 from pragma_sdk import Outputs
@@ -227,6 +227,8 @@ async def on_create(self) -> AppOutputs:
 <Note>
 The platform runs the handler only once the dependency is ready, and resolves it first. `resolve()` returns that pre-resolved instance, and raises `RuntimeError` when the dependency was not resolved. Never wait for a dependency inside a handler.
 </Note>
+
+A dependency's config is read with unknown top-level fields ignored. When the dependency's provider is a newer version that added config fields your provider does not know, `resolve()` still returns the instance, carrying the fields its class declares. Its outputs read the same way. Nested values are still validated as declared.
 
 ### YAML Syntax
 
