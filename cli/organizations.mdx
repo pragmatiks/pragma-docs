@@ -57,7 +57,8 @@ Deletion cannot be cancelled. While the status is `deleting`:
 
 - Reads keep working, for example `pragma resources list`.
 - Deleting resources and projects keeps working, including with `--force`.
-- Anything that creates or changes something is refused, for example `pragma resources apply`, with:
+- `pragma resources deactivate` works only on a resource whose delete failed, so its teardown can run again.
+- Anything that creates or changes something is refused, for example `pragma resources apply` or any other `pragma resources deactivate`, with:
 
 ```text
 Your organization is being deleted. Deletion cannot be cancelled.
