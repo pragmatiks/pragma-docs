@@ -17,7 +17,7 @@ description: "Frequently asked questions about Pragmatiks"
   </Accordion>
 
   <Accordion title="What happens if a resource fails?">
-    When a resource operation fails, Pragmatiks retries it automatically. If retries are exhausted, the failure details are preserved for debugging. You can inspect failures, fix the root cause, and retry. Resources stuck in `processing` state are automatically detected and recovered. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
+    When a resource operation fails, the resource moves to `failed` and the failure details are preserved for debugging. An operation that does not finish within 20 minutes also moves to `failed`. You can inspect failures, fix the root cause, and apply the resource again. See the [Error Recovery](/guides/error-recovery) guide for the full workflow.
   </Accordion>
 
   <Accordion title="What happens when I delete a resource that other resources depend on?">

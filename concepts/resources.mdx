@@ -59,25 +59,36 @@ stateDiagram-v2
     [*] --> draft: apply --draft
     draft --> pending: apply
     pending --> processing: provider starts
-    pending --> pending: waiting for deps
+    pending --> waiting: dependencies not ready
+    waiting --> pending: dependencies ready
     processing --> ready: success
     processing --> failed: error
     ready --> pending: config change
     ready --> pending: dependency updated
-    failed --> pending: retry
-    ready --> pending: delete request
+    processing --> processing: apply while processing
+    failed --> pending: apply
+    ready --> deleting: deactivate
+    deleting --> draft: success
+    deleting --> failed: error
 ```
 
 | State | Description |
 |-------|-------------|
-| `draft` | Created but not queued for processing (use `--draft` flag) |
-| `pending` | Queued for provider to handle. If dependencies aren't ready, the resource waits in this state until they are. |
-| `processing` | Currently being handled by the provider |
+| `draft` | Created but not queued for processing (use the `--draft` flag on a new or draft resource, or deactivate a live one) |
+| `waiting` | Applied, but a resource it depends on is not ready yet. It moves on by itself once its dependencies are ready. |
+| `pending` | Queued for the provider to handle |
+| `processing` | Currently being handled by the provider. An operation has 20 minutes to finish before the resource moves to `failed`. |
+| `deleting` | A deactivate or delete is running: the provider is removing the resource. A deactivated resource returns to `draft` when it finishes. |
 | `ready` | Successfully provisioned and operational |
 | `failed` | Processing failed, error recorded |
+| `deleted` | Deleted. The resource no longer appears in the project. |
 
 <Note>
-A resource in `pending` state with unready dependencies has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, Pragmatiks resolves the config and submits the resource for processing.
+Applying a new configuration to a `processing` resource does not interrupt the running operation. The resource stays `processing` and keeps the new configuration in its `queued_config` field; it is applied as soon as the running operation ends. `pragma resources describe` and `pragma resources list` show such a resource as `processing (apply queued)`.
+</Note>
+
+<Note>
+A resource in `waiting` state has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, Pragmatiks resolves the config and submits the resource for processing.
 </Note>
 
 ## Config vs Resolved Config

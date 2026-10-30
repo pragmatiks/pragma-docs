@@ -35,14 +35,9 @@ pragma resources apply resource.yaml
 
 Resources in `processing` state are being handled by a provider. If a resource stays in this state longer than expected:
 
-1. **Wait** — Pragmatiks automatically detects stuck resources and retries them
-2. **Check the dead letter queue** — If retries are exhausted, the resource moves to `failed`:
-
-```bash
-pragma ops dead-letter list
-```
-
-3. **Re-apply** — Force a new processing attempt:
+1. **Wait** — An operation has 20 minutes to finish. After that the resource moves to `failed` with the message `Resource <id> did not finish within 1200 seconds. Apply again to retry it, or deactivate the resource to discard it.`
+2. **Apply a changed configuration** — Applying while a resource is `processing` queues the new configuration. It is applied when the running operation ends, and the resource shows `processing (apply queued)` until then.
+3. **Re-apply after a failure** — Start a new attempt:
 
 ```bash
 pragma resources apply resource.yaml
@@ -124,7 +119,7 @@ pragma resources apply file-resource.yaml
 
 ### Events piling up
 
-Check dead letter queue:
+Check the dead-letter list:
 
 ```bash
 pragma ops dead-letter list
@@ -138,7 +133,7 @@ pragma ops dead-letter show <event-id>
 
 ### Bulk cleanup
 
-Clear all dead letter events for a provider after resolving the issues:
+Clear all dead-letter events for a provider after resolving the issues:
 
 ```bash
 pragma ops dead-letter delete --provider <provider-name>
