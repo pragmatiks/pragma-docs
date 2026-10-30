@@ -203,18 +203,6 @@
         ]
       },
       {
-        "tab": "MCP",
-        "groups": [
-          {
-            "group": "MCP Server",
-            "pages": [
-              "mcp/overview",
-              "mcp/configuration"
-            ]
-          }
-        ]
-      },
-      {
         "tab": "API Reference",
         "openapi": "https://api.pragmatiks.io/openapi.json",
         "groups": [

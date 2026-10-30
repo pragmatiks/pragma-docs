@@ -25,7 +25,6 @@ Official documentation for Pragmatiks.
 | **SDK Reference** | Python SDK for building providers |
 | **Resource Store** | Provider catalog and resource overview |
 | **Building Providers** | Complete guide to creating custom providers |
-| **MCP** | Model Context Protocol server documentation |
 | **API Reference** | REST API documentation |
 
 ## Local Development
