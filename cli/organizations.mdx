@@ -1,0 +1,77 @@
+---
+title: "Organizations"
+description: "Show your organization and its status"
+---
+
+These commands act on your own organization, the one your active context is signed in to.
+
+## Show Your Organization
+
+```bash
+pragma organizations me
+```
+
+Prints the organization's ID, name, slug, status and timestamps. Use `-o json` or `-o yaml` for machine-readable output:
+
+```bash
+pragma organizations me -o json
+```
+
+## Check Status
+
+```bash
+pragma organizations status
+```
+
+Prints the organization's status. Use `-o json` or `-o yaml` for the answer as returned:
+
+```bash
+pragma organizations status -o yaml
+```
+
+The command exits 0 in every status, so it is safe to poll.
+
+### Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `bootstrapping` | Your organization is being set up. Try again in a moment. |
+| `ready` | Your organization is usable. |
+| `bootstrap_failed` | Setup did not finish in time. |
+| `deleting` | Deletion has been requested and is running. |
+| `deleted` | Your organization has been deleted. |
+
+While the organization is `deleting` or `deleted`, a line under the status says so:
+
+```text
+Deleting acme-labs. Waiting on platform teardown. Contact support if this does not finish.
+```
+
+```text
+Organization acme-labs has been deleted.
+```
+
+## While Your Organization Is Being Deleted
+
+Deletion cannot be cancelled. While the status is `deleting`:
+
+- Reads keep working, for example `pragma resources list`.
+- Deleting resources and projects keeps working, including with `--force`.
+- `pragma resources deactivate` works only on a resource whose delete failed, so its teardown can run again.
+- Anything that creates or changes something is refused, for example `pragma resources apply` or any other `pragma resources deactivate`, with:
+
+```text
+Your organization is being deleted. Deletion cannot be cancelled.
+```
+
+## After Your Organization Is Deleted
+
+Every command that talks to your organization is refused with:
+
+```text
+Your organization has been deleted and is no longer available.
+```
+
+<Note>
+While an organization is `bootstrapping` or `bootstrap_failed`, commands that use it are refused until setup finishes. If setup failed, the message points you to the Pragmatiks dashboard.
+</Note>
