@@ -282,7 +282,7 @@ Poll a resource until it reaches `ready`. `wait_deactivated` waits for `draft` a
 
 ## Dead Letter Operations
 
-Dead letter events are failed lifecycle events that can be retried or discarded.
+Dead-letter events are provider replies Pragmatiks could not read, kept in the dead-letter list for inspection until you discard them.
 
 ### list_dead_letter_events
 
@@ -294,7 +294,7 @@ List failed events awaiting manual intervention, optionally for one provider.
 
 ```python
 for event in client.list_dead_letter_events(provider="pragmatiks/agno"):
-    print(f"{event['resource_id']}: {event['error']}")
+    print(f"{event['resource_name']}: {event['error_message']}")
 ```
 
 ### get_dead_letter_event
@@ -307,33 +307,8 @@ Get details of a specific dead letter event.
 
 ```python
 event = client.get_dead_letter_event("evt_abc123")
-print(event["error"])
-print(event["payload"])
-```
-
-### retry_dead_letter_event
-
-```python
-def retry_dead_letter_event(event_id: str) -> None: ...
-```
-
-Retry a single failed event.
-
-```python
-client.retry_dead_letter_event("evt_abc123")
-```
-
-### retry_all_dead_letter_events
-
-```python
-def retry_all_dead_letter_events() -> int: ...
-```
-
-Retry all dead letter events. Returns the count of events retried.
-
-```python
-count = client.retry_all_dead_letter_events()
-print(f"Retried {count} events")
+print(event["event_type"], event["attempt_count"])
+print(event["error_message"])
 ```
 
 ### delete_dead_letter_event
@@ -342,7 +317,7 @@ print(f"Retried {count} events")
 def delete_dead_letter_event(event_id: str) -> None: ...
 ```
 
-Discard a dead letter event without retrying.
+Discard a dead letter event.
 
 ```python
 client.delete_dead_letter_event("evt_abc123")
@@ -742,6 +717,6 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
     Full REST API documentation.
   </Card>
   <Card title="Error Recovery" icon="rotate-left" href="/guides/error-recovery">
-    Handle failures and retry dead letter events.
+    Handle failures and inspect dead letter events.
   </Card>
 </CardGroup>

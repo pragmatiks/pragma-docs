@@ -29,15 +29,17 @@ pragma resources describe agno/agent assistant
 
 ## Automatic Recovery
 
-### Stuck Resource Detection
+### Operation Deadline
 
-Pragmatiks automatically detects resources stuck in `processing` state. If a provider fails to respond within the expected timeframe, the platform:
+Every operation has about 20 minutes to finish, counted from the moment Pragmatiks starts it. Time spent waiting to be sent and waiting behind the provider's other operations counts toward the 20 minutes. If the operation has not finished by then, the resource moves to `failed` with this message:
 
-1. Detects the unresponsive operation
-2. Retries the operation automatically
-3. If retries are exhausted, moves the resource to `failed` state with an error message
+```
+Resource <id> did not finish within 1200 seconds. Apply again to retry it, or deactivate the resource to discard it.
+```
 
-You don't need to manually intervene for transient failures — the platform handles retries for you.
+To retry, apply the resource again. To discard it, deactivate it.
+
+If you apply a changed configuration while a resource is `processing`, Pragmatiks queues it and applies it as soon as the running operation ends. The resource shows as `processing (apply queued)` until then.
 
 ### Idempotent Apply
 
@@ -89,13 +91,13 @@ Sometimes the underlying provider rejects the operation:
 
 **Recovery**: Address the provider-specific issue, then retry the resource.
 
-## Using the Dead Letter Queue
+## Using the Dead-Letter List
 
-When a resource operation fails after retries, it moves to the dead letter queue. This prevents failed operations from blocking other work and preserves the failure details for investigation.
+When a reply from a provider cannot be read, Pragmatiks records it in the dead-letter list and keeps its details for investigation. A failed operation is not recorded there: it shows on the resource as `failed`, with its error.
 
-### List Failed Events
+### List Dead-Letter Events
 
-See all failed events:
+See every reply Pragmatiks could not read:
 
 ```bash
 pragma ops dead-letter list
@@ -105,11 +107,11 @@ Output shows a table with event details:
 
 ```
 Event ID    Provider   Resource Type   Resource Name   Error Message              Failed At
-evt_abc123  agno       agent           assistant       Permission denied: ...     2026-01-15 10:30:00
-evt_def456  gcp        storage         backup          Quota exceeded: ...        2026-01-15 10:32:00
+evt_abc123  agno       agent           assistant       The reply could not ...    2026-01-15 10:30:00
+evt_def456  gcp        storage         backup          The reply could not ...    2026-01-15 10:32:00
 ```
 
-Filter by provider to focus on specific failures:
+Filter by provider:
 
 ```bash
 pragma ops dead-letter list --provider agno
@@ -117,31 +119,17 @@ pragma ops dead-letter list --provider agno
 
 ### Inspect Event Details
 
-Get the full error message and context:
+Get the full error message and context, which names the reply fields that could not be read:
 
 ```bash
 pragma ops dead-letter show evt_abc123
 ```
 
 This returns the complete event data including:
-- The resource that failed
+- The resource the reply was for
 - The full error message
 - When the failure occurred
 - The operation that was attempted
-
-### Retry Failed Events
-
-After fixing the underlying issue, retry the failed operation:
-
-```bash
-pragma ops dead-letter retry evt_abc123
-```
-
-Or retry all failed events at once:
-
-```bash
-pragma ops dead-letter retry --all
-```
 
 ### Clear Resolved Events
 
@@ -162,7 +150,7 @@ pragma ops dead-letter delete --all
 
 When a resource fails, it affects downstream resources:
 
-1. **Failed resources stay failed** — They don't retry automatically (but stuck `processing` resources do get auto-detected)
+1. **Failed resources stay failed** — They don't retry automatically; apply them again after fixing the cause
 2. **Pending dependents wait** — Resources waiting for a failed dependency remain in `pending` until the dependency becomes `ready`
 3. **Ready dependents are notified** — When you fix a dependency and it reaches `ready`, all its dependents are automatically re-processed
 
@@ -201,7 +189,6 @@ When you encounter failures, follow this workflow:
   <Step title="Retry">
     ```bash
     pragma resources apply fixed-resource.yaml
-    pragma ops dead-letter retry <event-id>
     ```
   </Step>
   <Step title="Verify">
@@ -219,7 +206,7 @@ Reduce failures by:
 - **Using draft mode** — Apply with `--draft` first to validate configuration, then re-apply without `--draft` to deploy
 - **Checking dependencies** — Use `pragma resources describe` to verify dependencies are `ready`
 - **Applying in bulk** — Apply all resources in a single YAML file; Pragmatiks resolves the dependency order automatically
-- **Monitoring the dead letter queue** regularly for early warning of issues
+- **Monitoring the dead-letter list** regularly for early warning of issues
 
 ## Next Steps
 

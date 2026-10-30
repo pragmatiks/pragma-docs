@@ -75,27 +75,43 @@ Resource or build job does not exist:
 
 #### Invalid Lifecycle Transition
 
-Attempting an invalid state change:
+A change the resource's current state does not allow. The `detail` object names the current state and the state the request asked for, and its `message` says what to do instead:
 
 ```json
 {
-  "detail": "Cannot transition from PROCESSING to DRAFT"
+  "detail": {
+    "message": "Resource acme/postgres/database/my-db is ready, so it cannot be saved as a draft. Deactivate it instead: pragma --project my-project resources deactivate acme/postgres/database/my-db",
+    "current_state": "ready",
+    "target_state": "draft"
+  }
 }
 ```
 
-**Solution**: Wait for the current operation to complete before modifying.
+The messages you can meet:
 
-#### Resource In Processing
+| Request | Message |
+|---------|---------|
+| Save as a draft a resource that is `ready`, `waiting` or `failed` with provisioned infrastructure | `Resource <id> is <state>, so it cannot be saved as a draft. Deactivate it instead: pragma --project <project> resources deactivate <id>` |
+| Save as a draft a resource that is `processing` | `Resource <id> is processing, so it cannot be saved as a draft. Once its operation ends, deactivate it: pragma --project <project> resources deactivate <id>` |
+| Save as a draft a `failed` resource with nothing provisioned | `Resource <id> is failed and not provisioned, so it cannot be saved as a draft. Delete it to take it out of the project: pragma --project <project> resources delete <id>` |
+| Apply a resource that is `deleting` | `Resource <id> is deleting, so it cannot be applied now. Once its operation ends, apply it again.` |
 
-Modifying a resource while it's being processed:
+**Solution**: Run the command the message names. A resource that is not a draft leaves service through `deactivate`, which returns it to `draft`; a failed resource with nothing provisioned leaves the project through `delete`.
+
+#### Write Contention
+
+A change that conflicted with other changes saved at the same time and was not saved. The `detail` object carries the message and a machine-readable `reason`:
 
 ```json
 {
-  "detail": "Resource is currently being processed and cannot be modified"
+  "detail": {
+    "message": "This change conflicted with other changes saved at the same time and was not saved. Try again.",
+    "reason": "write_contention"
+  }
 }
 ```
 
-**Solution**: Wait for the resource to reach READY or FAILED state.
+**Solution**: Send the request again.
 
 ### Validation Errors (422)
 
