@@ -24,7 +24,7 @@ pragma resources apply --draft myresource.yaml
 ```
 
 <Note>
-Resources are deployed by default when you apply them. Use `--draft` to save a resource configuration without triggering provisioning.
+Resources are deployed by default when you apply them. Use `--draft` to save a resource configuration without triggering provisioning. Only a new resource or one that is already a draft can be saved as a draft; for any other resource the command fails and the error says how to recover it.
 </Note>
 
 ### File References
@@ -118,6 +118,8 @@ Get detailed information about a resource, including full configuration, resolve
 ```bash
 pragma resources describe gcp/storage my-bucket
 ```
+
+While an operation is running, the output includes an `Operation` row such as `update <operation-id>`. A resource that received a new configuration while processing shows the State `processing (apply queued)`.
 
 Output as JSON to inspect `resolved_config` for dependency debugging:
 
