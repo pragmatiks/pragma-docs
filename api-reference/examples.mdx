@@ -165,7 +165,7 @@ curl -X DELETE \
 
 ### List Dead Letter Events
 
-Events that failed processing are stored in the dead letter queue:
+Provider replies Pragmatiks could not read are kept in the dead-letter list:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
@@ -201,32 +201,6 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "$API/ops/dead-letter/evt_abc123"
-```
-
-### Retry a Failed Event
-
-Requeue a single event for processing:
-
-```bash
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  "$API/ops/dead-letter/evt_abc123/retry"
-```
-
-### Retry All Failed Events
-
-```bash
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  "$API/ops/dead-letter/retry-all"
-```
-
-**Response:**
-
-```json
-{
-  "retried": 5
-}
 ```
 
 ### Delete a Dead Letter Event
