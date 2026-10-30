@@ -132,6 +132,8 @@ pragma providers downgrade pragmatiks/postgres --version 1.2.0
 
 `upgrade` without `--version` targets the latest version. `downgrade` requires `--version`. Like `install`, both print the target version and point to `pragma providers history`. The installed version keeps serving until the new one runs.
 
+Install, upgrade, downgrade and uninstall are also refused when they would break an installed provider that embeds another, or drop a resource type your resources use; the message says what to run instead. See [Compatibility Checks](/store/upgrading#compatibility-checks).
+
 An upgrade or downgrade is refused while another operation on the provider is running. A failed installation cannot be downgraded; install the version you want instead:
 
 ```bash

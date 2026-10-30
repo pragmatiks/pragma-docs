@@ -87,10 +87,10 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
 
 ### Config and Outputs
 
-Both extend Pydantic `BaseModel` with `extra="forbid"` to catch typos and invalid fields:
+Both extend Pydantic `BaseModel`:
 
-- **Config**: User-provided settings. Define required fields, defaults, and validation.
-- **Outputs**: Values your resource exposes. Other resources can reference these fields.
+- **Config**: User-provided settings. Define required fields, defaults, and validation. Unknown fields are refused (`extra="forbid"`) to catch typos.
+- **Outputs**: Values your resource exposes. Other resources can reference these fields. Unknown properties are ignored (`extra="ignore"`), so outputs another version of your provider recorded still read.
 
 ## Lifecycle Methods
 
