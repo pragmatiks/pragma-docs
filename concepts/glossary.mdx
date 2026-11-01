@@ -64,12 +64,24 @@ Resources move through these states as Pragmatiks manages them:
 | State | Description |
 |-------|-------------|
 | **DRAFT** | Resource defined but not queued for provisioning |
-| **PENDING** | Queued and waiting for dependencies to be ready |
+| **WAITING** | Applied, and waiting for a dependency to be ready |
+| **PENDING** | Queued for the provider to handle |
 | **PROCESSING** | Currently being processed by the provider (create, update, or delete) |
 | **READY** | Successfully provisioned and operational |
-| **FAILED** | Operation failed |
+| **FAILED** | The last operation failed, or a dependency was deleted |
 
 State transitions are managed by Pragmatiks based on provider responses and dependency status.
+
+## Health
+
+Pragmatiks computes a health value for every resource each time it is read:
+
+| Health | Description |
+|--------|-------------|
+| **blocked** | Waiting for a dependency; `blockers` names each one |
+| **failed** | The resource is in FAILED state |
+| **degraded** | READY, but a dependency failed its last operation; `degraded_by` names each one |
+| **healthy** | None of the above |
 
 ## Next Steps
 

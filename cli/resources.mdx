@@ -113,13 +113,23 @@ pragma resources get gcp/storage my-bucket
 
 ## Describe
 
-Get detailed information about a resource, including full configuration, resolved config, and outputs:
+Get detailed information about a resource, including its state, health, full configuration, resolved config, and outputs:
 
 ```bash
 pragma resources describe gcp/storage my-bucket
 ```
 
 While an operation is running, the output includes an `Operation` row such as `update <operation-id>`. A resource that received a new configuration while processing shows the State `processing (apply queued)`.
+
+The `Health` row shows the resource's health: `healthy`, `blocked`, `failed`, or `degraded` followed by each failed dependency, for example `degraded — pragmatiks/pragma/secret/api-key failed`. A waiting resource also lists what it waits for under `Blocked by:`, each with the command that shows it:
+
+```text
+Blocked by:
+  pragmatiks/pragma/secret/api-key — Waiting for pragmatiks/pragma/secret/api-key to be ready.
+    pragma --project my-project resources describe pragmatiks/pragma/secret/api-key
+```
+
+See [Health](/concepts/resources#health) for what each value means.
 
 Output as JSON to inspect `resolved_config` for dependency debugging:
 

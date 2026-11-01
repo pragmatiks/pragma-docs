@@ -88,7 +88,7 @@ When the `claude` model resource updates, Pragmatiks re-resolves the dependency 
 
 ## Order-Independent Apply
 
-You can apply resources in any order. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `pending` state and automatically processes it once all dependencies become available.
+You can apply resources in any order. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `waiting` state and automatically processes it once all dependencies are ready. While it waits, `pragma resources describe` lists each dependency it is waiting for under `Blocked by:`.
 
 ```bash
 # Apply the agent first — its model dependency doesn't exist yet
@@ -134,10 +134,16 @@ Pragmatiks resolves the dependency graph and processes resources in the correct 
 
 ## Change Propagation
 
-When a resource reaches `ready` state, Pragmatiks checks for dependents and propagates changes:
+Pragmatiks computes what each dependent needs from the state of the resources it depends on, every time one of them changes:
 
-1. **Ready dependents** — Re-resolved with fresh data and sent back to their provider for update
-2. **Pending dependents** (waiting for deps) — Checked to see if all dependencies are now ready; if so, resolved and submitted for initial processing
+1. **Ready dependents** — When a dependency reaches `ready`, Pragmatiks resolves the dependent's config again. If the result differs, the dependent is sent back to its provider for an update; if it is the same, nothing runs.
+2. **Waiting dependents** — Once every dependency is ready, the dependent is resolved and submitted to its provider.
+3. **Processing dependents** — The running operation is not interrupted. When it ends, Pragmatiks resolves the config again; if a dependency's outputs changed meanwhile, the dependent runs once more with the new values.
+4. **Dependents of a failed dependency** — A ready dependent stays `ready` with health `degraded`; `degraded_by` names the failed dependency. Once the dependency is ready again, the dependent is resolved again as above. A waiting dependent keeps waiting.
+5. **Dependents of a deactivated dependency** — Move to `waiting` without a call to their provider, and recover by themselves once the dependency is applied again and ready.
+6. **Dependents of a deleted dependency** — Move to `failed` with the error `Dependency <id> was deleted. Apply again to retry it, or deactivate the resource to discard it.`
+
+A dependent whose references can no longer be resolved, for example because a dependency no longer outputs the referenced field, moves to `failed` with an error that says which reference could not be resolved.
 
 This propagation is recursive: if updating resource B causes it to reach `ready`, Pragmatiks then checks B's dependents and propagates further.
 
@@ -159,7 +165,7 @@ The response includes both `config` (your original declaration with references) 
 
 **Changes cascade downward.** When a resource updates, all resources that depend on it are notified and can react to the change.
 
-**Deletion detaches dependents.** When you delete a resource, its dependents are detached (references removed) rather than cascade-deleted. The provider decides whether the dependent can continue without the deleted resource. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
+**Deactivation sets dependents to waiting; deletion fails them.** Dependents are never torn down with the resource they depend on. Deactivating a resource moves its dependents to `waiting` until it is applied again; deleting it moves them to `failed`. Run the command with `--dry-run` to list them first. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
 
 ## Next Steps
 
