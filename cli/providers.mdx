@@ -154,10 +154,10 @@ An install, upgrade or downgrade goes through these states:
 
 A running provider that restarts shows `Starting` until it serves again, and its history records when it stopped, why, and when it started again.
 
-When an installation fails, `pragma providers list --installed` and `pragma providers history` show the reason, for example:
+When an installation fails, `pragma providers list --installed` and `pragma providers history` show the reason, naming the step it stopped in when it ran out of time, for example:
 
 ```text
-Installing acme/pipeline 2.0.0 did not finish in time. Install it again.
+Installing acme/pipeline 2.0.0 did not finish in time while installing the provider's dependencies. Install it again.
 ```
 
 Recover by installing it again, at the version you want:
