@@ -152,12 +152,35 @@ pragma resources tags add gcp/storage my-bucket --tag env:prod --tag cost-center
 pragma resources tags remove gcp/storage my-bucket --tag env:prod
 ```
 
-## Delete
+## Deactivate
 
-Delete a resource by type and name:
+Deactivate a resource: its provider tears down the external object, and the resource returns to `draft`, ready to be applied again:
 
 ```bash
-pragma resources delete gcp/storage my-bucket
+pragma resources deactivate pragmatiks/pragma/secret/api-key
+```
+
+Preview what a deactivate reaches without changing anything:
+
+```bash
+pragma resources deactivate --dry-run pragmatiks/pragma/secret/api-key
+```
+
+```text
+Dry run — pragmatiks/pragma/secret/api-key was not deactivated.
+Resources this reaches:
+  pragmatiks/pragma/secret/api-key — torn down
+  pragmatiks/agno/anthropic-model/claude — moved to waiting until its dependency returns
+```
+
+Each dependent moves to `waiting` without a call to its provider, and recovers by itself once the resource is applied again and ready. Add `--wait` to block until the teardown finishes (`--wait-timeout <seconds>`, `0` waits forever), or `-f <file>` to deactivate every resource a YAML file defines.
+
+## Delete
+
+Delete a resource:
+
+```bash
+pragma resources delete pragmatiks/gcp/storage/my-bucket
 ```
 
 Delete all resources defined in a YAML file:
@@ -167,6 +190,21 @@ pragma resources delete -f myresources.yaml
 ```
 
 This reads the provider, resource, and name from each document in the YAML file and deletes the matching resources.
+
+Preview what a delete reaches without changing anything:
+
+```bash
+pragma resources delete --dry-run pragmatiks/pragma/secret/api-key
+```
+
+```text
+Dry run — pragmatiks/pragma/secret/api-key was not removed.
+Resources this reaches:
+  pragmatiks/pragma/secret/api-key — torn down
+  pragmatiks/agno/anthropic-model/claude — failed, its dependency is deleted
+```
+
+Each dependent listed as `failed, its dependency is deleted` moves to `failed` when the delete runs; apply it again to retry it, or deactivate it to discard it. Add `--wait` to block until the delete finishes (`--wait-timeout <seconds>`, `0` waits forever).
 
 ## Next Steps
 

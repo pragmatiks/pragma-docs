@@ -23,7 +23,7 @@ Check if dependencies are in `ready` state:
 pragma resources describe <provider>/<resource> <name>
 ```
 
-If dependencies are listed, verify each one is `ready`. A resource with unready dependencies waits in `pending` until all dependencies are satisfied.
+A resource with unready dependencies waits in `waiting`, not `pending`, until all dependencies are ready; `describe` lists each one under `Blocked by:`.
 
 If all dependencies are `ready` but the resource is still `pending`, re-apply it:
 

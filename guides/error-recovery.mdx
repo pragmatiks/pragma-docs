@@ -18,7 +18,7 @@ Output shows lifecycle states for all resources:
 ```
 gcp/storage/data-lake [READY]
 agno/agent/assistant [FAILED]
-agno/team/my-team [PENDING]
+agno/team/my-team [WAITING]
 ```
 
 To see details about a specific failed resource:
@@ -65,9 +65,9 @@ pragma resources apply fixed-resource.yaml
 
 A resource can fail or wait if its dependencies aren't satisfied:
 
-- **Missing dependency** — A referenced resource doesn't exist yet (resource waits in `pending`)
-- **Dependency failed** — A dependency exists but is in `failed` state
-- **Invalid field reference** — A FieldReference points to a field that doesn't exist in the dependency's outputs
+- **Missing dependency** — A referenced resource doesn't exist, or was deleted: the apply is refused. A resource whose dependency is deleted later moves to `failed`.
+- **Dependency not ready** — A dependency exists but is not `ready` yet, or is in `failed` state: the resource waits in `waiting`, and `describe` lists the dependency under `Blocked by:`.
+- **Invalid field reference** — A FieldReference points to a field that doesn't exist in the dependency's outputs: the resource moves to `failed`.
 
 **Recovery**: Ensure all dependencies are in `ready` state:
 
@@ -79,7 +79,7 @@ pragma resources describe agno/anthropic-model claude
 pragma resources apply model.yaml
 ```
 
-Once the dependency reaches `ready`, pending dependents are automatically triggered.
+Once the dependency reaches `ready`, waiting dependents are processed automatically.
 
 ### Provider Errors
 
@@ -133,7 +133,7 @@ This returns the complete event data including:
 
 ### Clear Resolved Events
 
-Once you've addressed failures (or decided to abandon them), remove events from the queue:
+Once you've addressed failures (or decided to abandon them), delete events from the dead-letter list:
 
 ```bash
 # Delete a single event
@@ -151,16 +151,17 @@ pragma ops dead-letter delete --all
 When a resource fails, it affects downstream resources:
 
 1. **Failed resources stay failed** — They don't retry automatically; apply them again after fixing the cause
-2. **Pending dependents wait** — Resources waiting for a failed dependency remain in `pending` until the dependency becomes `ready`
-3. **Ready dependents are notified** — When you fix a dependency and it reaches `ready`, all its dependents are automatically re-processed
+2. **Waiting dependents keep waiting** — Resources waiting for a failed dependency remain in `waiting`, with health `blocked`, until the dependency becomes `ready`
+3. **Ready dependents are degraded** — A ready dependent stays `ready` with its current configuration, and its health is `degraded`; `degraded_by` names the failed dependency
+4. **Dependents recover automatically** — When you fix the dependency and it reaches `ready`, waiting dependents are processed, and degraded dependents are resolved again and updated if their configuration changed
 
 Consider this dependency chain:
 
 ```
-secret (READY) → model (FAILED) → agent (PENDING)
+secret (READY) → model (FAILED) → agent (WAITING)
 ```
 
-The `agent` resource can't proceed because `model` is failed. To recover:
+The `agent` resource can't proceed because `model` is failed; `pragma resources describe` shows it as `blocked` by `model`. To recover:
 
 1. Fix the `model` configuration
 2. Re-apply to retry

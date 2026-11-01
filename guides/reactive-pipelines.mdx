@@ -76,7 +76,7 @@ pragma resources list
 ```
 pragma/secret/anthropic-key [READY]
 agno/anthropic-model/claude [PROCESSING]
-agno/agent/assistant [PENDING]
+agno/agent/assistant [WAITING]
 ```
 
 After a few moments:
@@ -171,13 +171,13 @@ config:
 
 ### Check dependency states
 
-If a resource is stuck in `pending`, its dependencies might not be ready:
+If a resource is in `waiting` state, its dependencies are not ready yet:
 
 ```bash
 pragma resources describe agno/agent assistant
 ```
 
-Look at the **Dependencies** section to see what it's waiting on.
+The `Health` row reads `blocked`, and the **Blocked by:** section names each dependency it is waiting for, with the command that shows it.
 
 ### Compare config vs resolved_config
 
@@ -185,9 +185,9 @@ Look at the **Dependencies** section to see what it's waiting on.
 pragma resources describe agno/agent assistant -o json
 ```
 
-- If `resolved_config` is `null`, the resource is waiting for dependencies
-- If `resolved_config` has values, the resource has been submitted to the provider
-- Compare the two to verify references resolved correctly
+- `resolved_config` holds the configuration last sent to the provider; a waiting resource keeps its last one, and a resource that has never been processed has none
+- Use the `lifecycle_state`, `health` and `blockers` fields, not `resolved_config`, to tell whether the resource is waiting
+- Compare `config` and `resolved_config` to verify references resolved correctly
 
 ### Force re-processing
 
