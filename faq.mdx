@@ -21,11 +21,11 @@ description: "Frequently asked questions about Pragmatiks"
   </Accordion>
 
   <Accordion title="What happens when I delete a resource that other resources depend on?">
-    Dependents are **detached**, not cascade-deleted. Pragmatiks removes the dependency reference from each dependent's config and sends them back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`. This prevents accidental cascade deletions while letting providers handle graceful degradation. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
+    Dependents are never deleted with it. Deleting a resource moves each of its dependents to `failed`, with an error naming the deleted dependency; apply a dependent again to retry it, or deactivate it to discard it. Deactivating a resource instead moves its dependents to `waiting`, without a call to their provider, until it is applied again and ready. Run `pragma resources delete --dry-run` or `pragma resources deactivate --dry-run` to list the dependents first. See [Deletion Behavior](/concepts/resources#deletion-behavior) for details.
   </Accordion>
 
   <Accordion title="Can I apply resources in any order?">
-    Yes. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `pending` state and automatically processes it once all dependencies become available. You can define your entire infrastructure in a single YAML file and apply it at once — Pragmatiks resolves the dependency graph and processes resources in the correct order.
+    Almost. A dependency must exist before you apply a resource that references it, but it does not have to be ready: Pragmatiks stores the dependent in `waiting` state and processes it automatically once all its dependencies are ready. You can define your entire infrastructure in a single YAML file and apply it at once, listing each dependency before the resources that reference it. See [Applying Before Dependencies Are Ready](/concepts/reactive-dependencies#applying-before-dependencies-are-ready).
   </Accordion>
 
   <Accordion title="How do I deploy an AI agent?">

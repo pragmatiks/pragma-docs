@@ -27,7 +27,8 @@ Resources move through several states during provisioning:
 
 | State | Meaning |
 |-------|---------|
-| **PENDING** | Queued and waiting - either for dependencies to be ready or for processing to begin |
+| **WAITING** | Applied, and waiting for a dependency to be ready |
+| **PENDING** | Queued for processing to begin |
 | **PROCESSING** | Currently being processed by the provider |
 | **READY** | Successfully provisioned and operational |
 | **FAILED** | Something went wrong during provisioning |
@@ -75,7 +76,7 @@ The bucket should be visible with the location you specified (`EU` in the quicks
 
 If a resource stays in PENDING state for more than a few minutes:
 
-- **Check dependencies** - Resources wait for their dependencies to reach READY first
+- **Check dependencies** - A resource whose dependencies are not READY shows WAITING, not PENDING; `pragma resources describe` lists them under `Blocked by:`
 - **Verify credentials** - Your GCP credentials may have expired
 
 ```bash

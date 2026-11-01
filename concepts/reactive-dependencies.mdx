@@ -86,30 +86,27 @@ When the `claude` model resource updates, Pragmatiks re-resolves the dependency 
 **FieldReference vs Dependency[T]**: Use a FieldReference when you need a single value from another resource (like a connection URL or API key). Use `Dependency[T]` when the provider needs the full resource context to operate.
 </Note>
 
-## Order-Independent Apply
+## Applying Before Dependencies Are Ready
 
-You can apply resources in any order. If a resource's dependencies aren't ready yet, Pragmatiks stores it in `waiting` state and automatically processes it once all dependencies are ready. While it waits, `pragma resources describe` lists each dependency it is waiting for under `Blocked by:`.
+A dependency must exist before you apply a resource that references it; an apply that references a resource that does not exist, or was deleted, is refused. The dependency does not have to be ready. If it is not, Pragmatiks stores the dependent in `waiting` state and processes it automatically once all its dependencies are ready. While it waits, `pragma resources describe` lists each dependency it is waiting for under `Blocked by:`.
 
 ```bash
-# Apply the agent first — its model dependency doesn't exist yet
-pragma resources apply agent.yaml
-
-# Apply the model — the agent will automatically start processing
+# Apply the model first — it starts provisioning
 pragma resources apply model.yaml
+
+# Apply the agent right away — it waits until the model is ready, then processes automatically
+pragma resources apply agent.yaml
 ```
 
-This means you can define an entire infrastructure stack in a single YAML file and apply it at once, without worrying about ordering:
+This means you can define an entire stack in a single YAML file and apply it at once. `pragma resources apply` applies the documents in file order, so list each dependency before the resources that reference it:
 
 ```yaml
-provider: agno
-resource: agent
-name: assistant
+provider: pragma
+resource: secret
+name: api-key
 config:
-  model:
-    provider: agno
-    resource: anthropic-model
-    name: claude
-  instructions: "You are a helpful assistant."
+  data:
+    api_key: "sk-ant-..."
 ---
 provider: agno
 resource: anthropic-model
@@ -122,21 +119,24 @@ config:
     name: api-key
     field: outputs.api_key
 ---
-provider: pragma
-resource: secret
-name: api-key
+provider: agno
+resource: agent
+name: assistant
 config:
-  data:
-    api_key: "sk-ant-..."
+  model:
+    provider: agno
+    resource: anthropic-model
+    name: claude
+  instructions: "You are a helpful assistant."
 ```
 
-Pragmatiks resolves the dependency graph and processes resources in the correct order automatically.
+Pragmatiks then processes each resource as soon as its dependencies are ready.
 
 ## Change Propagation
 
 Pragmatiks computes what each dependent needs from the state of the resources it depends on, every time one of them changes:
 
-1. **Ready dependents** — When a dependency reaches `ready`, Pragmatiks resolves the dependent's config again. If the result differs, the dependent is sent back to its provider for an update; if it is the same, nothing runs.
+1. **Ready dependents** — When a dependency reaches `ready` and every other dependency of the dependent is `ready` too, Pragmatiks resolves the dependent's config again. If the result differs, the dependent is sent back to its provider for an update; if it is the same, nothing runs. While any of its dependencies is not ready, a ready dependent keeps its current configuration.
 2. **Waiting dependents** — Once every dependency is ready, the dependent is resolved and submitted to its provider.
 3. **Processing dependents** — The running operation is not interrupted. When it ends, Pragmatiks resolves the config again; if a dependency's outputs changed meanwhile, the dependent runs once more with the new values.
 4. **Dependents of a failed dependency** — A ready dependent stays `ready` with health `degraded`; `degraded_by` names the failed dependency. Once the dependency is ready again, the dependent is resolved again as above. A waiting dependent keeps waiting.
