@@ -56,15 +56,23 @@ Resources move through these states as pragma manages them:
 ```mermaid
 stateDiagram-v2
     [*] --> pending
+    [*] --> waiting: a dependency not ready
     [*] --> draft: apply --draft
     draft --> pending: apply
+    draft --> waiting: apply, a dependency not ready
     pending --> processing: provider starts
-    pending --> waiting: dependencies not ready
+    pending --> waiting: a dependency not ready
     waiting --> pending: dependencies ready
     processing --> ready: success
     processing --> failed: error
+    processing --> pending: dependency outputs changed
+    processing --> waiting: a dependency deactivated
+    processing --> failed: a dependency deleted
     ready --> pending: config change
     ready --> pending: dependency updated
+    ready --> waiting: a dependency deactivated
+    ready --> failed: a dependency deleted
+    waiting --> failed: a dependency deleted
     processing --> processing: apply while processing
     failed --> pending: apply
     ready --> deleting: deactivate
@@ -75,12 +83,12 @@ stateDiagram-v2
 | State | Description |
 |-------|-------------|
 | `draft` | Created but not queued for processing (use the `--draft` flag on a new or draft resource, or deactivate a live one) |
-| `waiting` | Applied, but a resource it depends on is not ready yet. It moves on by itself once its dependencies are ready. |
+| `waiting` | Applied, but a resource it depends on is not ready, or is being deactivated or is in draft. It moves on by itself once its dependencies are ready. `pragma resources describe` names each dependency it is waiting for. |
 | `pending` | Queued for the provider to handle |
 | `processing` | Currently being handled by the provider. An operation has 20 minutes to finish before the resource moves to `failed`. |
 | `deleting` | A deactivate or delete is running: the provider is removing the resource. A deactivated resource returns to `draft` when it finishes. |
 | `ready` | Successfully provisioned and operational |
-| `failed` | Processing failed, error recorded |
+| `failed` | The last operation failed, or a resource it depends on was deleted. The `error` field says why. |
 | `deleted` | Deleted. The resource no longer appears in the project. |
 
 <Note>
@@ -88,8 +96,38 @@ Applying a new configuration to a `processing` resource does not interrupt the r
 </Note>
 
 <Note>
-A resource in `waiting` state has no `resolved_config` — this distinguishes "waiting for dependencies" from "submitted to provider." Once all dependencies are ready, Pragmatiks resolves the config and submits the resource for processing.
+A resource in `waiting` state keeps its last resolved configuration in `resolved_config`; a resource that has never been processed has none. Once all dependencies are ready, Pragmatiks resolves the config again and submits the resource for processing.
 </Note>
+
+## Health
+
+Every resource read carries a `health` value that Pragmatiks computes from the resource's state and its dependencies:
+
+| Health | Meaning |
+|--------|---------|
+| `blocked` | The resource is waiting for a dependency. `blockers` names each one. |
+| `failed` | The resource is in `failed` state. |
+| `degraded` | The resource is `ready`, but a resource it depends on failed its last operation. `degraded_by` names each one. |
+| `healthy` | None of the above. |
+
+Each entry in `blockers` and `degraded_by` names the resource, the reason, and the command that shows that resource:
+
+```json
+{
+  "health": "blocked",
+  "blockers": [
+    {
+      "project": "my-project",
+      "resource": "pragmatiks/pragma/secret/api-key",
+      "reason": "Waiting for pragmatiks/pragma/secret/api-key to be ready.",
+      "command": "pragma --project my-project resources describe pragmatiks/pragma/secret/api-key"
+    }
+  ],
+  "degraded_by": []
+}
+```
+
+A `degraded_by` entry reads `Dependency <id> failed its last operation.` A degraded resource stays `ready` with its last configuration. Once the failed dependency is ready again, Pragmatiks resolves the resource's config again and updates it if the result changed.
 
 ## Config vs Resolved Config
 
@@ -112,16 +150,28 @@ Re-applying a resource with identical configuration is a no-op. If the resource 
 
 When you delete a resource, Pragmatiks handles its relationships:
 
-### Soft Detach (Dependencies)
+### Dependents Wait or Fail
 
-Resources that **depend on** the deleted resource are **detached**, not cascade-deleted. The dependency reference is removed from their config, and they are sent back to their provider for update. The provider decides whether the resource can continue without the deleted dependency — if it can't, the resource transitions to `failed`.
+Resources that **depend on** a resource you deactivate or delete are not torn down with it:
+
+- **Deactivate:** each dependent moves to `waiting`, without a call to its provider. It keeps running as it is and recovers by itself once the dependency is applied again and ready.
+- **Delete:** each dependent moves to `failed` with the error `Dependency <id> was deleted. Apply again to retry it, or deactivate the resource to discard it.` A dependent that is processing when the dependency is deleted fails once its operation ends.
 
 ```
-# Before delete:
+# Before:
 secret (READY) ← model (READY) ← agent (READY)
 
+# After deactivating secret:
+secret (DRAFT) ← model (WAITING) ← agent (READY)
+
 # After deleting secret:
-model (PENDING → re-processed without secret) ← agent (waits for model)
+model (FAILED: Dependency <secret id> was deleted. ...) ← agent (READY, health degraded)
+```
+
+Run the command with `--dry-run` to see what it would do first. Each dependent is listed as `moved to waiting until its dependency returns` for a deactivate, or `failed, its dependency is deleted` for a delete:
+
+```bash
+pragma resources delete --dry-run pragmatiks/pragma/secret/api-key
 ```
 
 ### Cascade Delete (Owner References)
