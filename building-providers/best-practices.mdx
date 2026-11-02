@@ -15,7 +15,7 @@ See [Lifecycle Methods - Idempotency Requirements](/building-providers/lifecycle
 
 Key principles:
 - **Observe**: Locate the object from identity and config alone; return `None` when it does not exist
-- **Create**: Handle "already exists" errors by retrieving the existing resource
+- **Create**: The created object must be findable by `on_observe` from the resource's identity from the moment the create is sent. On a conflict, the create recognizes its own object by an idempotency key or a marker it sent, and raises `AlreadyExistsError` on anyone else's. See [How a provider is verified](/building-providers/lifecycle#how-a-provider-is-verified)
 - **Update**: Converge to the full desired state; when `previous_config` is `None`, apply everything
 - **Delete**: Treat "not found" as success, not failure
 
@@ -215,14 +215,20 @@ async def on_create(self) -> DatabaseOutputs:
 
 ### Forgetting Idempotency
 
-The most common mistake is assuming lifecycle methods only run once. An `on_create` that calls `create_secret` unguarded fails on a retry, because the first attempt already created the secret. Handle "already exists" by reading the secret instead:
+The most common mistake is assuming lifecycle methods only run once. An `on_create` that calls `create_secret` unguarded fails on a retry, because the first attempt already created the secret. Reading the existing secret instead is just as wrong: it takes over a secret someone created outside Pragmatiks. Send a marker with the create and converge only the secret that carries it:
 
 ```python
 async def on_create(self) -> SecretOutputs:
     try:
-        secret = await self.client.create_secret(self.config.secret_id)
-    except AlreadyExists:
-        secret = await self.client.get_secret(self.config.secret_id)
+        secret = await self.client.create_secret(self.config.secret_id, labels={RESOURCE_MARKER_KEY: self.id})
+    except SecretExistsError as error:
+        existing = await self.client.get_secret(self.config.secret_id)
+
+        if existing.labels.get(RESOURCE_MARKER_KEY) != self.id:
+            raise AlreadyExistsError(f"Secret {self.config.secret_id} already exists") from error
+
+        return await self.on_update(None)
+
     return SecretOutputs(resource_name=secret.name)
 ```
 
