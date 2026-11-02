@@ -43,6 +43,7 @@ Inside lifecycle methods, you have access to several instance attributes:
 |-----------|------|-------------|
 | `self.name` | `str` | Resource instance name |
 | `self.project_id` | `str` | Project the resource belongs to |
+| `self.id` | `str` | Canonical resource ID, stable for the resource's lifetime. Use it as the marker a create request carries |
 | `self.config` | `ConfigT` | Current configuration, with dependencies resolved |
 | `self.outputs` | `OutputsT \| None` | Never populated when a handler runs. Read state from the external system instead |
 | `self.tags` | `list[str] \| None` | Tags attached to the resource |
@@ -178,14 +179,25 @@ This happens when:
 
 ### Idempotent Create
 
-Handle the case where a previous attempt already created the resource by reading it instead:
+A previous attempt may already have created the object, even if its answer never arrived. Send a marker holding `self.id` with the create, and when the external system reports the name taken, converge the object only if it carries your marker. Any other object raises `AlreadyExistsError`, so the resource fails instead of taking over an object made outside Pragmatiks:
 
 ```python
+from pragma_sdk import AlreadyExistsError
+
+
+RESOURCE_MARKER_KEY = "pragma_resource"
+
+
 async def on_create(self) -> SecretOutputs:
     try:
-        secret = await self.client.create_secret(self.config.secret_id)
-    except AlreadyExistsError:
-        secret = await self.client.get_secret(self.config.secret_id)
+        secret = await self.client.create_secret(self.config.secret_id, labels={RESOURCE_MARKER_KEY: self.id})
+    except SecretExistsError as error:
+        existing = await self.client.get_secret(self.config.secret_id)
+
+        if existing.labels.get(RESOURCE_MARKER_KEY) != self.id:
+            raise AlreadyExistsError(f"Secret {self.config.secret_id} already exists") from error
+
+        return await self.on_update(None)
 
     return SecretOutputs(resource_name=secret.name)
 ```
@@ -215,6 +227,25 @@ async def on_update(self, previous_config: MyConfig | None) -> MyOutputs:
 
     return MyOutputs(object_id=current.id)
 ```
+
+### How a provider is verified
+
+Pragmatiks can stop a handler at any moment, including after a create call is sent and before its answer arrives. When the operation runs again, Pragmatiks calls `on_observe` first, so the object the earlier attempt created must be findable from the resource's identity from the moment the create is sent. Check every resource type against this list:
+
+| Check | Holds when |
+|-------|------------|
+| Identity | Every field `on_observe` reads to locate the object is `ImmutableField` or `ImmutableDependency`. |
+| Uniqueness | The external system refuses a second object with that identity, or the create sends an idempotency key that returns the original object. |
+| Findable from send | Once the external system has stored the object, even for a create whose answer never arrived, `on_observe` finds it: the read is consistent right after the write, or the object is readable while its create operation is still running. A read the vendor documents as eventually consistent, or does not document at all, does not hold. |
+| Conflict on create | When the external system reports the identity taken, `on_create` recognizes its own object by the idempotency key or by a marker its create request carried, such as a label, tag, annotation or metadata entry holding `self.id`, and converges it as `on_update(previous_config=None)` does. Any other object raises `AlreadyExistsError`. A create never adopts an object because its name matches. |
+| Partial create | When `on_create` makes more than one write, `on_update(previous_config=None)` finishes the work from any prefix of them. |
+| Rerun | `on_update` converges from a partial earlier update, and `on_delete` succeeds when the object is already gone. |
+
+A resource type is verified only when every check holds. Read the answer to each check in the vendor's own documentation; where the documentation is silent, assume the weaker behavior. A timing argument ("the create answers in a second") never replaces a check: the external system can store the object after your client gave up.
+
+A [computed](#computed-resources) resource that writes nothing outside Pragmatiks has nothing to check. One that applies child resources derives every child's name from its own identity, and a rerun applies every child again, so a stop between two child applies is finished.
+
+Pragmatiks verifies its own providers with a recorded audit of every resource type against these checks. You verify your provider yourself: the SDK ships no checker, and Pragmatiks runs no check on third-party providers.
 
 ## Error Handling
 
