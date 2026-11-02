@@ -216,6 +216,10 @@ async def on_create(self) -> DatabaseOutputs:
     return DatabaseOutputs(database_id=database.id)
 ```
 
+### Respect the Operation Deadline
+
+Every operation has a deadline, 20 minutes by default and at most 3600 seconds when the type declares `operation_deadline_seconds`. At the deadline your handler receives `asyncio.CancelledError`: never catch it without re-raising, and clean up in `finally`. Keep the provider responsive: replace `time.sleep` with `asyncio.sleep` and run blocking calls with `await asyncio.to_thread(...)`, which the cancel does not stop, so stop any threads or processes you start yourself in `finally`. See [Operation Deadlines](/building-providers/lifecycle#operation-deadlines).
+
 ## Common Mistakes
 
 ### Forgetting Idempotency
