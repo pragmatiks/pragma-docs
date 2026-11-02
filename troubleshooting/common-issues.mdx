@@ -115,30 +115,6 @@ If a `pragma/file` resource fails with "File content not uploaded":
 pragma resources apply file-resource.yaml
 ```
 
-## Dead Letter Events
-
-### Events piling up
-
-Check the dead-letter list:
-
-```bash
-pragma ops dead-letter list
-```
-
-Investigate individual events:
-
-```bash
-pragma ops dead-letter show <event-id>
-```
-
-### Bulk cleanup
-
-Clear all dead-letter events for a provider after resolving the issues:
-
-```bash
-pragma ops dead-letter delete --provider <provider-name>
-```
-
 ## Provider Development
 
 ### "pyproject.toml not found" or "Missing [tool.pragma] section"

@@ -280,66 +280,6 @@ Poll a resource until it reaches `ready`. `wait_deactivated` waits for `draft` a
 
 ---
 
-## Dead Letter Operations
-
-Dead-letter events are provider replies Pragmatiks could not read, kept in the dead-letter list for inspection until you discard them.
-
-### list_dead_letter_events
-
-```python
-def list_dead_letter_events(provider: str | None = None) -> list[dict[str, Any]]: ...
-```
-
-List failed events awaiting manual intervention, optionally for one provider.
-
-```python
-for event in client.list_dead_letter_events(provider="pragmatiks/agno"):
-    print(f"{event['resource_name']}: {event['error_message']}")
-```
-
-### get_dead_letter_event
-
-```python
-def get_dead_letter_event(event_id: str) -> dict[str, Any]: ...
-```
-
-Get details of a specific dead letter event.
-
-```python
-event = client.get_dead_letter_event("evt_abc123")
-print(event["event_type"], event["attempt_count"])
-print(event["error_message"])
-```
-
-### delete_dead_letter_event
-
-```python
-def delete_dead_letter_event(event_id: str) -> None: ...
-```
-
-Discard a dead letter event.
-
-```python
-client.delete_dead_letter_event("evt_abc123")
-```
-
-### delete_dead_letter_events
-
-```python
-def delete_dead_letter_events(provider: str | None = None, *, all: bool = False) -> int: ...
-```
-
-Bulk delete dead letter events for one provider, or every event with `all=True`. Returns the count deleted.
-
-```python
-count = client.delete_dead_letter_events(provider="pragmatiks/agno")
-count = client.delete_dead_letter_events(all=True)
-```
-
-**Raises:** `ValueError` if neither `provider` nor `all=True` is specified.
-
----
-
 ## Provider Operations
 
 These methods back the `pragma providers` commands; see the [CLI reference](/cli/providers) for the workflow. Provider names are namespaced as `org/name`.
@@ -391,14 +331,12 @@ import asyncio
 
 from pragma_sdk import AsyncPragmaClient
 
-
 async def main() -> None:
     """List agents and wait for one to become ready."""
     async with AsyncPragmaClient() as client:
         project = client.project("my-project")
         agents = await project.list_resources(provider="pragmatiks/agno", resource="agent")
         agent = await project.wait_ready("pragmatiks/agno", "agent", "support-bot")
-
 
 asyncio.run(main())
 ```
@@ -421,7 +359,6 @@ Run independent operations concurrently:
 
 ```python
 import asyncio
-
 
 async def list_all_agents(project_ids: list[str]) -> list[dict]:
     """List the agents of several projects concurrently."""
@@ -553,7 +490,6 @@ from pragma_sdk import Config, Dependency, Field, Outputs, Resource
 
 from mycloud_provider.resources import Database
 
-
 class AppConfig(Config):
     """Configuration of an application.
 
@@ -565,7 +501,6 @@ class AppConfig(Config):
     database: Dependency[Database]
     image: Field[str]
 
-
 class AppOutputs(Outputs):
     """Outputs of an application.
 
@@ -574,7 +509,6 @@ class AppOutputs(Outputs):
     """
 
     database_url: str
-
 
 class App(Resource[AppConfig, AppOutputs]):
     """Application connected to a managed database.
@@ -629,7 +563,6 @@ from mycloud_client import CloudClient, NotFound
 
 mycloud = Provider()
 
-
 class DatabaseConfig(Config):
     """Configuration for a managed database.
 
@@ -641,7 +574,6 @@ class DatabaseConfig(Config):
     name: ImmutableField[str]
     size_gb: Field[int] = 10
 
-
 class DatabaseOutputs(Outputs):
     """Outputs of a managed database.
 
@@ -650,7 +582,6 @@ class DatabaseOutputs(Outputs):
     """
 
     connection_url: str
-
 
 @mycloud.resource("database")
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
@@ -717,6 +648,6 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
     Full REST API documentation.
   </Card>
   <Card title="Error Recovery" icon="rotate-left" href="/guides/error-recovery">
-    Handle failures and inspect dead letter events.
+    Understand deadlines and recover from failed operations.
   </Card>
 </CardGroup>
