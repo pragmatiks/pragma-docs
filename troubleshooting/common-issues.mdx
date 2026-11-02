@@ -20,7 +20,7 @@ Re-authenticate with `pragma auth login`.
 Check if dependencies are in `ready` state:
 
 ```bash
-pragma resources describe <provider>/<resource> <name>
+pragma resources describe <organization>/<provider>/<resource>/<name>
 ```
 
 A resource with unready dependencies waits in `waiting`, not `pending`, until all dependencies are ready; `describe` lists each one under `Blocked by:`.
@@ -48,7 +48,7 @@ pragma resources apply resource.yaml
 Check the error message:
 
 ```bash
-pragma resources describe <provider>/<resource> <name>
+pragma resources describe <organization>/<provider>/<resource>/<name>
 ```
 
 Fix the configuration and re-apply:
@@ -62,7 +62,7 @@ pragma resources apply fixed-resource.yaml
 If a resource isn't updating after its dependency changed, check the `resolved_config`:
 
 ```bash
-pragma resources describe <provider>/<resource> <name> -o json
+pragma resources describe <organization>/<provider>/<resource>/<name> -o json
 ```
 
 Compare `config` (your declaration) with `resolved_config` (what the provider received). If `resolved_config` still shows old values, the dependency change may not have propagated yet — verify the dependency is in `ready` state.
@@ -74,7 +74,7 @@ If a resource won't delete:
 - **Resource in `failed` state** — Failed resources can still be deleted. Check for errors:
 
 ```bash
-pragma resources describe <provider>/<resource> <name>
+pragma resources describe <organization>/<provider>/<resource>/<name>
 ```
 
 - **Resource in `processing` state** — Wait for the current operation to complete, then try deleting again.
