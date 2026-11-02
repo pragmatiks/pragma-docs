@@ -102,13 +102,13 @@ pragma resources types --provider gcp
 Get resources by type:
 
 ```bash
-pragma resources get gcp/storage
+pragma resources get pragmatiks/gcp/storage
 ```
 
 Get a specific resource:
 
 ```bash
-pragma resources get gcp/storage my-bucket
+pragma resources get pragmatiks/gcp/storage/my-bucket
 ```
 
 ## Describe
@@ -116,7 +116,7 @@ pragma resources get gcp/storage my-bucket
 Get detailed information about a resource, including its state, health, full configuration, resolved config, and outputs:
 
 ```bash
-pragma resources describe gcp/storage my-bucket
+pragma resources describe pragmatiks/gcp/storage/my-bucket
 ```
 
 While an operation is running, the output includes an `Operation` row such as `update <operation-id>`. A resource that received a new configuration while processing shows the State `processing (apply queued)`.
@@ -134,7 +134,7 @@ See [Health](/concepts/resources#health) for what each value means.
 Output as JSON to inspect `resolved_config` for dependency debugging:
 
 ```bash
-pragma resources describe agno/agent my-agent -o json
+pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
 ## Tags
@@ -204,7 +204,7 @@ Resources this reaches:
   pragmatiks/agno/anthropic-model/claude — failed, its dependency is deleted
 ```
 
-Each dependent listed as `failed, its dependency is deleted` moves to `failed` when the delete runs; apply it again to retry it, or deactivate it to discard it. Add `--wait` to block until the delete finishes (`--wait-timeout <seconds>`, `0` waits forever).
+Each dependent listed as `failed, its dependency is deleted` waits while the delete runs and moves to `failed` once the resource is deleted; apply it again to retry it, or deactivate it to discard it. Add `--wait` to block until the delete finishes (`--wait-timeout <seconds>`, `0` waits forever).
 
 ## Next Steps
 

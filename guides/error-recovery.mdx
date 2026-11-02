@@ -15,16 +15,17 @@ pragma resources list
 
 Output shows lifecycle states for all resources:
 
-```
-gcp/storage/data-lake [READY]
-agno/agent/assistant [FAILED]
-agno/team/my-team [WAITING]
+```text
+Provider         Resource  Name       State    Updated
+pragmatiks/gcp   storage   data-lake  ready    2026-03-02 09:12:44
+pragmatiks/agno  agent     assistant  failed   2026-03-02 09:14:03
+pragmatiks/agno  team      my-team    waiting  2026-03-02 09:14:05
 ```
 
 To see details about a specific failed resource:
 
 ```bash
-pragma resources describe agno/agent assistant
+pragma resources describe pragmatiks/agno/agent/assistant
 ```
 
 ## Automatic Recovery
@@ -73,7 +74,7 @@ A resource can fail or wait if its dependencies aren't satisfied:
 
 ```bash
 # Check dependency status
-pragma resources describe agno/anthropic-model claude
+pragma resources describe pragmatiks/agno/anthropic-model/claude
 
 # If dependency is failed, fix and re-apply
 pragma resources apply model.yaml
@@ -157,7 +158,7 @@ When a resource fails, it affects downstream resources:
 
 Consider this dependency chain:
 
-```
+```text
 secret (READY) → model (FAILED) → agent (WAITING)
 ```
 
@@ -180,7 +181,7 @@ When you encounter failures, follow this workflow:
   </Step>
   <Step title="Investigate root cause">
     ```bash
-    pragma resources describe <provider>/<resource> <name>
+    pragma resources describe <organization>/<provider>/<resource>/<name>
     pragma ops dead-letter show <event-id>
     ```
   </Step>
@@ -194,7 +195,7 @@ When you encounter failures, follow this workflow:
   </Step>
   <Step title="Verify">
     ```bash
-    pragma resources describe <provider>/<resource> <name>
+    pragma resources describe <organization>/<provider>/<resource>/<name>
     ```
     Confirm the resource reaches `ready` state.
   </Step>

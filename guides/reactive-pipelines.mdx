@@ -73,18 +73,20 @@ Watch the progress:
 pragma resources list
 ```
 
-```
-pragma/secret/anthropic-key [READY]
-agno/anthropic-model/claude [PROCESSING]
-agno/agent/assistant [WAITING]
+```text
+Provider           Resource         Name           State       Updated
+pragmatiks/pragma  secret           anthropic-key  ready       2026-03-02 09:12:44
+pragmatiks/agno    anthropic-model  claude         processing  2026-03-02 09:13:30
+pragmatiks/agno    agent            assistant      waiting     2026-03-02 09:13:31
 ```
 
 After a few moments:
 
-```
-pragma/secret/anthropic-key [READY]
-agno/anthropic-model/claude [READY]
-agno/agent/assistant [READY]
+```text
+Provider           Resource         Name           State  Updated
+pragmatiks/pragma  secret           anthropic-key  ready  2026-03-02 09:12:44
+pragmatiks/agno    anthropic-model  claude         ready  2026-03-02 09:14:02
+pragmatiks/agno    agent            assistant      ready  2026-03-02 09:14:40
 ```
 
 ## Step 3: Trigger a Change
@@ -122,7 +124,7 @@ The agent rebuilds without you touching it.
 To see how Pragmatiks resolved the dependencies, inspect the resolved config:
 
 ```bash
-pragma resources describe agno/agent assistant -o json
+pragma resources describe pragmatiks/agno/agent/assistant -o json
 ```
 
 The output shows:
@@ -174,7 +176,7 @@ config:
 If a resource is in `waiting` state, its dependencies are not ready yet:
 
 ```bash
-pragma resources describe agno/agent assistant
+pragma resources describe pragmatiks/agno/agent/assistant
 ```
 
 The `Health` row reads `blocked`, and the **Blocked by:** section names each dependency it is waiting for, with the command that shows it.
@@ -182,7 +184,7 @@ The `Health` row reads `blocked`, and the **Blocked by:** section names each dep
 ### Compare config vs resolved_config
 
 ```bash
-pragma resources describe agno/agent assistant -o json
+pragma resources describe pragmatiks/agno/agent/assistant -o json
 ```
 
 - `resolved_config` holds the configuration last sent to the provider; a waiting resource keeps its last one, and a resource that has never been processed has none

@@ -70,11 +70,13 @@ stateDiagram-v2
     processing --> failed: a dependency deleted
     ready --> pending: config change
     ready --> pending: dependency updated
-    ready --> waiting: a dependency deactivated
+    ready --> waiting: a dependency deactivated or deleting
+    ready --> waiting: apply, a dependency not ready
     ready --> failed: a dependency deleted
     waiting --> failed: a dependency deleted
     processing --> processing: apply while processing
     failed --> pending: apply
+    failed --> waiting: apply, a dependency not ready
     ready --> deleting: deactivate
     deleting --> draft: success
     deleting --> failed: error
@@ -139,7 +141,7 @@ Each resource has two config representations:
 The `resolved_config` is what gets sent to the provider. You can inspect both to debug dependency resolution:
 
 ```bash
-pragma resources describe agno/agent my-agent -o json
+pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
 ## Idempotent Apply
@@ -155,9 +157,9 @@ When you delete a resource, Pragmatiks handles its relationships:
 Resources that **depend on** a resource you deactivate or delete are not torn down with it:
 
 - **Deactivate:** each dependent moves to `waiting`, without a call to its provider. It keeps running as it is and recovers by itself once the dependency is applied again and ready.
-- **Delete:** each dependent moves to `failed` with the error `Dependency <id> was deleted. Apply again to retry it, or deactivate the resource to discard it.` A dependent that is processing when the dependency is deleted fails once its operation ends.
+- **Delete:** each dependent waits while the delete runs, then moves to `failed` once the resource is deleted, with the error `Dependency <id> was deleted. Apply again to retry it, or deactivate the resource to discard it.` A dependent that is processing when the dependency is deleted fails once its operation ends.
 
-```
+```text
 # Before:
 secret (READY) ← model (READY) ← agent (READY)
 

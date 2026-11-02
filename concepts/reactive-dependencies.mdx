@@ -154,7 +154,7 @@ When a resource transitions to `pending` state with all dependencies ready, Prag
 You can inspect the resolved config to debug dependency resolution:
 
 ```bash
-pragma resources describe agno/agent my-agent -o json
+pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
 The response includes both `config` (your original declaration with references) and `resolved_config` (the fully resolved version sent to the provider).
