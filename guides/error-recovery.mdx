@@ -32,11 +32,13 @@ pragma resources describe pragmatiks/agno/agent/assistant
 
 ### Operation Deadline
 
-Every operation has about 20 minutes to finish, counted from the moment Pragmatiks starts it. Time spent waiting to be sent and waiting behind the provider's other operations counts toward the 20 minutes. If the operation has not finished by then, the resource moves to `failed` with this message:
+Every operation has 20 minutes by default to finish, counted from the moment the provider starts running it. A resource type can declare a longer limit, up to one hour. A long operation stays alive for as long as its provider keeps responding; one that stops responding fails sooner. When the deadline passes, Pragmatiks cancels the operation and the resource moves to `failed` with this message:
 
 ```
-Resource <id> did not finish within 1200 seconds. Apply again to retry it, or deactivate the resource to discard it.
+Resource <id> did not finish within <seconds> seconds. Apply again to retry it, or deactivate the resource to discard it.
 ```
+
+An operation waiting for a provider that is not running has no deadline. It starts once the provider runs, and its deadline counts from then.
 
 To retry, apply the resource again. To discard it, deactivate it.
 
@@ -92,61 +94,6 @@ Sometimes the underlying provider rejects the operation:
 
 **Recovery**: Address the provider-specific issue, then retry the resource.
 
-## Using the Dead-Letter List
-
-When a reply from a provider cannot be read, Pragmatiks records it in the dead-letter list and keeps its details for investigation. A failed operation is not recorded there: it shows on the resource as `failed`, with its error.
-
-### List Dead-Letter Events
-
-See every reply Pragmatiks could not read:
-
-```bash
-pragma ops dead-letter list
-```
-
-Output shows a table with event details:
-
-```
-Event ID    Provider   Resource Type   Resource Name   Error Message              Failed At
-evt_abc123  agno       agent           assistant       The reply could not ...    2026-01-15 10:30:00
-evt_def456  gcp        storage         backup          The reply could not ...    2026-01-15 10:32:00
-```
-
-Filter by provider:
-
-```bash
-pragma ops dead-letter list --provider agno
-```
-
-### Inspect Event Details
-
-Get the full error message and context, which names the reply fields that could not be read:
-
-```bash
-pragma ops dead-letter show evt_abc123
-```
-
-This returns the complete event data including:
-- The resource the reply was for
-- The full error message
-- When the failure occurred
-- The operation that was attempted
-
-### Clear Resolved Events
-
-Once you've addressed failures (or decided to abandon them), delete events from the dead-letter list:
-
-```bash
-# Delete a single event
-pragma ops dead-letter delete evt_abc123
-
-# Delete all events for a provider
-pragma ops dead-letter delete --provider gcp
-
-# Delete all events
-pragma ops dead-letter delete --all
-```
-
 ## Dependency Failure Cascades
 
 When a resource fails, it affects downstream resources:
@@ -176,13 +123,11 @@ When you encounter failures, follow this workflow:
   <Step title="Identify failures">
     ```bash
     pragma resources list
-    pragma ops dead-letter list
     ```
   </Step>
   <Step title="Investigate root cause">
     ```bash
     pragma resources describe <organization>/<provider>/<resource>/<name>
-    pragma ops dead-letter show <event-id>
     ```
   </Step>
   <Step title="Fix the issue">
@@ -208,7 +153,6 @@ Reduce failures by:
 - **Using draft mode** — Apply with `--draft` first to validate configuration, then re-apply without `--draft` to deploy
 - **Checking dependencies** — Use `pragma resources describe` to verify dependencies are `ready`
 - **Applying in bulk** — Apply all resources in a single YAML file; Pragmatiks resolves the dependency order automatically
-- **Monitoring the dead-letter list** regularly for early warning of issues
 
 ## Next Steps
 
