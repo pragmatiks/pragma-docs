@@ -107,7 +107,7 @@ Every resource read carries a `health` value that Pragmatiks computes from the r
 
 | Health | Meaning |
 |--------|---------|
-| `blocked` | The resource is waiting for a dependency. `blockers` names each one. |
+| `blocked` | The resource is waiting for a dependency. `blockers` names each one. It is also `blocked` while the resource's provider changes version; `provider_blocker` then names the provider. |
 | `failed` | The resource is in `failed` state. |
 | `degraded` | The resource is `ready`, but a resource it depends on failed its last operation. `degraded_by` names each one. |
 | `healthy` | None of the above. |

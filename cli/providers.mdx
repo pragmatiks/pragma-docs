@@ -85,12 +85,12 @@ pragma providers list --scope public --tags ml,vector
 | Column | Shows |
 |--------|-------|
 | Provider | The provider name |
-| State | `Queued`, `Starting`, `Running`, `Failed` or `Uninstalling` |
+| State | `Queued`, `Starting`, `Draining`, `Switching`, `Running`, `Failed` or `Uninstalling` |
 | Version | The version the installation serves; a dash until it first runs |
 | Operation | The latest operation (`install`, `upgrade`, `downgrade`, `restart`, `uninstall`) and the version it targets |
 | Message | Why the installation failed, when it failed |
 
-With `-o json` or `-o yaml`, each record carries `installed_version`, `lifecycle_state` (`pending`, `processing`, `ready`, `failed` or `deleting`), `operation_type`, `operation_version` and `failure_message`.
+With `-o json` or `-o yaml`, each record carries `installed_version`, `lifecycle_state` (`pending`, `processing`, `draining`, `swapping`, `ready`, `failed` or `deleting`), `operation_type`, `operation_version` and `failure_message`.
 
 ## Info
 
