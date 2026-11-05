@@ -84,7 +84,8 @@ A resource you apply or delete while the provider drains or switches waits, with
 
 ```text
 Waiting for provider:
-  pragmatiks/qdrant — <reason>
+  pragmatiks/qdrant — Waiting for pragmatiks/qdrant to finish upgrading to 1.4.0.
+    pragma providers list --installed
 ```
 
 The history records the failure under the installed version, and its message names the target version that failed. To try again, run the upgrade or downgrade again once the cause is fixed.
