@@ -115,8 +115,7 @@
               "cli/authentication",
               "cli/resources",
               "cli/providers",
-              "cli/store",
-              "cli/operations"
+              "cli/store"
             ]
           }
         ]
