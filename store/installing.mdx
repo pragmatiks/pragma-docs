@@ -67,6 +67,7 @@ An install, upgrade or downgrade moves through these states:
 | **Queued** | The operation is accepted and waits to start |
 | **Starting** | Pragmatiks is preparing and starting the provider at the target version |
 | **Draining** | Upgrade or downgrade only: operations already running finish on the installed version while new work waits |
+| **Translating** | Upgrade or downgrade only: each resource is moved to the target version's shape while applies to the provider's resources are refused |
 | **Switching** | Upgrade or downgrade only: the target version takes over and updates each resource once |
 | **Running** | The provider serves its resources |
 | **Failed** | The operation did not finish; its message says why |
