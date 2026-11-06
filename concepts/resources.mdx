@@ -17,7 +17,6 @@ Every resource has a consistent structure:
 | `config` | Your settings for this resource | `model_id: claude-sonnet-4-5-20250929` |
 | `tags` | Optional metadata labels | `["env:prod", "team:ml"]` |
 | `depends_on` | Explicit dependencies (optional) | Other resources |
-| `owner_references` | Owner resources for cascade deletion (optional) | Parent resources |
 | `outputs` | What it exposes to other resources (set by provider) | URLs, IDs, secrets |
 
 ## Configuration Example
@@ -107,7 +106,7 @@ Every resource read carries a `health` value that Pragmatiks computes from the r
 
 | Health | Meaning |
 |--------|---------|
-| `blocked` | The resource is waiting for a dependency. `blockers` names each one. It is also `blocked` while the resource's provider changes version; `provider_blocker` then names the provider. |
+| `blocked` | The resource is waiting for a dependency or a resource it owns. `blockers` names each one. It is also `blocked` while the resource's provider changes version; `provider_blocker` then names the provider. |
 | `failed` | The resource is in `failed` state. |
 | `degraded` | The resource is `ready`, but a resource it depends on failed its last operation. `degraded_by` names each one. |
 | `healthy` | None of the above. |
@@ -176,24 +175,9 @@ Run the command with `--dry-run` to see what it would do first. Each dependent i
 pragma resources delete --dry-run pragmatiks/pragma/secret/api-key
 ```
 
-### Cascade Delete (Owner References)
+### Cascade Delete (Owned Resources)
 
-Resources with **owner references** follow cascade deletion. When the owner is deleted, all owned resources are deleted too. This is used for subresource patterns where child resources have no meaning without their parent.
-
-```yaml
-# Team owns its agents — deleting the team deletes the agents
-provider: agno
-resource: agent
-name: team-member
-config:
-  instructions: "..."
-owner_references:
-  - provider: agno
-    resource: team
-    name: my-team
-```
-
-If a resource has multiple owners, it's only deleted when the last owner is removed.
+A provider can create resources that its own resource owns. Deleting the owner deletes everything it owns, and an owned resource is deleted before its owner. Owned resources have no meaning without their owner. You do not declare ownership in YAML: the owner's provider sets it when it creates the resource.
 
 ## Resource Tags
 

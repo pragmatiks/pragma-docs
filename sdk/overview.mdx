@@ -542,8 +542,6 @@ A resource config points at another resource in one of two ways:
 - **Field reference**: a single output value, written in YAML as `provider`, `resource`, `name`, and `field`. See [Resources](/concepts/resources).
 - **`Dependency[T]`**: a whole resource, with typed access to its config and outputs in provider code.
 
-Owner references, which make a child resource deleted along with its owner, are described in [Resources](/concepts/resources#cascade-delete-owner-references).
-
 ### Dependency[T]
 
 Provider authors declare a whole-resource dependency with `Dependency[T]`. The platform waits for the dependency to be ready before it runs the dependent's handlers, and `resolve()` returns it:
