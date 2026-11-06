@@ -241,6 +241,8 @@ Pragmatiks can stop a handler at any moment, including after a create call is se
 | Partial create | When `on_create` makes more than one write, `on_update(previous_config=None)` finishes the work from any prefix of them. |
 | Rerun | `on_update` converges from a partial earlier update, and `on_delete` succeeds when the object is already gone. |
 
+Pragmatiks never adopts or deletes an object it did not create. `on_observe` reports only an object this resource created, and it makes no writes. For an object at the resource's identity that this resource did not create, such as one without the resource's marker, `on_observe` raises `AlreadyExistsError`. A create or update that finds such an object fails as already existing. Deleting or deactivating the resource leaves the object in place. This requires `pragmatiks-sdk` 25.1.0 or later.
+
 A resource type is verified only when every check holds. Read the answer to each check in the vendor's own documentation; where the documentation is silent, assume the weaker behavior. A timing argument ("the create answers in a second") never replaces a check: the external system can store the object after your client gave up.
 
 A [computed](#computed-resources) resource that writes nothing outside Pragmatiks has nothing to check. One that applies child resources derives every child's name from its own identity, and a rerun applies every child again, so a stop between two child applies is finished.
