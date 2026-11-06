@@ -61,11 +61,12 @@ pragma providers upgrade pragmatiks/qdrant -y
 
 ### What Happens During an Upgrade
 
-An upgrade or downgrade is queued, then starts the target version alongside the installed one, like an install (see [Installation Lifecycle](/store/installing#installation-lifecycle)). Once the target version is ready, the change goes through two more states before it ends **Running** on the target version:
+An upgrade or downgrade is queued, then starts the target version alongside the installed one, like an install (see [Installation Lifecycle](/store/installing#installation-lifecycle)). Once the target version is ready, the change goes through three more states before it ends **Running** on the target version:
 
 | State | Meaning |
 |-------|---------|
 | **Draining** | Operations already running finish on the installed version. New work for the provider's resources waits. |
+| **Translating** | Each of the provider's resources is moved to the target version's shape, through every published version in between. Applies to the provider's resources are refused until it is **Running** again. |
 | **Switching** | The target version takes over, and each of the provider's resources is updated once on it. |
 
 It ends **Failed** if the target version does not start in time. The installed version keeps serving your resources until the switch. Follow it with:
@@ -79,6 +80,14 @@ If the target version cannot start, the provider returns to **Running** on the i
 ```text
 Upgrading pragmatiks/qdrant to 1.2.0 failed: The provider worker stopped before it could serve. The installed version keeps serving; publish a new version and upgrade to it.
 ```
+
+If a resource cannot be moved to the target version's shape, the provider likewise returns to **Running** on the installed version, and every resource keeps its current configuration. The message names the resource and the step that failed:
+
+```text
+Upgrading pragmatiks/qdrant to 1.2.0 failed: Translating pragmatiks/qdrant/collection/my-collection from 1.1.0 to 1.2.0 failed: <error>. The installed version keeps serving; publish a new version and upgrade to it.
+```
+
+While the provider translates, applying one of its resources is refused; apply again once `pragma providers list --installed` shows the provider **Running**.
 
 A resource you apply or delete while the provider drains or switches waits, with health `blocked`, and continues on the target version. `pragma resources describe` shows why:
 
