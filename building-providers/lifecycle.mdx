@@ -438,46 +438,71 @@ class Connection(Resource[ConnectionConfig, ConnectionOutputs]):
 
 ## Creating Subresources
 
-Providers can create and manage subresources from within lifecycle handlers. This enables composition patterns where a high-level resource provisions multiple lower-level resources.
+A high-level resource can provision lower-level resources and own them. Owned resources are called children. The resource applies its children, reads their state, and tells the platform to wait until they are ready.
 
 ### The Pattern
 
-Build the subresource instance, set this resource as its owner, and apply it:
+Build each child, `apply()` it, `read()` it back, and return `ChildrenPending()` until it is ready. Once it is ready, return the outputs:
 
 ```python
-async def on_create(self) -> AppOutputs:
+from pragma_sdk import ChildrenPending, LifecycleState
+
+
+async def on_create(self) -> AppOutputs | ChildrenPending:
     database = Database(
         project_id=self.project_id,
         name=f"{self.name}-db",
         config=DatabaseConfig(name=f"{self.name}-db", size_gb=10),
     )
-    database.set_owner(self)
     await database.apply()
-    return AppOutputs(database_name=database.name)
+    applied = await database.read()
+
+    if applied is None or applied.lifecycle_state != LifecycleState.READY:
+        return ChildrenPending()
+
+    return AppOutputs(database_name=applied.name)
 ```
 
-The handler never waits for the subresource. `apply()` returns once the platform accepts the subresource, and the platform provisions it after the handler returns. A resource that needs the subresource's outputs, such as its connection string, declares a `Dependency` or a field reference on it; the platform runs that resource only once the subresource is ready, with the values resolved. See [Configuration and Outputs](/building-providers/config-outputs).
+### Two Passes
+
+A handler that returns `ChildrenPending()` returns no outputs. The platform waits until every child the handler applied is ready, then runs the resource again: `on_update` for a computed resource, and `on_create` or `on_update` for a resource that owns an external object. The second pass runs the same code. It applies the same children again, which changes nothing, reads them, finds them ready and returns the outputs.
+
+Write both handlers so that a pass whose children are already ready returns its outputs at once. The easiest way is one method that `on_create` and `on_update` both call.
+
+In the second pass, `previous_config` is the configuration that completed before the first pass, or `None` after a create. It is not the configuration the first pass applied, so derive the children from `self.config` and do not rely on `previous_config`.
+
+Return `ChildrenPending()` only after a `read()` found a child that is not ready. If every child was already ready and unchanged, or the handler applied none, nothing would wake the resource and it fails.
+
+If a child fails to be created or is deleted while the resource waits, the resource fails too.
 
 ### Methods
 
-**`set_owner(parent)`** - Establishes an ownership relationship. When the parent resource is deleted, owned subresources are automatically cleaned up via cascading deletes. Returns `self` for method chaining.
+**`apply()`** - Sends the child to the platform and returns once the platform accepts it. The platform records the running resource as the child's owner, places the child in the same project and provisions it with the provider that handles its type. The call never waits for the child.
 
-**`apply()`** - Sends the resource to the API for creation or update and returns once the API accepts it. The platform then provisions the resource with the provider that handles its type. Returns `self` for method chaining.
+**`read()`** - Returns a new instance of the child's class carrying its `lifecycle_state`, the configuration the resource applied and its `outputs`, or `None` when no resource has that identity. Use it from `on_create` and `on_update`; it raises in `on_observe`.
+
+Reads only see resources this resource owns. Reading or applying a resource that exists but belongs to another owner, or to no owner, is refused with a `CallbackRefusedError`. Let the error propagate: the resource fails with the platform's message.
+
+Because the configuration is returned as applied, a field reference or dependency in it reads back as the reference and not as the resolved value.
 
 <Note>
-A subresource belongs to the provider that defines its type, not to the provider whose handler applies it. When your provider applies a resource of a type it imports from another provider, such as a Kubernetes deployment, that resource names the other provider, and the other provider creates, updates and deletes it. Your organization needs that provider installed too.
+A child belongs to the provider that defines its type, not to the provider whose handler applies it. When your provider applies a resource of a type it imports from another provider, such as a Kubernetes deployment, that resource names the other provider, and the other provider creates, updates and deletes it. Your organization needs that provider installed too.
 </Note>
 
-<Warning>
-Never wait inside a handler for another resource to become ready: no `wait_ready`, no `apply(wait=True)`, no sleep or retry loop. Declare the dependency and let the platform sequence the work.
-</Warning>
+### Observing a Resource With Children
+
+`on_observe` finds the object by the resource's own identity, such as its name, and never by reading children, since `read()` is unavailable there. A computed resource, which owns no external object, reports nothing outside Pragmatiks and needs no lookup of its own.
+
+### Deleting
+
+Children are deleted by the platform, before the resource that owns them. `on_delete` deletes none of them. Delete only an external object the resource created itself.
 
 ### Complete Example
 
-Here's a complete example of an application resource that provisions its own database, using the `Database` resource from the [complete example](#complete-example) above. The application owns no external object of its own, so it is computed, and its outputs derive from its own identity:
+Here's a complete example of an application resource that provisions its own database, using the `Database` resource from the [complete example](#complete-example) above. The application owns no external object of its own, so it is computed, and its outputs derive from its children:
 
 ```python
-from pragma_sdk import Config, Field, Outputs, Resource
+from pragma_sdk import ChildrenPending, Config, Field, LifecycleState, Outputs, Resource
 
 
 class AppConfig(Config):
@@ -506,44 +531,57 @@ class App(Resource[AppConfig, AppOutputs]):
 
     computed = True
 
-    async def on_create(self) -> AppOutputs:
-        """Apply the owned database.
+    async def converge(self) -> AppOutputs | ChildrenPending:
+        """Apply the owned database, then report its name once it is ready.
 
         Returns:
-            Outputs holding the database name.
+            Outputs holding the database name once the database is ready,
+            else ``ChildrenPending()``.
         """
         database = Database(
             project_id=self.project_id,
             name=f"{self.name}-db",
             config=DatabaseConfig(name=f"{self.name}-db", size_gb=self.config.database_size_gb),
         )
-        database.set_owner(self)
         await database.apply()
-        return AppOutputs(database_name=database.name)
+        applied = await database.read()
 
-    async def on_update(self, previous_config: AppConfig | None) -> AppOutputs:
+        if applied is None or applied.lifecycle_state != LifecycleState.READY:
+            return ChildrenPending()
+
+        return AppOutputs(database_name=applied.name)
+
+    async def on_create(self) -> AppOutputs | ChildrenPending:
+        """Apply the owned database.
+
+        Returns:
+            Outputs once the database is ready, else ``ChildrenPending()``.
+        """
+        return await self.converge()
+
+    async def on_update(self, previous_config: AppConfig | None) -> AppOutputs | ChildrenPending:
         """Re-apply the database with the current size.
 
         Args:
-            previous_config: Configuration last applied, or ``None``.
+            previous_config: Configuration completed before this pass, or ``None``.
 
         Returns:
-            Outputs holding the database name.
+            Outputs once the database is ready, else ``ChildrenPending()``.
         """
-        return await self.on_create()
+        return await self.converge()
 
     async def on_delete(self) -> None:
-        """Nothing to delete: owned subresources are deleted by cascading deletes."""
+        """Nothing to delete: the platform deletes owned children."""
 ```
 
 ### When to Use Subresources
 
 | Use Case | Approach |
 |----------|----------|
-| Encapsulated infrastructure (DB, cache, etc.) | Subresources with ownership |
+| Encapsulated infrastructure (DB, cache, etc.) | Owned children |
 | Shared resources across multiple parents | Dependencies without ownership |
 | User-managed separate resources | Separate top-level resources |
 
 <Tip>
-Use subresources when the child resource's lifecycle is tightly coupled to the parent. If users might want to manage the child independently, expose it as a separate resource type instead.
+Use children when the child resource's lifecycle is tightly coupled to the parent. If users might want to manage the child independently, expose it as a separate resource type instead.
 </Tip>

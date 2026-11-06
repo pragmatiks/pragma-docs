@@ -44,6 +44,16 @@ gcp/gke (cluster, optional)
         └─▶ kubernetes/secret
 ```
 
+## Service
+
+A `kubernetes/service` resource reports these outputs:
+
+| Output | Description |
+|--------|-------------|
+| `load_balancer_address` | External address of a `LoadBalancer` Service. Empty for every other Service type. |
+
+A `LoadBalancer` Service is ready only once the cluster assigns it an address. Until then the resource is not ready, and a resource that depends on it waits. Every other Service type is ready once it is applied.
+
 ## Notes
 
 - All Kubernetes resources use server-side apply for idempotent create/update operations.

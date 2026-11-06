@@ -78,7 +78,7 @@ Pragmatiks computes a health value for every resource each time it is read:
 
 | Health | Description |
 |--------|-------------|
-| **blocked** | Waiting for a dependency; `blockers` names each one |
+| **blocked** | Waiting for a dependency or a resource it owns; `blockers` names each one |
 | **failed** | The resource is in FAILED state |
 | **degraded** | READY, but a dependency failed its last operation; `degraded_by` names each one |
 | **healthy** | None of the above |

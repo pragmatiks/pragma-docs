@@ -3,6 +3,23 @@ title: "Changelog"
 description: "Platform updates and new features"
 ---
 
+## November 2026
+
+### Owned Children
+
+A provider resource can now compose other resources as owned children.
+
+- **Apply and read** — `apply()` creates a child owned by the running resource and `read()` returns its state, configuration and outputs. A read sees only resources the resource owns.
+- **ChildrenPending** — A handler returns `ChildrenPending()` while its children are not ready. The platform runs the resource again once they are, and the second pass returns the outputs.
+- **Cascade delete** — Deleting a resource deletes the resources it owns first. A resource has a single owner, and you no longer declare owners in YAML.
+- **Blocked health** — A resource is `blocked` while it waits for a dependency or a resource it owns.
+- **Kubernetes Service** — A LoadBalancer Service is ready only once its address is assigned, and reports it as `load_balancer_address`.
+- **Qdrant and Agno** — Both providers now deploy through owned children.
+
+Requires SDK 25.
+
+---
+
 ## February 2026
 
 ### Agno Provider — Full AI Agent Support
@@ -21,7 +38,7 @@ The Agno provider now supports the complete AI agent lifecycle:
 
 Deleting a resource no longer cascade-deletes its dependents. Instead, dependents are **detached** — their dependency references are removed and they are sent back to the provider for update. Providers decide whether resources can continue without the deleted dependency.
 
-Owner references still follow cascade deletion for parent-child resource relationships.
+Owned resources still follow cascade deletion for parent-child resource relationships.
 
 ### Web UI Graph Editor
 
@@ -69,4 +86,4 @@ New `kubernetes/deployment` resource for managing Kubernetes Deployments.
 
 - `upload_file()` method for file uploads
 - `Dependency[T]` and `FieldReference` types for provider authoring
-- `owner_references` support for cascade deletion patterns
+- Owned resources with cascade deletion
