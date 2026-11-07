@@ -14,13 +14,34 @@ This example shows the pattern used by real cloud providers: user-provided crede
 ```python
 """GCP Secret Manager resource - complete annotated example."""
 
+import hashlib
 import json
 from typing import Any
 
 from google.api_core.exceptions import AlreadyExists, NotFound
 from google.cloud.secretmanager_v1 import AccessSecretVersionResponse, SecretManagerServiceAsyncClient
 from google.oauth2 import service_account
-from pragma_sdk import Config, Field, ImmutableField, Outputs, Resource
+from pragma_sdk import AlreadyExistsError, Config, Field, ImmutableField, Outputs, Resource
+
+
+RESOURCE_MARKER_KEY = "pragma_resource"
+
+
+def compute_resource_marker_value(resource_id: str) -> str:
+    """Compute the label value that names a Pragmatiks resource.
+
+    Note:
+        Google Cloud label values hold at most 63 lowercase letters, digits,
+        dashes and underscores, so the resource ID is carried as a
+        62-character hex digest.
+
+    Args:
+        resource_id: Canonical ID of the Pragmatiks resource.
+
+    Returns:
+        The BLAKE2b digest of ``resource_id`` in lowercase hex.
+    """
+    return hashlib.blake2b(resource_id.encode(), digest_size=31).hexdigest()
 
 
 class SecretConfig(Config):
@@ -157,12 +178,18 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
         Returns:
             Outputs for the secret and its latest version, or ``None`` when the
             secret does not exist.
+
+        Raises:
+            AlreadyExistsError: If the secret lacks this resource's marker.
         """
         client = self.build_client()
         try:
-            await client.get_secret(name=self.build_secret_path())
+            secret = await client.get_secret(name=self.build_secret_path())
         except NotFound:
             return None
+
+        if secret.labels.get(RESOURCE_MARKER_KEY) != compute_resource_marker_value(self.id):
+            raise AlreadyExistsError(f"Secret {self.config.secret_id} already exists")
 
         latest = await self.fetch_latest_version(client)
         return self.build_outputs(latest.name if latest else None)
@@ -170,12 +197,16 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
     async def on_create(self) -> SecretOutputs:
         """Create the secret with its first version.
 
-        Called only after ``on_observe`` reports the secret absent. A secret
-        that appears between the observation and this call is adopted instead
-        of failing on ``AlreadyExists``.
+        Labels the secret with this resource's marker. When the secret ID is
+        taken, the secret is converged only if it carries that marker, which
+        means an earlier attempt of this create made it.
 
         Returns:
             Outputs pointing at the first version.
+
+        Raises:
+            AlreadyExistsError: If a secret with ``secret_id`` exists without
+                this resource's marker.
         """
         client = self.build_client()
         try:
@@ -183,11 +214,19 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
                 request={
                     "parent": f"projects/{self.config.project_id}",
                     "secret_id": self.config.secret_id,
-                    "secret": {"replication": {"automatic": {}}},
+                    "secret": {
+                        "replication": {"automatic": {}},
+                        "labels": {RESOURCE_MARKER_KEY: compute_resource_marker_value(self.id)},
+                    },
                 }
             )
-        except AlreadyExists:
-            pass
+        except AlreadyExists as error:
+            existing = await client.get_secret(name=self.build_secret_path())
+
+            if existing.labels.get(RESOURCE_MARKER_KEY) != compute_resource_marker_value(self.id):
+                raise AlreadyExistsError(f"Secret {self.config.secret_id} already exists") from error
+
+            return await self.on_update(None)
 
         return await self.add_version(client)
 
@@ -224,6 +263,8 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
         except NotFound:
             return
 ```
+
+The marker label holds a digest of `self.id` rather than the ID itself, because Google Cloud label values allow only lowercase letters, digits, `-` and `_`, up to 63 characters.
 
 ### Key Patterns to Note
 
@@ -262,8 +303,8 @@ class Secret(Resource[SecretConfig, SecretOutputs]):
 
     | Method | Strategy | Handles |
     |--------|----------|---------|
-    | `on_observe` | Look up by path | Absent secret reported as `None`, secret without a version |
-    | `on_create` | Create-or-adopt | Secret created between the observation and the call |
+    | `on_observe` | Look up by path, check marker | Absent secret reported as `None`, secret without a version, unmarked secret raises `AlreadyExistsError` |
+    | `on_create` | Create with marker | Own secret from an earlier attempt converged; any other raises `AlreadyExistsError` |
     | `on_update` | Compare live, then append | Unchanged payload, `previous_config=None`, version history |
     | `on_delete` | Delete-if-exists | NotFound after a crash or repeat |
   </Accordion>

@@ -100,19 +100,24 @@ Every resource implements four async methods:
 |--------|-------------|---------|
 | `on_create` | Resource is first provisioned | `Outputs` |
 | `on_observe` | The platform needs the object's current state | `Outputs`, or `None` when the object does not exist |
-| `on_update` | Configuration changes, or a create finds the object already present (`previous_config=None`) | `Outputs` |
+| `on_update` | Configuration changes, or a create finds the object this resource already provisioned (`previous_config=None`) | `Outputs` |
 | `on_delete` | Resource is removed | `None` |
 
 `on_observe` locates the object from the resource's identity and config alone, never from stored outputs. It is mandatory unless the resource declares `computed = True` because it owns no external object; publishing a provider that omits it fails naming the resource type.
 
-These methods must be **idempotent**. The platform may retry events if delivery fails, so calling a lifecycle method twice with the same input should produce the same result. A create that finds the object already made by an earlier attempt reuses it:
+These methods must be **idempotent**. The platform may retry events if delivery fails, so calling a lifecycle method twice with the same input should produce the same result. A create sends a marker holding `self.id`; when the name is taken, it converges only an object carrying that marker and raises `AlreadyExistsError` for any other:
 
 ```python
 async def on_create(self) -> SecretOutputs:
     try:
-        secret = await client.create_secret(...)
-    except AlreadyExists:
-        secret = await client.get_secret(...)
+        secret = await client.create_secret(..., labels={RESOURCE_MARKER_KEY: self.id})
+    except SecretExistsError as error:
+        existing = await client.get_secret(...)
+
+        if existing.labels.get(RESOURCE_MARKER_KEY) != self.id:
+            raise AlreadyExistsError("Secret already exists") from error
+
+        return await self.on_update(None)
 
     return SecretOutputs(resource_name=secret.name)
 ```
