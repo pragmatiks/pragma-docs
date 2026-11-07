@@ -465,11 +465,11 @@ with PragmaClient(timeout=60.0) as client:
 
 ## File Uploads
 
-Upload files to Pragmatiks storage programmatically:
+Upload files into a project's file storage through the project handle:
 
 ```python
 with open("training-data.jsonl", "rb") as file:
-    result = client.upload_file(
+    result = client.project("my-project").upload_file(
         name="training-data",
         content=file.read(),
         content_type="application/jsonl",

@@ -94,6 +94,7 @@ When using `@path` syntax for `pragma/file` resources:
 - Verify the file exists at the specified path (relative to the YAML file's directory)
 - Ensure `content_type` is specified in the config — it's required for file uploads
 - Check the file size is within the platform's limits
+- Apply into the project that owns the referencing resource; a `pragma://files/<name>` reference only finds files in its own project
 
 ```yaml
 provider: pragmatiks/pragma
@@ -109,7 +110,7 @@ config:
 If a `pragma/file` resource fails with "File content not uploaded":
 
 1. The file resource was created but the file content wasn't uploaded yet
-2. Re-apply the resource with the `@path` syntax to trigger the upload:
+2. Re-apply the resource with the `@path` syntax, in the same project, to trigger the upload:
 
 ```bash
 pragma resources apply file-resource.yaml
