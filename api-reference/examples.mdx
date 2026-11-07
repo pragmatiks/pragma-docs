@@ -231,63 +231,34 @@ curl -X DELETE \
 
 ## Provider Operations
 
-### Push Provider Code
+### Publish a Provider Version
 
-Upload provider code to start a build:
+Publish with `pragma providers publish` or the SDK's `publish_provider_version`: they rename the wheel to your organization's distribution name, declare it with `POST /providers/publish`, and upload it to the signed address the declaration returns. See [Publishing Providers](/store/publishing).
 
-```bash
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "code=@provider.tar.gz" \
-  "$API/providers/my-provider/push"
-```
+### Read a Provider Version
 
-**Response:**
-
-```json
-{
-  "version": "20250115.120000",
-  "job_name": "build-my-provider-abc123",
-  "status": "pending",
-  "message": "Build job created"
-}
-```
-
-### Check Build Status
-
-Poll the build status until completion:
+Follow a version from `awaiting_wheel` to `published` or `failed`:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "$API/providers/my-provider/builds/build-my-provider-abc123"
+  "$API/providers/my-org/my-provider/versions/1.1.0"
 ```
 
-**Response (in progress):**
+**Response (being admitted):**
 
 ```json
 {
-  "job_name": "build-my-provider-abc123",
-  "status": "building",
+  "prefix": "my-org",
+  "name": "my-provider",
+  "version": "1.1.0",
+  "distribution_name": "my-org-my-provider",
+  "status": "admitting",
+  "failure_category": null,
   "error_message": null
 }
 ```
 
-**Response (success):**
-
-```json
-{
-  "job_name": "build-my-provider-abc123",
-  "status": "success",
-  "error_message": null
-}
-```
-
-### Stream Build Logs
-
-```bash
-curl -H "Authorization: Bearer $TOKEN" \
-  "$API/providers/my-provider/builds/build-my-provider-abc123/logs"
-```
+The response carries more fields; `operation_id` is set only for your own organization's versions and is `null` for every other organization.
 
 ### Install a Provider
 

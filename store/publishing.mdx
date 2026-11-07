@@ -1,146 +1,128 @@
 ---
 title: "Publishing Providers"
-description: "Publish your provider to the Pragmatiks store"
+description: "Publish a provider version to the Pragmatiks store from its wheel"
 ---
 
-Once you have built and tested a provider, you can publish it to the Pragmatiks Provider Store to make it available to other users.
+Once you have built and tested a provider, publish it so organizations can install it.
 
 ## Prerequisites
 
 - A Pragmatiks account with an authenticated CLI: `pragma auth login`
 - A working provider project (see [Building Providers](/building-providers/overview))
-- A `pyproject.toml` with provider metadata configured
 
-## Provider Metadata
+## What Publish Reads
 
-Before publishing, configure the `[tool.pragma]` section in your `pyproject.toml` with store metadata:
+Publish reads only the wheel; nothing comes from a separate configuration table.
+
+- The `pragma.provider` entry point names the provider and its import package. The wheel must declare exactly one:
+
+  ```toml
+  [project.entry-points."pragma.provider"]
+  mydb = "mydb_provider"
+  ```
+
+- The version comes from the wheel's core metadata, so from `version` in `pyproject.toml`. Published versions are immutable: bump the version before publishing again.
+- The `Summary` (`description` in `pyproject.toml`) and `Keywords` (`keywords`) become the store description and tags.
+
+### Embedded Providers
+
+A provider that depends on other Pragmatiks providers declares every one its dependencies reach, directly or through another provider, under the `pragma.embeds` entry point, keyed by distribution name. By convention the value is the embedded provider's import package:
 
 ```toml
-[tool.pragma]
-display_name = "My Database Provider"
-description = "Manage database instances and users"
-tags = ["database", "sql"]
+[project.entry-points."pragma.embeds"]
+pragmatiks-gcp = "gcp_provider"
+pragmatiks-kubernetes = "kubernetes_provider"
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `display_name` | Yes | Human-readable name shown in the store |
-| `description` | Yes | Short description of what the provider does |
-| `tags` | No | Searchable tags for categorization |
+A version that installs a Pragmatiks provider it does not declare fails admission: "Declare it under pragma.embeds, then publish again."
 
-## Publishing
+## Publish a Version
 
-### Publish a Version
-
-Run the publish command from your provider project directory:
+From your provider project directory:
 
 ```bash
-pragma providers publish --version 1.0.0
+pragma providers publish
 ```
 
-```
-Publishing provider: mydb
-Version: 1.0.0
-Source directory: /path/to/mydb-provider
-
-Created tarball: 12.3 KB
-Published: mydb v1.0.0
-Building... (building)
-Build successful: mydb v1.0.0
-```
-
-The command:
-1. Creates a tarball of your provider source code
-2. Uploads it to the store with the specified version
-3. Waits for the build to complete (by default)
-
-### Add a Changelog
-
-Include release notes with each version:
+Publish another project directory, attach release notes from a file, or publish a wheel you built yourself:
 
 ```bash
-pragma providers publish --version 1.1.0 --changelog "Added connection pooling support"
+pragma providers publish ./mydb-provider
+pragma providers publish --changelog CHANGELOG.md
+pragma providers publish --wheel dist/mydb_provider-1.0.0-py3-none-any.whl
 ```
 
-### Skip Build Wait
+See [`pragma providers publish`](/cli/providers#publish) for every option and exit code.
 
-If you do not want to wait for the build to finish:
+### How Publish Works
+
+1. **Build.** Without `--wheel`, publish runs `uv build` into `<project-dir>/dist`, so a uv workspace member's wheel lands in its own `dist/`.
+2. **Rename.** Publish renames a copy of the wheel to your organization's distribution name, `<organization>-<provider>`, in its filename, `.dist-info` directory and `METADATA` `Name:`, and prints `Renamed to <filename>`. The wheel you built, or passed with `--wheel`, is left unchanged. The copy is written to the temporary directory (`TMPDIR`), which needs room for a copy the size of the wheel.
+3. **Declare.** Publish declares the version and prints `Publishing <name> <version>`. The declaration answers with a signed upload address that expires after a while. Declaring the same wheel again while it waits for its upload returns a fresh address.
+4. **Upload.** Publish uploads the renamed wheel straight to that address and prints `Uploaded <size>`, or `Wheel already uploaded` when it is already there. The whole wheel must arrive before the address expires; an expired or refused upload stores nothing, and publishing again starts over. When the version already received its wheel, publish prints `Wheel already received` and skips the upload.
+5. **Watch.** Publish follows the version until it is published or fails, printing a `Status:` line each time its status changes, and ends with `Published <name> <version>`.
+
+### Refused Declarations
+
+| Status | Meaning |
+|--------|---------|
+| `422` | The declaration is refused. A wheel not renamed to your organization's distribution name answers "The wheel's `{part}` is `{found}`, not `{expected}`. Publish it with 'pragma providers publish'.", where `{part}` is `filename`, `.dist-info directory` or `METADATA Name`. Publish with the CLI or the SDK, which rename it. |
+| `503` `staging_unavailable` | The version is recorded, but its upload address could not be prepared. Run publish again later for a fresh address. |
+
+## Version Statuses
+
+`pragma providers versions <org>/<provider>` lists each version with its status and the label the CLI prints:
+
+| Status | CLI label | Meaning |
+|--------|-----------|---------|
+| `awaiting_wheel` | waiting for the wheel | Declared; its wheel has not been received yet |
+| `staged` | wheel received | The wheel is stored |
+| `queued` | waiting for the provider host | Waiting to be admitted |
+| `admitting` | admitting | Your organization's provider host is checking the wheel |
+| `promoting` | publishing to the registry | The admitted wheel is being published |
+| `published` | published | Available to install |
+| `failed` | failed | Admission failed; the message says why and what to do |
+
+While publish watches a version it uploaded that still reads `awaiting_wheel`, it shows `wheel uploaded, waiting for Pragmatiks to record it`.
 
 ```bash
-pragma providers publish --version 1.0.0 --no-wait
+pragma providers versions myorg/mydb
 ```
 
-### Force Republish
+See [Publish failures](/troubleshooting/common-issues#publish-failures) for failed versions.
 
-If a version with the same source code already exists, use `--force` to publish anyway:
+## Store Description and Tags
 
-```bash
-pragma providers publish --version 1.0.1 --force
+The first published version seeds the store description from the wheel's `Summary` and the tags from its `Keywords`. Later versions do not change them. Edit them afterwards through the metadata `PATCH /providers/{org}/{name}`, which the SDK exposes as `update_provider`:
+
+```python
+from pragma_sdk import PragmaClient
+
+with PragmaClient() as client:
+    client.update_provider("myorg/mydb", {"description": "Manage databases", "tags": ["database", "sql"]})
 ```
 
-### Specify Source Directory
-
-Publish from a different directory:
-
-```bash
-pragma providers publish --version 1.0.0 --directory ./my-provider
-```
-
-### Specify Package Name
-
-If auto-detection fails, specify the package explicitly:
-
-```bash
-pragma providers publish --version 1.0.0 --package mydb_provider
-```
+A publish refuses a `Summary` longer than 500 characters, more than 20 `Keywords`, or a keyword longer than 50 characters.
 
 ## Versioning
 
-Provider versions follow [Semantic Versioning](https://semver.org/) (semver):
+Provider versions follow [Semantic Versioning](https://semver.org/):
 
-- **Major** (2.0.0) — Breaking changes to resource schemas or behavior
-- **Minor** (1.1.0) — New resource types or backward-compatible features
-- **Patch** (1.0.1) — Bug fixes and minor improvements
-
-Each version must be a valid semver string (e.g., `1.0.0`, `1.2.3-beta.1`).
-
-## Build Process
-
-After you publish, the platform builds your provider into a deployable image. You can monitor build status:
-
-```bash
-pragma store info mydb
-```
-
-The version table shows the build status for each version:
-
-```
-Version   Status      Runtime Version   Published
-1.1.0     building    0.39.0            2026-02-25
-1.0.0     published   0.38.0            2026-02-01
-```
-
-Version statuses:
-- **building** — Build in progress
-- **published** — Build succeeded, available for installation
-- **failed** — Build failed (check error logs)
-- **yanked** — Version withdrawn from the store
-
-## Updating Metadata
-
-To update your provider's store metadata (display name, description, tags), update `pyproject.toml` and publish a new version. Metadata is extracted during the build process.
+- **Major** (2.0.0): breaking changes to resource schemas or behavior
+- **Minor** (1.1.0): new resource types or backward-compatible features
+- **Patch** (1.0.1): bug fixes
 
 ## Complete Workflow
 
 ```bash
-# 1. Publish to the store
-pragma providers publish --version 1.0.0 --changelog "Initial release"
+# 1. Publish and wait for admission
+pragma providers publish --changelog CHANGELOG.md
 
-# 2. Verify in the store
-pragma store info mydb
+# 2. Check the version
+pragma providers versions myorg/mydb
 
-# 3. Test installation
-pragma store install mydb --tier free
+# 3. Install it in your organization
+pragma providers install myorg/mydb
 ```
 
 ## Next Steps

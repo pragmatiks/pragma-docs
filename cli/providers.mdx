@@ -32,20 +32,51 @@ pragma providers update ./my-provider
 
 ## Publish
 
-Build the wheel with `uv build`, extract the resource schemas, and upload a new version under your organization:
+Publish a new version of a provider under your organization:
+
+```bash
+pragma providers publish [PROJECT_DIRECTORY | --wheel <path>] [--changelog <file>] [-o json|yaml]
+```
 
 ```bash
 pragma providers publish
-```
-
-Publish another directory, attach release notes, or upload a prebuilt wheel:
-
-```bash
 pragma providers publish ./my-provider --changelog NOTES.md
 pragma providers publish --wheel dist/my_provider-1.0.0-py3-none-any.whl
 ```
 
-`publish` reads the `[tool.pragma]` table in `pyproject.toml`. The version comes from the wheel; `--version` must match it. Published versions are immutable.
+Without `--wheel`, publish builds the wheel with `uv build` into `<project-dir>/dist` (the current directory by default), so a uv workspace member's wheel lands in its own `dist/`. A project directory and `--wheel` cannot be combined. Passing both, or a project directory that does not exist or has no `pyproject.toml`, exits 2.
+
+The wheel alone identifies the version: its `pragma.provider` entry point names the provider and its metadata carries the version. Published versions are immutable.
+
+Publish renames a copy of the wheel to your organization's distribution name, `<organization>-<provider>`; the file you built or passed with `--wheel` is left unchanged. It then declares the version, uploads the renamed copy straight to the signed upload address the declaration returns, and follows the version until it is `published` or `failed`:
+
+```text
+Renamed to myorg_my_provider-1.0.0-py3-none-any.whl
+Publishing myorg/my-provider 1.0.0
+Uploaded 12.3 KB
+Status: wheel received
+Status: admitting
+Published myorg/my-provider 1.0.0 — Python …, SDK …, 2 resource types
+```
+
+Progress goes to stderr; only the `Published` line goes to stdout. With `-o json` or `-o yaml`, stdout carries one document, `{"operation_id": …, "version": …}`, once the watch ends. See [Publishing Providers](/store/publishing) for each step and the version statuses.
+
+| Exit code | When |
+|-----------|------|
+| `0` | The version is `published` |
+| `1` | The version failed or was replaced by another publish, the renamed copy could not be written, the declaration was refused, or the upload was refused or its address expired |
+| `2` | Invalid usage, a missing project directory, a failed build, or a wheel that cannot be read |
+| `3` | The wheel was uploaded or already received, then the watch ended with the version unsettled or could not read it; run the printed `pragma providers publish --wheel <path>` to keep waiting |
+
+## Versions
+
+List a provider's versions with their status:
+
+```bash
+pragma providers versions myorg/my-provider
+```
+
+The Status column shows `waiting for the wheel`, `wheel received`, `waiting for the provider host`, `admitting`, `publishing to the registry`, `published` or `failed`, and the Message column shows a failed version's failure message.
 
 ## Install
 
@@ -87,10 +118,10 @@ pragma providers list --scope public --tags ml,vector
 | Provider | The provider name |
 | State | `Queued`, `Starting`, `Draining`, `Translating`, `Switching`, `Running`, `Failed` or `Uninstalling` |
 | Version | The version the installation serves; a dash until it first runs |
-| Operation | The latest operation (`install`, `upgrade`, `downgrade`, `restart`, `uninstall`) and the version it targets |
+| Operation | While an operation runs, the operation (`install`, `upgrade`, `downgrade`, `restart` for a host start, `uninstall`) and the version it targets; a dash once it settled |
 | Message | Why the installation failed, when it failed |
 
-With `-o json` or `-o yaml`, each record carries `installed_version`, `lifecycle_state` (`pending`, `processing`, `draining`, `translating`, `swapping`, `ready`, `failed` or `deleting`), `operation_type`, `operation_version` and `failure_message`.
+With `-o json` or `-o yaml`, each record carries `installed_version`, `lifecycle_state` (`pending`, `processing`, `draining`, `translating`, `swapping`, `ready`, `failed` or `deleting`), `operation_type`, `operation_version`, `operation_running` and `failure_message`.
 
 ## Info
 
@@ -188,13 +219,13 @@ The `--cascade` flag deletes all resources managed by the provider. This action 
 
 ## Delete
 
-Delete a provider you authored, with all its versions, from the store:
+Delete a provider and all its versions:
 
 ```bash
 pragma providers delete myorg/my-provider
 ```
 
-Deleting from the store does not uninstall the provider from organizations that have it installed. `--yes` skips the confirmation prompt.
+Only admins of the organization that owns the provider can delete it. Delete is refused while the provider is installed in any organization: uninstall it everywhere first. It is also refused while one of its versions is `promoting`, until that version is `published` or `failed`. `--yes` skips the confirmation prompt.
 
 ## Next Steps
 

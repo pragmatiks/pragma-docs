@@ -235,36 +235,5 @@ pragma store installed -o json
 
 ## pragma providers publish
 
-Publish a provider to the store. This command is under the `providers` group, not `store`.
+Publishing is part of the `pragma providers` command group. See [`pragma providers publish`](/cli/providers#publish) for its arguments, output and exit codes, and [Publishing Providers](/store/publishing) for the flow.
 
-```bash
-pragma providers publish [OPTIONS]
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--version`, `-v` | — | Semantic version for this release (**required**) |
-| `--changelog` | — | Changelog text for this version |
-| `--force` | `false` | Force publish even if source hash already exists |
-| `--directory`, `-d` | `.` | Provider source directory |
-| `--package`, `-p` | — | Provider package name (auto-detected if not specified) |
-| `--wait/--no-wait` | `--wait` | Wait for build to complete |
-
-**Examples:**
-
-```bash
-# Publish a version
-pragma providers publish --version 1.0.0
-
-# Publish with changelog
-pragma providers publish --version 1.1.0 --changelog "Added new resources"
-
-# Force republish
-pragma providers publish --version 2.0.0 --force
-
-# Don't wait for build
-pragma providers publish --version 1.0.0 --no-wait
-
-# Specify directory and package
-pragma providers publish --version 1.0.0 -d ./my-provider -p mydb_provider
-```
