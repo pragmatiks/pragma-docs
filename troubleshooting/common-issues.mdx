@@ -141,15 +141,35 @@ pragma ops dead-letter delete --provider <provider-name>
 
 ## Provider Development
 
-### "pyproject.toml not found" or "Missing [tool.pragma] section"
+### Publish failures
 
-`pragma providers publish` reads the provider project's `pyproject.toml`. Run it from the provider directory, or pass the directory:
+Run `pragma providers versions <org>/<provider>` to see a failed version's message. The admission failures you can fix:
+
+| Category | Message | Fix |
+|----------|---------|-----|
+| `wheel_refused` | The uploaded wheel does not match its declaration or could not be read. Rebuild the wheel and publish it again. | Rebuild and publish again |
+| `wheel_too_large` | The wheel expands to more than 256 MiB. Reduce its size and publish it again. | Shrink the wheel |
+| `digest_mismatch` | The uploaded wheel is not the wheel this publish declared. Run 'pragma providers publish' again. | Publish again |
+| `wheel_lost` | The uploaded wheel of `<provider>` `<version>` was lost before it was published. Run 'pragma providers publish' again. | Publish again |
+
+Upload errors the CLI prints, each followed by `To publish it again, run: pragma providers publish --wheel <path>` (exit 1):
+
+- **Expired address**: "The wheel upload address expired before storage received the whole wheel (HTTP `<status>` `<code>`, storage request `<id>`)." The whole wheel must arrive before the upload address expires; publish again for a fresh one.
+- **Refused upload**: "Storage refused the wheel upload (HTTP `<status>` `<code>`, storage request `<id>`)."
+
+Before anything is declared, a renamed copy that cannot be written prints "Could not write the renamed copy of the wheel: `<reason>`. Free space in the temporary directory or point TMPDIR elsewhere, then publish again." (exit 1).
+
+When the watch ends before the version settles, publish exits 3 with "Admission of `<name>` `<version>` has not finished" and the command to keep waiting.
+
+### No pyproject.toml in the project directory
+
+`pragma providers publish` builds the wheel from the project directory. Run it from the provider directory, or pass the directory:
 
 ```bash
 pragma providers publish ./mycompany-provider
 ```
 
-The `[tool.pragma]` table needs `provider`, `package`, `display_name`, and `description`; `pragma providers init` generates it.
+A missing project directory, or one without `pyproject.toml`, exits 2.
 
 ## Getting Help
 

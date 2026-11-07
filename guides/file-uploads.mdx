@@ -3,7 +3,7 @@ title: "File Uploads"
 description: "Upload and manage files with Pragmatiks"
 ---
 
-Pragmatiks provides a built-in `pragma/file` resource for uploading and managing files. Files are stored in platform storage and expose download URLs that other resources can reference.
+The `pragmatiks/pragma` provider, installed in every organization, provides a `pragma/file` resource for uploading and managing files. Files are stored in platform storage and expose download URLs that other resources can reference.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ After the file resource reaches `ready` state, it exposes these outputs:
 View the outputs:
 
 ```bash
-pragma resources describe pragma/file training-data
+pragma resources describe pragmatiks/pragma/file/training-data
 ```
 
 ## Using the SDK

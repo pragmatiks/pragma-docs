@@ -349,15 +349,28 @@ These methods back the `pragma providers` commands; see the [CLI reference](/cli
 | `list_providers(query=None, scope=None, tags=None, limit=20, offset=0)` | Browse the provider catalog; returns `PaginatedResponse[Provider]` |
 | `get_provider(name)` | Get a catalog entry |
 | `list_provider_versions(name)` | List the published versions of a provider |
-| `declare_provider_version(declaration)` | Declare a provider version before uploading its wheel; returns a `DeclaredProviderVersion` carrying the `operation_id` to upload under: `awaiting_wheel` when new, or the version already in flight when the declaration is identical |
-| `upload_provider_wheel(operation_id, wheel_path)` | Upload the wheel of a declared version and start its admission; returns the `ProviderVersion` |
-| `publish_provider_version(wheel_path, *, changelog=None)` | Declare the wheel's version, then upload the wheel only while the version awaits it; returns the `ProviderVersion` |
+| `get_provider_version(provider_name, version)` | Get one version in any status, to follow a publish from `awaiting_wheel` to `published` or `failed`; returns the `ProviderVersion` |
+| `update_provider(provider_name, metadata)` | Edit a provider's store description and tags (`PATCH /providers/{org}/{name}`); returns the `Provider` |
+| `declare_provider_version(declaration)` | Declare a renamed wheel's version; returns a `DeclaredProviderVersion` whose `wheel_upload` (a `WheelUploadAddress`: `url`, `headers` to send unchanged, `expires_at`) is set while the version is `awaiting_wheel`, fresh on each identical declaration, and `None` once the wheel is received |
+| `upload_provider_wheel(wheel_upload, wheel_path)` | Upload the wheel in one `PUT` to the signed address, before `expires_at`, with no Pragmatiks credentials; returns a `WheelUploadOutcome` (`STORED`, or `ALREADY_STORED` when storage already holds it) |
+| `publish_provider_version(wheel_path, *, changelog=None)` | Rename a copy of the wheel to your organization's distribution name, declare it, and upload it while the version awaits it; returns the `ProviderVersion` as declared, so poll `get_provider_version` for its status |
 | `install_provider(provider_name, version=None, config=None)` | Install a provider in your organization; returns the `ProviderInstallation` |
 | `list_installations()` | List installed providers; returns `list[ProviderInstallation]` |
 | `upgrade_provider(name, target_version=None)` | Upgrade an installed provider; returns the `ProviderInstallation` |
 | `downgrade_provider(name, target_version)` | Move an installed provider to an earlier version; returns the `ProviderInstallation` |
 | `uninstall_provider(name, *, cascade=False)` | Uninstall a provider; `cascade=True` deletes its resources |
 | `list_provider_history(provider_name)` | List an installed provider's history, newest first; returns `list[ProviderInstallationEvent]` |
+
+`rename_provider_wheel(wheel_path, organization_slug, destination_directory)`, a module-level function, writes a copy of the wheel renamed to `<organization_slug>-<provider>` in its filename, `.dist-info` directory and `METADATA` `Name:` into `destination_directory`, and returns its path; the original is left unchanged. The API refuses a wheel declared without the rename with `422`. The client sends uploads through its `upload_transport` (an `httpx.BaseTransport`), never through its API client.
+
+| Exception | Raised when |
+|-----------|-------------|
+| `WheelUploadExpiredError` | The upload address expired before storage received the whole wheel; publish again for a fresh address |
+| `WheelUploadError` | Storage refused the upload otherwise; carries `status_code`, `storage_error_code` and `storage_request_id`, never the address |
+| `RenamedWheelWriteError` | The renamed copy cannot be written: "Could not write the renamed copy of the wheel: {reason}." |
+| `WheelExpansionLimitError` | The wheel's members decompress past the size limit |
+
+`ProviderVersion.operation_id` is set only for versions of your own organization; every other organization reads it as `None`.
 
 ```python
 with PragmaClient() as client:

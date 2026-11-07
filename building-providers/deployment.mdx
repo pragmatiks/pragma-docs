@@ -10,7 +10,7 @@ Once your provider is ready, publish a version and install it to make your resou
 Before publishing, ensure:
 
 - You are authenticated: `pragma auth login`
-- Your `pyproject.toml` has a `[tool.pragma]` table; `pragma providers init` generates it
+- Your `pyproject.toml` declares one `pragma.provider` entry point naming the provider and its package; `pragma providers init` generates it
 
 ## Publish a Version
 
@@ -21,11 +21,12 @@ pragma providers publish
 ```
 
 This:
-1. Builds the wheel with `uv build`
-2. Extracts the resource type schemas from the provider package
-3. Uploads the wheel and schemas as `<org>/<provider>`, where `<org>` is your organization's slug and `<provider>` is the `provider` key of `[tool.pragma]`
+1. Builds the wheel with `uv build` into `<project-dir>/dist`
+2. Renames a copy of the wheel to your organization's distribution name, `<org>-<provider>`, where `<provider>` is the name of the `pragma.provider` entry point; your wheel is left unchanged
+3. Declares the version and uploads the renamed wheel straight to the upload address the declaration returns
+4. Waits until Pragmatiks admits the version as `<org>/<provider>` and reads its resource type schemas, or the version fails
 
-The version comes from the wheel, so from `version` in `pyproject.toml`. Published versions are immutable: bump the version before publishing again.
+The version comes from the wheel's metadata, so from `version` in `pyproject.toml`. Published versions are immutable: bump the version before publishing again. See [Publishing Providers](/store/publishing) for each step and the version statuses.
 
 Publish from another directory, attach release notes, or upload a wheel you built yourself:
 
@@ -107,7 +108,7 @@ pragma resources get <org>/mycompany/database/test-db
 
 ## Troubleshooting
 
-### "pyproject.toml not found" or "Missing [tool.pragma] section"
+### No pyproject.toml in the project directory
 
 Run `publish` from your provider directory, or pass the directory:
 
@@ -115,7 +116,7 @@ Run `publish` from your provider directory, or pass the directory:
 pragma providers publish ./mycompany-provider
 ```
 
-The `[tool.pragma]` table in `pyproject.toml` needs `provider`, `package`, `display_name`, and `description`.
+A missing project directory, or one without `pyproject.toml`, exits 2.
 
 ### "Authentication required"
 
@@ -128,6 +129,10 @@ pragma auth login
 ### Version already published
 
 Published versions are immutable. Bump `version` in `pyproject.toml` and publish again.
+
+### Version failed admission
+
+`pragma providers versions <org>/mycompany` shows the failure message, which says what to change. See [Publish failures](/troubleshooting/common-issues#publish-failures).
 
 ### Build or schema extraction failed
 
@@ -147,7 +152,7 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
     """Managed database."""
 ```
 
-The module that registers them must be imported by the package named in `[tool.pragma]`.
+The module that registers them must be imported by the package the `pragma.provider` entry point names.
 
 ### Resources not processing
 

@@ -143,13 +143,13 @@ Manage tags on existing resources:
 
 ```bash
 # List tags
-pragma resources tags list gcp/storage my-bucket
+pragma resources tags list pragmatiks/gcp/storage/my-bucket
 
 # Add tags
-pragma resources tags add gcp/storage my-bucket --tag env:prod --tag cost-center:123
+pragma resources tags add pragmatiks/gcp/storage/my-bucket --tag env:prod --tag cost-center:123
 
 # Remove tags
-pragma resources tags remove gcp/storage my-bucket --tag env:prod
+pragma resources tags remove pragmatiks/gcp/storage/my-bucket --tag env:prod
 ```
 
 ## Deactivate

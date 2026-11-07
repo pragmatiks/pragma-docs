@@ -54,7 +54,7 @@ Many commands support the `--output` / `-o` flag for structured output:
 pragma resources list --output json
 
 # Get resource details as YAML
-pragma resources get gcp/storage my-bucket -o yaml
+pragma resources get pragmatiks/gcp/storage/my-bucket -o yaml
 ```
 
 This is useful for scripting and piping output to other tools like `jq`:
@@ -62,6 +62,24 @@ This is useful for scripting and piping output to other tools like `jq`:
 ```bash
 pragma resources list -o json | jq '.[] | select(.status == "ready")'
 ```
+
+With `-o json` or `-o yaml`, an empty result prints an empty list; the "No ... found." line is printed only in table format.
+
+### Output Streams
+
+In every command group, errors and warnings go to stderr, and command output, including `-o json` and `-o yaml`, goes to stdout, so piping stdout gets only the output.
+
+### Exit Codes
+
+Every `pragma` command shares these exit codes; `pragma --help` lists them too:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Failure: the API refused or could not complete the request, or the command could not finish, including a wheel upload that storage refused or whose address expired |
+| `2` | Invalid usage, or a local file or config error, including an unknown context |
+| `3` | `pragma providers publish` only: the wheel was uploaded or already received, then the watch ended with the version unsettled or could not read the version |
+| `4` | Not found: the API answered 404 because the target does not exist, is not installed, or is not visible to you |
 
 ## Getting Started
 
