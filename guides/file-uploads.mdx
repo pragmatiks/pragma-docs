@@ -3,7 +3,7 @@ title: "File Uploads"
 description: "Upload and manage files with Pragmatiks"
 ---
 
-The `pragmatiks/pragma` provider, installed in every organization, provides a `pragma/file` resource for uploading and managing files. Files are stored in platform storage and expose download URLs that other resources can reference.
+The `pragmatiks/pragma` provider, installed in every organization, provides a `pragma/file` resource for uploading and managing files. Files are stored in platform storage, belong to a project, and expose download URLs that other resources can reference.
 
 ## Prerequisites
 
@@ -30,8 +30,12 @@ pragma resources apply training-data.yaml
 
 The CLI:
 1. Reads the file from the local path (relative to the YAML file's directory)
-2. Uploads the file content to Pragmatiks storage
+2. Uploads the file content into the project the command applies to
 3. Creates the `pragma/file` resource to track it
+
+### Project scope
+
+Files belong to a project, not to your organization. The same file name in two projects is two separate files. A `pragma://files/<name>` reference resolves to the file in the referencing resource's project.
 
 ### File Outputs
 
@@ -56,13 +60,15 @@ pragma resources describe pragmatiks/pragma/file/training-data
 
 ### Upload programmatically
 
+Upload through the project handle so the file lands in that project.
+
 ```python
 from pragma_sdk import PragmaClient
 
 with PragmaClient() as client:
     # Upload the file content
     with open("training-data.jsonl", "rb") as f:
-        result = client.upload_file(
+        result = client.project("my-project").upload_file(
             name="training-data",
             content=f.read(),
             content_type="application/jsonl",
