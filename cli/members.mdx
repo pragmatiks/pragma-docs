@@ -1,0 +1,114 @@
+---
+title: "Members and accounts"
+description: "List organization members, change roles, leave an organization, and delete your account"
+---
+
+Member commands are for signed-in users. An API key cannot list members, change roles, or delete memberships. Run `pragma auth login` first.
+
+Roles are `admin` and `member`. Members can list everyone and delete their own membership. Only organization admins can change roles or delete another member's membership. The Settings page in the web app offers the same actions under Members.
+
+## Find your user ID
+
+```bash
+pragma auth whoami
+```
+
+Prints your user ID. Member commands identify people by user ID, and `pragma organizations members list` shows every member's ID.
+
+## List members
+
+```bash
+pragma organizations members list
+```
+
+The table has the columns User ID, Identifier, and Role. Identifier shows a dash when a member has none. Use `-o json` or `-o yaml` for records with `user_id`, `identifier`, and `role`:
+
+```bash
+pragma organizations members list -o json
+```
+
+## Update a role
+
+Organization admins can change a member's role:
+
+```bash
+pragma organizations members update user_123 --role admin
+```
+
+```text
+✓ Updated user_123: admin
+```
+
+`--role` is required and accepts `admin` or `member`.
+
+## Delete a membership or leave
+
+Organization admins can delete any member's membership; every member can delete their own:
+
+```bash
+pragma organizations members delete user_123
+```
+
+```text
+✓ Deleted the membership of user_123.
+```
+
+Deleting your own membership leaves the organization. Find your ID with `pragma auth whoami`:
+
+```bash
+pragma organizations members delete <your-user-id>
+```
+
+```text
+✓ You left the organization. Run pragma auth login to choose another organization.
+```
+
+The command asks you to confirm before it deletes. Pass `--yes` (or `-y`) to skip the confirmation, for example in scripts:
+
+```bash
+pragma organizations members delete user_123 --yes
+```
+
+Your stored credentials are kept after you leave. Run `pragma auth login` to choose another organization.
+
+## Delete your account
+
+```bash
+pragma accounts delete
+```
+
+Deleting your account removes you from every organization you belong to and cannot be undone. The command prints a warning and asks you to confirm; declining prints `Cancelled.` and changes nothing. Pass `--yes` (or `-y`) to skip the confirmation:
+
+```bash
+pragma accounts delete --yes
+```
+
+On success the command prints `Account deleted.` and clears the stored credentials of the current context. A token passed with `--token` or `PRAGMA_AUTH_TOKEN` is not cleared, and neither are the credentials of other contexts.
+
+## Keep at least one admin
+
+Every organization must keep at least one admin. These actions are refused with exit code 1 and change nothing:
+
+- Demoting or deleting the last admin of an organization:
+
+  ```text
+  Error: Your organization must keep at least one admin. Promote another member to admin first.
+  ```
+
+- Deleting the account of the last admin of one or more organizations:
+
+  ```text
+  Error: You are the last admin of <slug>. Promote another member to admin, or delete the organization first.
+  ```
+
+  With several organizations the message lists each one, separated by commas.
+
+To get past a refusal, promote another member to admin with `pragma organizations members update <user_id> --role admin`, then repeat the command.
+
+## Other errors
+
+| Message | Meaning |
+|---------|---------|
+| A permission error | You are not an organization admin, or you are using an API key |
+| A not found error naming the user ID | No member with that user ID belongs to your organization |
+| `Membership details are temporarily unavailable. Please try again in a moment.` | Run the command again shortly |
