@@ -169,13 +169,26 @@ async def on_delete(self) -> None:
 ## Idempotency Requirements
 
 <Warning>
-All lifecycle methods **must be idempotent**. The same method may be called multiple times with the same input, and must produce the same result. Creating an object that already exists converges it through `on_update(previous_config=None)`; deleting an object that is already gone succeeds.
+All lifecycle methods **must be idempotent**. The same method may be called multiple times with the same input, and must produce the same result. Deleting an object that is already gone succeeds.
 </Warning>
 
 This happens when:
 - The runtime restarts after executing a method but before confirming completion
 - Network issues cause retries
 - The user re-applies the same configuration
+
+### A Create That Finds Its Object
+
+Pragmatiks calls `on_observe` before it acts. When a create finds the object already present, what happens depends on whether this resource has already provisioned it:
+
+- **Provisioned** (an earlier attempt of this resource created it): Pragmatiks calls `on_update(previous_config=None)` to converge it.
+- **Not provisioned**: Pragmatiks refuses the create without calling your provider.
+
+Either way, an object this resource did not create is never converged or taken over. When `on_observe` or `on_create` raises `AlreadyExistsError`, the resource fails with this reason:
+
+```text
+An object named <name> already exists outside Pragmatiks. Delete it or rename the resource, then apply again, or deactivate the resource to discard it.
+```
 
 ### Idempotent Create
 
@@ -278,7 +291,7 @@ Use specific exception types:
 ```python
 from mycloud import CloudClient, CloudDatabase
 from mycloud.exceptions import AlreadyExists, NotFound
-from pragma_sdk import Config, Field, ImmutableField, Outputs, Provider, Resource
+from pragma_sdk import AlreadyExistsError, Config, Field, ImmutableField, Outputs, Provider, Resource
 
 
 class DatabaseConfig(Config):
@@ -308,6 +321,8 @@ class DatabaseOutputs(Outputs):
     connection_url: str
     host: str
 
+
+RESOURCE_MARKER_KEY = "pragma_resource"
 
 mycloud = Provider()
 
@@ -340,10 +355,14 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
         )
 
     async def on_create(self) -> DatabaseOutputs:
-        """Create the database, or adopt it when a previous attempt created it.
+        """Create the database labelled with this resource's marker.
 
         Returns:
             Outputs for the database.
+
+        Raises:
+            AlreadyExistsError: If a database with this name exists without
+                this resource's marker.
         """
         client = self.build_client()
 
@@ -351,9 +370,15 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
             database = await client.create_database(
                 name=self.config.name,
                 size_gb=self.config.size_gb,
+                labels={RESOURCE_MARKER_KEY: self.id},
             )
-        except AlreadyExists:
-            database = await client.get_database(self.config.name)
+        except AlreadyExists as error:
+            existing = await client.get_database(self.config.name)
+
+            if existing.labels.get(RESOURCE_MARKER_KEY) != self.id:
+                raise AlreadyExistsError(f"Database {self.config.name} already exists") from error
+
+            return await self.on_update(None)
 
         return self.build_outputs(database)
 
@@ -362,11 +387,17 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
 
         Returns:
             Outputs for the database, or ``None`` when it does not exist.
+
+        Raises:
+            AlreadyExistsError: If the database lacks this resource's marker.
         """
         try:
             database = await self.build_client().get_database(self.config.name)
         except NotFound:
             return None
+
+        if database.labels.get(RESOURCE_MARKER_KEY) != self.id:
+            raise AlreadyExistsError(f"Database {self.config.name} already exists")
 
         return self.build_outputs(database)
 

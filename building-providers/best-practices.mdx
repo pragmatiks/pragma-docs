@@ -50,14 +50,19 @@ Do not catch all exceptions. Handle only the errors you expect and let everythin
 ```python
 async def on_create(self) -> SecretOutputs:
     try:
-        secret = await self.client.create_secret(self.config.secret_id)
-    except AlreadyExists:
-        secret = await self.client.get_secret(self.config.secret_id)
+        secret = await self.client.create_secret(self.config.secret_id, labels={RESOURCE_MARKER_KEY: self.id})
+    except SecretExistsError as error:
+        existing = await self.client.get_secret(self.config.secret_id)
+
+        if existing.labels.get(RESOURCE_MARKER_KEY) != self.id:
+            raise AlreadyExistsError(f"Secret {self.config.secret_id} already exists") from error
+
+        return await self.on_update(None)
 
     return SecretOutputs(resource_name=secret.name)
 ```
 
-Never wrap the call in `except Exception` and re-raise a generic `RuntimeError`: it hides the original failure behind a message that says nothing.
+Catch only the vendor's conflict error, and answer an object without your marker with `AlreadyExistsError`. Never wrap the call in `except Exception` and re-raise a generic `RuntimeError`: it hides the original failure behind a message that says nothing.
 
 ### Provide Actionable Error Messages
 
