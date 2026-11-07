@@ -310,18 +310,18 @@ async def on_observe(self) -> DatabaseOutputs | None:
     return DatabaseOutputs(database_id=database.id, connection_url=database.url)
 
 
-async def health(self) -> HealthStatus:
+async def vitals(self) -> Vitals:
     """Report whether the database accepts connections.
 
     Returns:
-        Healthy when the database is ready, degraded otherwise.
+        Nominal when the database is ready, impaired otherwise.
     """
     database = await self.build_client().get_database(self.config.name)
-    status = "healthy" if database.ready else "degraded"
-    return HealthStatus(status=status, details={"ready_replicas": database.ready_replicas})
+    status = "nominal" if database.ready else "impaired"
+    return Vitals(status=status, details={"ready_replicas": database.ready_replicas})
 ```
 
-Outputs hold only stable state: fields derived from identity or config, or read from the object once the write path has waited for it to be ready. Values that change without a platform write, such as replica readiness, counters, or indexing status, belong in `health()`, never in outputs.
+Outputs hold only stable state: fields derived from identity or config, or read from the object once the write path has waited for it to be ready. Values that change without a platform write, such as replica readiness, counters, or indexing status, belong in `vitals()`, never in outputs.
 
 ### Incomplete Cleanup in on_delete
 

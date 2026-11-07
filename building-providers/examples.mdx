@@ -318,7 +318,7 @@ This example shows a different pattern: integrating with an external webhook-bas
 """Slack webhook resource - external API integration pattern."""
 
 import httpx
-from pragma_sdk import Config, Field, HealthStatus, Outputs, Resource, SensitiveField
+from pragma_sdk import Config, Field, Outputs, Resource, SensitiveField, Vitals
 
 
 class SlackChannelConfig(Config):
@@ -361,7 +361,7 @@ class SlackChannel(Resource[SlackChannelConfig, SlackChannelOutputs]):
     for this configuration, so there is nothing to observe: the type declares
     ``computed = True``, needs no ``on_observe``, and derives its outputs from
     config alone. Whether the webhook still works changes without a platform
-    write, so ``health()`` reports it instead of outputs.
+    write, so ``vitals()`` reports it instead of outputs.
     """
 
     computed = True
@@ -413,23 +413,23 @@ class SlackChannel(Resource[SlackChannelConfig, SlackChannelOutputs]):
     async def on_delete(self) -> None:
         """Nothing to delete: Slack keeps no object for this configuration."""
 
-    async def health(self) -> HealthStatus:
+    async def vitals(self) -> Vitals:
         """Report whether Slack accepts messages on the webhook.
 
         Each check posts a test message to the channel. A webhook that worked
         before may have been revoked since, so the result is never cached.
 
         Returns:
-            Healthy when Slack accepted the test message, unhealthy otherwise.
+            Nominal when Slack accepted the test message, down otherwise.
         """
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(self.config.webhook_url, json=self.build_test_message(), timeout=10.0)
             except httpx.HTTPError as error:
-                return HealthStatus(status="unhealthy", message=f"Webhook unreachable: {type(error).__name__}")
+                return Vitals(status="down", message=f"Webhook unreachable: {type(error).__name__}")
         if response.status_code != 200:
-            return HealthStatus(status="unhealthy", message=f"Slack rejected the test message: HTTP {response.status_code}")
-        return HealthStatus(status="healthy")
+            return Vitals(status="down", message=f"Slack rejected the test message: HTTP {response.status_code}")
+        return Vitals(status="nominal")
 ```
 
 ### When to Use This Pattern
@@ -443,7 +443,7 @@ The webhook pattern works well for:
 Key characteristics:
 - External service doesn't persist your configuration, so the type is computed and has no `on_observe`
 - Outputs derive from config alone; create and update make no external call
-- `health()` checks that the integration works
+- `vitals()` checks that the integration works
 - "Delete" has nothing to clean up
 
 ## Comparison of Patterns
@@ -456,7 +456,7 @@ Key characteristics:
 | Delete idempotency | Delete-if-exists | No-op |
 | Credentials | User-provided SA | Webhook URL (can be ref) |
 | Outputs | Resource identifiers | Channel identifier |
-| Live checks | None | `health()` posts a test message |
+| Live checks | None | `vitals()` posts a test message |
 
 ## What's Next
 

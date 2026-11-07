@@ -545,7 +545,7 @@ The SDK also provides utilities for building providers. See [Building Providers]
 
 ### Key Exports
 
-`pragma_sdk` exports the building blocks of a resource: the `Resource`, `Config`, and `Outputs` base classes, the `Provider` registry, the field types, and `HealthStatus`.
+`pragma_sdk` exports the building blocks of a resource: the `Resource`, `Config`, and `Outputs` base classes, the `Provider` registry, the field types, and `Vitals`.
 
 ```python
 from pragma_sdk import (
@@ -553,13 +553,13 @@ from pragma_sdk import (
     Dependency,
     Field,
     FieldReference,
-    HealthStatus,
     ImmutableField,
     LifecycleState,
     Outputs,
     Provider,
     Resource,
     SensitiveField,
+    Vitals,
 )
 ```
 
