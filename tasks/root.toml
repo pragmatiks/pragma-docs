@@ -24,3 +24,10 @@ description = "Serve the docs locally on port 3200 until interrupted"
 extends = "bash"
 raw = true
 run = "npx mintlify@latest dev --port 3200"
+
+["check:ci"]
+description = "Run the CI gate: the Mintlify docs build validation"
+extends = "bash"
+run = [
+  { task = "check" },
+]
