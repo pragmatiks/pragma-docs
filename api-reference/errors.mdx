@@ -18,18 +18,33 @@ The API uses standard HTTP status codes and returns detailed error information i
 | `403` | Forbidden | Authenticated but not authorized |
 | `404` | Not Found | Resource does not exist |
 | `409` | Conflict | Invalid state transition or concurrent modification |
+| `410` | Gone | Your organization is being deactivated or has been deleted |
 | `422` | Validation Error | Request body failed validation |
 | `500` | Server Error | Internal server error |
+| `503` | Service Unavailable | Your organization is not ready yet; retry later |
 
 ## Error Response Format
 
-All error responses follow this structure:
+Every error response has one envelope: a `detail` member. `detail` is either the message itself:
 
 ```json
 {
   "detail": "Human-readable error message"
 }
 ```
+
+or an object carrying the `message`, plus a stable machine-readable `error` code when the refusal has one, and any fields specific to the refusal:
+
+```json
+{
+  "detail": {
+    "error": "organization_last_admin",
+    "message": "Your organization must keep at least one admin. Promote another member to admin first."
+  }
+}
+```
+
+Read the code from `detail.error`; no error field sits at the top level of the body.
 
 Validation errors include additional location information:
 
@@ -176,6 +191,41 @@ A field reference points to a non-existent output:
 ```
 
 **Solution**: Check that the provider code archive is valid.
+
+### Organization State Errors
+
+A request your organization's state refuses carries its code in `detail.error`:
+
+| Status | `error` | Meaning |
+|--------|---------|---------|
+| `503` | `organization_bootstrapping` | Your organization is being set up. Retry later. |
+| `503` | `organization_details_unavailable` | Your organization's details are temporarily unavailable. Retry later. |
+| `503` | `membership_details_unavailable` | Membership details are temporarily unavailable. Retry later. |
+| `503` | `organization_versions_unsettled` | Provider versions of your organization are still being published. Retry later. |
+| `503` | `staging_unavailable` | The wheel upload address could not be prepared. Publish the same wheel again. |
+| `503` | `organization_bootstrap_failed` | Your organization could not be set up. Contact support at support@pragmatiks.io. |
+| `410` | `organization_deactivating` | Your organization is being deactivated and is no longer available. |
+| `410` | `organization_deleted` | Your organization has been deleted and is no longer available. |
+| `409` | `organization_deleting` | Your organization is being deleted. Deletion cannot be cancelled. |
+| `409` | `organization_slug_taken` | The organization slug is already taken. Choose another. |
+| `409` | `organization_last_admin` | Your organization must keep at least one admin. Promote another member first. |
+| `409` | `account_last_admin` | You are the last admin of the organizations the message names. Promote another member, or delete the organization first. |
+
+### Retry Later (503)
+
+A `503` you can retry carries the code, the message and `retry_after`, the number of seconds to wait, inside `detail`. The `Retry-After` header carries the same delay:
+
+```json
+{
+  "detail": {
+    "error": "organization_bootstrapping",
+    "message": "Your organization is being set up. Please try again in a moment.",
+    "retry_after": 5
+  }
+}
+```
+
+**Solution**: Wait `retry_after` seconds, then send the request again. `organization_bootstrap_failed` carries no `retry_after`: retrying does not help.
 
 ## Lifecycle State Reference
 
