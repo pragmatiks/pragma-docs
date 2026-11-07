@@ -62,7 +62,7 @@ class DatabaseOutputs(Outputs):
     host: str
 ```
 
-Outputs are returned from `on_observe`, `on_create`, and `on_update`. `on_observe` returns the same outputs the write path returned for the object's current state, so every field is derived from identity or config, or read back from the external object. Values that change without a platform write belong in `health()`, not in outputs. Other resources can reference these fields through the dependency system.
+Outputs are returned from `on_observe`, `on_create`, and `on_update`. `on_observe` returns the same outputs the write path returned for the object's current state, so every field is derived from identity or config, or read back from the external object. Values that change without a platform write belong in `vitals()`, not in outputs. Other resources can reference these fields through the dependency system.
 
 ## Field Types
 

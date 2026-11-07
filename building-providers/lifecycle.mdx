@@ -90,7 +90,7 @@ async def on_observe(self) -> DatabaseOutputs | None:
 
 **Errors:** Let anything other than "not found" propagate. An exception means the observation failed, not that the object is absent. When the external system can hold more than one match for the key, raise on more than one match.
 
-**Stable outputs:** Every output field is derived from identity or config, or read from the object once the write path has waited for it to be ready, and `on_observe` reads it the same way. Values that change without a platform write, such as replica readiness, counters, or indexing status, belong in `health()`, never in outputs.
+**Stable outputs:** Every output field is derived from identity or config, or read from the object once the write path has waited for it to be ready, and `on_observe` reads it the same way. Values that change without a platform write, such as replica readiness, counters, or indexing status, belong in `vitals()`, never in outputs.
 
 ## on_update
 
