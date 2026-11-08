@@ -18,7 +18,7 @@ The runner is the **only Agno resource that creates infrastructure**. It deploys
 | `config` | `Dependency` | **Yes** | — | Reference to `kubernetes/config` providing cluster access (immutable) |
 | `namespace` | `Dependency` | **Yes** | — | Reference to `kubernetes/namespace` the runner is deployed into (immutable) |
 | `replicas` | `integer` | No | `1` | Number of pod replicas |
-| `image` | `string` | No | `"ghcr.io/pragmatiks/agno-runner:v2"` | Container image for running the agents and teams |
+| `image` | `string` | No | `"ghcr.io/pragmatiks/agno-runner:<agno version>"` | Container image for running the agents and teams; defaults to the image built for the installed agno provider release |
 | `security_key` | `string` | No | — | Bearer token for API authentication |
 | `jwt_verification_key` | `string` | No | — | Public key for JWT-based authentication |
 | `public` | `boolean` | No | `false` | Expose via LoadBalancer (true) or ClusterIP (false) |
