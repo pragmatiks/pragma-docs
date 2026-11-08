@@ -66,7 +66,28 @@ Progress goes to stderr; only the `Published` line goes to stdout. With `-o json
 | `0` | The version is `published` |
 | `1` | The version failed or was replaced by another publish, the renamed copy could not be written, the declaration was refused, or the upload was refused or its address expired |
 | `2` | Invalid usage, a missing project directory, a failed build, or a wheel that cannot be read |
-| `3` | The wheel was uploaded or already received, then the watch ended with the version unsettled or could not read it; run the printed `pragma providers publish --wheel <path>` to keep waiting |
+| `3` | The wheel was uploaded or already received, then the watch ended with the version unsettled or could not read it; run the printed [`pragma providers wait`](#wait) command to keep waiting |
+
+## Wait
+
+Keep waiting for a version a publish declared, after publish exits 3:
+
+```bash
+pragma providers wait <name> <version> --operation <operation-id> [-o json|yaml]
+```
+
+```bash
+pragma providers wait myorg/my-provider 1.0.0 --operation 3f2c9a
+```
+
+Publish prints this command, with its operation id, when it exits 3. Wait follows the version the same way publish does and reports a version that already settled at once; nothing is declared or uploaded again. With `-o json` or `-o yaml`, stdout carries the same document as publish.
+
+| Exit code | When |
+|-----------|------|
+| `0` | The version is `published` |
+| `1` | The version failed, or another publish of the version replaced the one `--operation` names |
+| `3` | The watch ended with the version still unsettled or could not read it; run the printed command to keep waiting |
+| `4` | The version does not exist |
 
 ## Versions
 

@@ -159,7 +159,7 @@ Upload errors the CLI prints, each followed by `To publish it again, run: pragma
 
 Before anything is declared, a renamed copy that cannot be written prints "Could not write the renamed copy of the wheel: `<reason>`. Free space in the temporary directory or point TMPDIR elsewhere, then publish again." (exit 1).
 
-When the watch ends before the version settles, publish exits 3 with "Admission of `<name>` `<version>` has not finished" and the command to keep waiting.
+When the watch ends before the version settles, publish exits 3 with "Admission of `<name>` `<version>` has not finished" and the command to keep waiting, `pragma providers wait <name> <version> --operation <operation-id>`.
 
 ### No pyproject.toml in the project directory
 
