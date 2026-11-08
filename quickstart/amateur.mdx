@@ -67,7 +67,7 @@ This opens your browser. Sign in, and you're connected.
     Secrets store sensitive values like API keys. Create a file called `secret.yaml`:
 
     ```yaml secret.yaml
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     config:
@@ -87,13 +87,13 @@ This opens your browser. Sign in, and you're connected.
     Create `model.yaml`:
 
     ```yaml model.yaml
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
     config:
       id: claude-sonnet-4-5-20250929
       api_key:
-        provider: pragma
+        provider: pragmatiks/pragma
         resource: secret
         name: anthropic-key
         field: outputs.ANTHROPIC_API_KEY
@@ -111,12 +111,12 @@ This opens your browser. Sign in, and you're connected.
     Create `agent.yaml`:
 
     ```yaml agent.yaml
-    provider: agno
+    provider: pragmatiks/agno
     resource: agent
     name: my-assistant
     config:
       model:
-        provider: agno
+        provider: pragmatiks/agno
         resource: models/anthropic
         name: claude
       instructions:
@@ -137,7 +137,7 @@ This opens your browser. Sign in, and you're connected.
     First, store your GCP service account key as a secret. Create `gcp-credentials.yaml`:
 
     ```yaml gcp-credentials.yaml
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: gcp-credentials
     config:
@@ -152,35 +152,35 @@ This opens your browser. Sign in, and you're connected.
     Then describe the cluster, how to reach it, and the namespace to deploy into. Create `cluster.yaml`:
 
     ```yaml cluster.yaml
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: gke
     name: my-cluster
     config:
       project_id: your-gcp-project-id
       credentials:
-        provider: pragma
+        provider: pragmatiks/pragma
         resource: secret
         name: gcp-credentials
         field: outputs.credentials_json
       location: europe-west4
       name: my-cluster
     ---
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
     config:
       mode: gke_cluster
       cluster:
-        provider: gcp
+        provider: pragmatiks/gcp
         resource: gke
         name: my-cluster
     ---
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
     config:
       config:
-        provider: kubernetes
+        provider: pragmatiks/kubernetes
         resource: config
         name: my-cluster
     ```
@@ -198,20 +198,20 @@ This opens your browser. Sign in, and you're connected.
     Then deploy the agent. Create `runner.yaml`:
 
     ```yaml runner.yaml
-    provider: agno
+    provider: pragmatiks/agno
     resource: runner
     name: my-assistant
     config:
       agents:
-        - provider: agno
+        - provider: pragmatiks/agno
           resource: agent
           name: my-assistant
       config:
-        provider: kubernetes
+        provider: pragmatiks/kubernetes
         resource: config
         name: my-cluster
       namespace:
-        provider: kubernetes
+        provider: pragmatiks/kubernetes
         resource: namespace
         name: agents
     ```
@@ -227,18 +227,18 @@ This opens your browser. Sign in, and you're connected.
     pragma resources list
     ```
 
-    You should see all eight resources in `READY` state:
+    You should see all eight resources in the `ready` state:
 
-    ```
-    PROVIDER     RESOURCE            NAME              STATUS
-    pragma       secret              anthropic-key     READY
-    agno         models/anthropic    claude            READY
-    agno         agent               my-assistant      READY
-    pragma       secret              gcp-credentials   READY
-    gcp          gke                 my-cluster        READY
-    kubernetes   config              my-cluster        READY
-    kubernetes   namespace           agents            READY
-    agno         runner              my-assistant      READY
+    ```text
+    Provider               Resource          Name             State
+    pragmatiks/pragma      secret            anthropic-key    ready
+    pragmatiks/agno        models/anthropic  claude           ready
+    pragmatiks/agno        agent             my-assistant     ready
+    pragmatiks/pragma      secret            gcp-credentials  ready
+    pragmatiks/gcp         gke               my-cluster       ready
+    pragmatiks/kubernetes  config            my-cluster       ready
+    pragmatiks/kubernetes  namespace         agents           ready
+    pragmatiks/agno        runner            my-assistant     ready
     ```
 
     Get details about your deployed agent:
@@ -270,30 +270,30 @@ If you update the secret with a new API key, Pragmatiks propagates the change: t
 Here's everything in a single multi-document file you can copy-paste. Create `agent-stack.yaml`:
 
 ```yaml agent-stack.yaml
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: anthropic-key
 config:
   data:
     ANTHROPIC_API_KEY: "sk-ant-your-key-here"
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: models/anthropic
 name: claude
 config:
   id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.ANTHROPIC_API_KEY
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: my-assistant
 config:
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   instructions:
@@ -301,59 +301,59 @@ config:
     - "Be concise and accurate in your responses."
   markdown: true
 ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: gcp-credentials
 config:
   data:
     credentials_json: '{"type": "service_account", "project_id": "your-gcp-project-id", ...}'
 ---
-provider: gcp
+provider: pragmatiks/gcp
 resource: gke
 name: my-cluster
 config:
   project_id: your-gcp-project-id
   credentials:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: gcp-credentials
     field: outputs.credentials_json
   location: europe-west4
   name: my-cluster
 ---
-provider: kubernetes
+provider: pragmatiks/kubernetes
 resource: config
 name: my-cluster
 config:
   mode: gke_cluster
   cluster:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: gke
     name: my-cluster
 ---
-provider: kubernetes
+provider: pragmatiks/kubernetes
 resource: namespace
 name: agents
 config:
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: runner
 name: my-assistant
 config:
   agents:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: my-assistant
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
 ```

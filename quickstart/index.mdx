@@ -28,12 +28,12 @@ Pick the quickstart that matches your experience level. Each builds on the previ
 You define resources in YAML. Pragmatiks provisions them, tracks their state, and propagates changes through dependency chains automatically.
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: my-agent
 config:
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   instructions:
