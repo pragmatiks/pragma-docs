@@ -168,7 +168,7 @@ pragma providers history pragmatiks/postgres -o json
 | Operation | The operation behind it: `install`, `upgrade`, `downgrade`, `restart` or `uninstall` |
 | Version | The version the installation runs once the change is done; after a failed upgrade or downgrade, the installed version that keeps serving (the message names the target) |
 | Message | What happened, such as `started` or the failure message |
-| Cause | The detail behind a failure |
+| Cause | The detail behind a failure, or how Pragmatiks stopped a worker it replaced (such as `stopped: did not answer a cancel`) |
 
 The history is kept for 30 days, also after the provider is uninstalled. `-o json` and `-o yaml` print the entries as records.
 

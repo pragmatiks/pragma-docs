@@ -35,6 +35,26 @@ All lifecycle methods are `async` and run within the provider runtime. Do I/O th
 
 `on_observe` is mandatory unless the resource is [computed](#computed-resources). Registering a non-computed class without it raises `MissingObserveError` when the provider package is imported, so `pragma providers publish` fails naming the resource type.
 
+## Operation Deadlines
+
+Each operation of a resource has 20 minutes by default, counted from when your handler starts running. Pragmatiks runs one operation of a resource at a time.
+
+A resource type that needs longer declares `operation_deadline_seconds` as a bare class attribute:
+
+```python
+@provider.resource("database")
+class Database(Resource[DatabaseConfig, DatabaseOutputs]):
+    operation_deadline_seconds = 1800
+```
+
+The value is a whole number of seconds from 1 to 3600. Any other value makes `pragma providers publish` fail, naming the resource type.
+
+Past the default, an operation runs on only while your provider keeps responding, and never past the value you declare. A handler that blocks the event loop with `time.sleep` or another blocking call stops the provider from responding, and the operation fails once its last extension runs out. Run blocking work with `await asyncio.to_thread(...)`.
+
+At the deadline the handler is cancelled: the `await` it is suspended in raises `asyncio.CancelledError`. Do not swallow it. Let it propagate, and release what the handler holds in `finally`. The resource fails with a deadline message whatever the handler does next.
+
+The cancel does not stop work started with `asyncio.to_thread`. Pragmatiks waits for that work to end before it counts the cancel as answered, and stops and restarts the provider about 30 seconds after the deadline if it has not. Threads and processes you start yourself must be stopped in `finally`.
+
 ## Instance Attributes
 
 Inside lifecycle methods, you have access to several instance attributes:
