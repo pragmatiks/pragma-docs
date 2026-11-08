@@ -54,20 +54,20 @@ description: "Define an AI agent with a model, tools, knowledge, and memory"
 ## Example
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: my-assistant
 config:
   description: "A helpful AI assistant"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   instructions:
     - "You are a helpful assistant."
     - "Always respond concisely."
   tools:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/websearch
       name: search
   markdown: true

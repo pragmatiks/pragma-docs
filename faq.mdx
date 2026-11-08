@@ -9,7 +9,7 @@ description: "Frequently asked questions about Pragmatiks"
   </Accordion>
 
   <Accordion title="What cloud providers are supported?">
-    Pragmatiks supports **Google Cloud Platform (GCP)** resources including Cloud Storage, CloudSQL, and Secret Manager. It also includes the **Agno** provider for AI agent infrastructure, a **Kubernetes** provider for container workloads, and the **Pragma** provider, installed in every organization, for secrets, configuration and file storage. AWS and Azure support is on the roadmap. See the [provider catalog](/providers/overview) for the full list of available resources.
+    Pragmatiks supports **Google Cloud Platform (GCP)** resources including Cloud SQL, GKE, and Secret Manager. It also includes the **Agno** provider for AI agent infrastructure, a **Kubernetes** provider for container workloads, and the **Pragma** provider, installed in every organization, for secrets, configuration and file storage. AWS and Azure support is on the roadmap. See the [provider catalog](/providers/overview) for the full list of available resources.
   </Accordion>
 
   <Accordion title="How does Pragmatiks handle authentication and security?">
@@ -40,7 +40,7 @@ description: "Frequently asked questions about Pragmatiks"
     Use the `@path` syntax in your YAML config to upload files inline:
 
     ```yaml
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: file
     name: my-document
     config:

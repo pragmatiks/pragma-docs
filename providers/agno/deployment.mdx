@@ -45,20 +45,20 @@ The runner is the **only Agno resource that creates infrastructure**. It deploys
 ## Example — Deploy an agent
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: runner
 name: my-agent
 config:
   agents:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: assistant
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
   replicas: 2
@@ -70,20 +70,20 @@ config:
 ## Example — Deploy a team with authentication
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: runner
 name: research-team
 config:
   teams:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: team
       name: research-team
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
   security_key: "my-secret-key"

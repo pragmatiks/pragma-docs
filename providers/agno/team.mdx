@@ -57,20 +57,20 @@ description: "Define a multi-agent team with coordinated members"
 ## Example
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: team
 name: research-team
 config:
   description: "A research team with a writer and reviewer"
   members:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: researcher
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: writer
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   delegate_to_all_members: true

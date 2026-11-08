@@ -56,28 +56,28 @@ Supports two connection patterns:
 ## Example — Using Cloud SQL outputs
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: db/postgres
 name: agent-db
 config:
   host:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/database
     name: app-db
     field: outputs.host
   port: 5432
   database:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/database
     name: app-db
     field: outputs.database_name
   username:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/user
     name: agent-user
     field: outputs.username
   password:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: db-password
     field: outputs.DB_PASSWORD
@@ -87,22 +87,22 @@ config:
 ## Example — Using connection URL
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: db/postgres
 name: agent-db
 config:
   connection_url:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/database
     name: app-db
     field: outputs.url
   username:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/user
     name: agent-user
     field: outputs.username
   password:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: db-password
     field: outputs.DB_PASSWORD

@@ -72,12 +72,12 @@ description: "Manage Kubernetes Deployments for stateless workloads"
 ## Example
 
 ```yaml
-provider: kubernetes
+provider: pragmatiks/kubernetes
 resource: deployment
 name: my-app
 config:
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace: production

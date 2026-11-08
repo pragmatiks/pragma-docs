@@ -19,23 +19,21 @@ Providers are the bridge between Pragmatiks and external tools. Each provider kn
 |----------|-------------|
 | `agno/agent` | AI agents with instructions, tools, and model configuration |
 | `agno/team` | Multi-agent teams with coordination and delegation |
-| `agno/anthropic-model` | Anthropic language models (Claude) |
-| `agno/openai-model` | OpenAI language models (GPT) |
-| `agno/mcp-tool` | MCP server tool integration |
-| `agno/websearch-tool` | Web search capability for agents |
+| `agno/models/anthropic` | Anthropic language models (Claude) |
+| `agno/models/openai` | OpenAI language models (GPT) |
+| `agno/tools/mcp` | MCP server tool integration |
+| `agno/tools/websearch` | Web search capability for agents |
 | `agno/knowledge` | Knowledge bases with document ingestion and vector search |
-| `agno/memory` | Persistent agent memory |
-| `agno/storage` | Agent file storage |
-| `agno/postgres-db` | PostgreSQL databases for agent state |
+| `agno/memory/manager` | Persistent agent memory |
+| `agno/db/postgres` | PostgreSQL storage for sessions and memory |
 | `agno/runner` | Agent deployment and runtime management |
 
 ### GCP — Google Cloud Platform
 
 | Resource | Description |
 |----------|-------------|
-| `gcp/storage` | Cloud Storage buckets |
 | `gcp/secret` | Secret Manager secrets |
-| `gcp/cloudsql` | Cloud SQL database instances |
+| `gcp/cloudsql/database_instance` | Cloud SQL database instances |
 
 ### Kubernetes
 
@@ -59,7 +57,7 @@ For detailed configuration schemas and examples for each resource type, see the 
 Some providers require credentials or configuration. Use secrets to store sensitive values:
 
 ```yaml
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: gcp-credentials
 config:

@@ -123,13 +123,13 @@ This approach:
 Document that users should use `FieldReference` to pass credentials from a secret resource:
 
 ```yaml
-provider: mycloud
+provider: <org>/mycloud
 resource: database
 name: analytics
 config:
   name: analytics
   credentials:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: mycloud-creds
     field: outputs.credentials

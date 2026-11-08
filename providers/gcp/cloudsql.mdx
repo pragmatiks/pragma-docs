@@ -43,7 +43,7 @@ Creates a managed Cloud SQL instance (PostgreSQL, MySQL, or SQL Server).
 ### Example
 
 ```yaml
-provider: gcp
+provider: pragmatiks/gcp
 resource: cloudsql/database_instance
 name: main-db
 config:
@@ -88,12 +88,12 @@ Creates a database within a Cloud SQL instance.
 ### Example
 
 ```yaml
-provider: gcp
+provider: pragmatiks/gcp
 resource: cloudsql/database
 name: app-db
 config:
   instance:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/database_instance
     name: main-db
   database_name: myapp
@@ -125,17 +125,17 @@ Creates a database user within a Cloud SQL instance.
 ### Example
 
 ```yaml
-provider: gcp
+provider: pragmatiks/gcp
 resource: cloudsql/user
 name: app-user
 config:
   instance:
-    provider: gcp
+    provider: pragmatiks/gcp
     resource: cloudsql/database_instance
     name: main-db
   username: appuser
   password:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: db-password
     field: outputs.DB_PASSWORD

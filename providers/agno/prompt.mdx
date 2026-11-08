@@ -32,7 +32,7 @@ description: "Reusable instruction templates for agents and teams"
 ## Example — Instructions
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: prompt
 name: support-guidelines
 config:
@@ -44,7 +44,7 @@ config:
 ## Example — Template with variables
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: prompt
 name: domain-expert
 config:
@@ -57,16 +57,16 @@ config:
 Reference the prompt from an agent:
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: helper
 config:
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   prompt:
-    provider: agno
+    provider: pragmatiks/agno
     resource: prompt
     name: domain-expert
 ```

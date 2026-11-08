@@ -36,17 +36,17 @@ Enable the following APIs in your GCP project:
 | API | Purpose |
 |-----|---------|
 | Cloud Resource Manager | Project metadata |
-| Cloud Storage | Storage bucket resources |
-| BigQuery | Dataset and table resources |
-| IAM | Service account resources |
+| Secret Manager | Secret resources |
+| Cloud SQL Admin | Database resources |
+| Kubernetes Engine | GKE cluster resources |
 
 Enable them via the console or gcloud:
 
 ```bash
 gcloud services enable cloudresourcemanager.googleapis.com \
-  storage.googleapis.com \
-  bigquery.googleapis.com \
-  iam.googleapis.com \
+  secretmanager.googleapis.com \
+  sqladmin.googleapis.com \
+  container.googleapis.com \
   --project=YOUR_PROJECT_ID
 ```
 
@@ -75,7 +75,7 @@ gcloud auth application-default print-access-token
 For production or CI/CD environments, use a service account key.
 
 1. Create a service account in your GCP project
-2. Grant it the necessary roles (e.g., Storage Admin, BigQuery Admin)
+2. Grant it the necessary roles (e.g., Secret Manager Admin, Cloud SQL Admin, Kubernetes Engine Admin)
 3. Download a JSON key file
 4. Set the environment variable:
 
