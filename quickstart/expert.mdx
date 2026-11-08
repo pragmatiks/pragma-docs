@@ -14,7 +14,7 @@ In this quickstart, you'll build a provider that manages webhook endpoints. You'
 A `webhooks` provider with a single resource type: `endpoint`. Users will be able to create webhook endpoints like this:
 
 ```yaml
-provider: webhooks
+provider: <org>/webhooks
 resource: endpoint
 name: deploy-notifications
 config:
@@ -238,7 +238,7 @@ pragma providers install <org>/webhooks
 Now users can create webhook endpoints as Pragmatiks resources:
 
 ```yaml webhook.yaml
-provider: webhooks
+provider: <org>/webhooks
 resource: endpoint
 name: deploy-notifications
 config:
@@ -247,7 +247,7 @@ config:
     - deployment.created
     - deployment.failed
   secret:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: webhook-secret
     field: outputs.WEBHOOK_SECRET
@@ -258,7 +258,7 @@ The `secret` field uses a field reference — it pulls the value from a `pragma/
 ```yaml
 config:
   notification_url:
-    provider: webhooks
+    provider: <org>/webhooks
     resource: endpoint
     name: deploy-notifications
     field: outputs.delivery_url

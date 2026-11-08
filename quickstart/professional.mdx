@@ -53,21 +53,21 @@ graph TD
 Store all API keys as pragma secrets. Create `secrets.yaml`:
 
 ```yaml secrets.yaml
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: anthropic-key
 config:
   data:
     ANTHROPIC_API_KEY: "sk-ant-your-key-here"
 ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: openai-key
 config:
   data:
     OPENAI_API_KEY: "sk-your-openai-key-here"
 ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: qdrant-key
 config:
@@ -84,24 +84,24 @@ pragma resources apply secrets.yaml
 Configure two models from different providers. Create `models.yaml`:
 
 ```yaml models.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: models/anthropic
 name: claude
 config:
   id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.ANTHROPIC_API_KEY
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: models/openai
 name: gpt4o
 config:
   id: gpt-4o
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: openai-key
     field: outputs.OPENAI_API_KEY
@@ -118,7 +118,7 @@ pragma resources apply models.yaml
 Give agents capabilities through tools. Create `tools.yaml`:
 
 ```yaml tools.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: tools/websearch
 name: search
 config:
@@ -126,7 +126,7 @@ config:
   enable_news: true
   backend: auto
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: tools/mcp
 name: filesystem
 config:
@@ -146,24 +146,24 @@ Set up vector search so agents can query a knowledge base. This creates four con
 Create `knowledge.yaml`:
 
 ```yaml knowledge.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: knowledge/embedder/openai
 name: embedder
 config:
   id: text-embedding-3-small
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: openai-key
     field: outputs.OPENAI_API_KEY
 ---
-provider: qdrant
+provider: pragmatiks/qdrant
 resource: collection
 name: knowledge-base
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
@@ -172,32 +172,32 @@ config:
     size: 1536
     distance: Cosine
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: vectordb/qdrant
 name: embeddings
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
   collection:
-    provider: qdrant
+    provider: pragmatiks/qdrant
     resource: collection
     name: knowledge-base
     field: outputs.name
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
   embedder:
-    provider: agno
+    provider: pragmatiks/agno
     resource: knowledge/embedder/openai
     name: embedder
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: knowledge
 name: docs
 config:
   vector_db:
-    provider: agno
+    provider: pragmatiks/agno
     resource: vectordb/qdrant
     name: embeddings
   max_results: 5
@@ -218,13 +218,13 @@ pragma resources apply knowledge.yaml
 Define two specialized agents with different models and capabilities. Create `agents.yaml`:
 
 ```yaml agents.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: researcher
 config:
   description: "Research specialist with web search and knowledge base access"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   instructions:
@@ -233,25 +233,25 @@ config:
     - "Check the knowledge base for internal documents."
     - "Cite your sources."
   tools:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/websearch
       name: search
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/mcp
       name: filesystem
   knowledge:
-    provider: agno
+    provider: pragmatiks/agno
     resource: knowledge
     name: docs
   markdown: true
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: writer
 config:
   description: "Technical writer that produces clear documentation"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/openai
     name: gpt4o
   instructions:
@@ -272,16 +272,16 @@ pragma resources apply agents.yaml
 Combine agents into a team. Create `team.yaml`:
 
 ```yaml team.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: team
 name: research-team
 config:
   description: "Research team that finds information and produces documentation"
   members:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: researcher
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: writer
   instructions:
@@ -301,20 +301,20 @@ pragma resources apply team.yaml
 Deploy the team to the `agents` namespace of your cluster. Create `runner.yaml`:
 
 ```yaml runner.yaml
-provider: agno
+provider: pragmatiks/agno
 resource: runner
 name: research-team
 config:
   teams:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: team
       name: research-team
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
 ```
@@ -338,13 +338,13 @@ This is where reactive dependencies shine. Swap the researcher's model from Clau
 Update `agents.yaml` — change the researcher's model reference:
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: researcher
 config:
   description: "Research specialist with web search and knowledge base access"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/openai
     name: gpt4o
   instructions:
@@ -353,14 +353,14 @@ config:
     - "Check the knowledge base for internal documents."
     - "Cite your sources."
   tools:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/websearch
       name: search
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/mcp
       name: filesystem
   knowledge:
-    provider: agno
+    provider: pragmatiks/agno
     resource: knowledge
     name: docs
   markdown: true
@@ -391,7 +391,7 @@ Two mechanisms make this possible:
 ```yaml
 # This declares: "my agent depends on the claude model"
 model:
-  provider: agno
+  provider: pragmatiks/agno
   resource: models/anthropic
   name: claude
 ```
@@ -401,7 +401,7 @@ model:
 ```yaml
 # This declares: "inject the ANTHROPIC_API_KEY output from the secret"
 api_key:
-  provider: pragma
+  provider: pragmatiks/pragma
   resource: secret
   name: anthropic-key
   field: outputs.ANTHROPIC_API_KEY
@@ -414,21 +414,21 @@ Resources can be applied in any order. Pragmatiks holds unresolved resources in 
 <Accordion title="Complete multi-document YAML (all 15 resources)">
 ```yaml pipeline.yaml
 # --- Secrets ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: anthropic-key
 config:
   data:
     ANTHROPIC_API_KEY: "sk-ant-your-key-here"
 ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: openai-key
 config:
   data:
     OPENAI_API_KEY: "sk-your-openai-key-here"
 ---
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: qdrant-key
 config:
@@ -436,30 +436,30 @@ config:
     QDRANT_API_KEY: "your-qdrant-api-key"
 ---
 # --- Models ---
-provider: agno
+provider: pragmatiks/agno
 resource: models/anthropic
 name: claude
 config:
   id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.ANTHROPIC_API_KEY
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: models/openai
 name: gpt4o
 config:
   id: gpt-4o
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: openai-key
     field: outputs.OPENAI_API_KEY
 ---
 # --- Tools ---
-provider: agno
+provider: pragmatiks/agno
 resource: tools/websearch
 name: search
 config:
@@ -467,31 +467,31 @@ config:
   enable_news: true
   backend: auto
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: tools/mcp
 name: filesystem
 config:
   command: "npx -y @modelcontextprotocol/server-filesystem /data"
 ---
 # --- Knowledge ---
-provider: agno
+provider: pragmatiks/agno
 resource: knowledge/embedder/openai
 name: embedder
 config:
   id: text-embedding-3-small
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: openai-key
     field: outputs.OPENAI_API_KEY
 ---
-provider: qdrant
+provider: pragmatiks/qdrant
 resource: collection
 name: knowledge-base
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
@@ -500,44 +500,44 @@ config:
     size: 1536
     distance: Cosine
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: vectordb/qdrant
 name: embeddings
 config:
   url: "https://your-instance.cloud.qdrant.io:6333"
   collection:
-    provider: qdrant
+    provider: pragmatiks/qdrant
     resource: collection
     name: knowledge-base
     field: outputs.name
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: qdrant-key
     field: outputs.QDRANT_API_KEY
   embedder:
-    provider: agno
+    provider: pragmatiks/agno
     resource: knowledge/embedder/openai
     name: embedder
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: knowledge
 name: docs
 config:
   vector_db:
-    provider: agno
+    provider: pragmatiks/agno
     resource: vectordb/qdrant
     name: embeddings
   max_results: 5
 ---
 # --- Agents ---
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: researcher
 config:
   description: "Research specialist with web search and knowledge base access"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/anthropic
     name: claude
   instructions:
@@ -546,25 +546,25 @@ config:
     - "Check the knowledge base for internal documents."
     - "Cite your sources."
   tools:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/websearch
       name: search
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: tools/mcp
       name: filesystem
   knowledge:
-    provider: agno
+    provider: pragmatiks/agno
     resource: knowledge
     name: docs
   markdown: true
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: writer
 config:
   description: "Technical writer that produces clear documentation"
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/openai
     name: gpt4o
   instructions:
@@ -574,16 +574,16 @@ config:
   markdown: true
 ---
 # --- Team ---
-provider: agno
+provider: pragmatiks/agno
 resource: team
 name: research-team
 config:
   description: "Research team that finds information and produces documentation"
   members:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: researcher
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: agent
       name: writer
   instructions:
@@ -592,20 +592,20 @@ config:
   markdown: true
 ---
 # --- Deployment ---
-provider: agno
+provider: pragmatiks/agno
 resource: runner
 name: research-team
 config:
   teams:
-    - provider: agno
+    - provider: pragmatiks/agno
       resource: team
       name: research-team
   config:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: config
     name: my-cluster
   namespace:
-    provider: kubernetes
+    provider: pragmatiks/kubernetes
     resource: namespace
     name: agents
 ```
