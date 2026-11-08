@@ -1,23 +1,13 @@
 ---
-title: "Resource Store"
-description: "Browse and install pre-built infrastructure resources"
+title: "Provider Catalog"
+description: "Browse the provider catalog and install pre-built infrastructure resources"
 ---
 
-The store is where you find resources to install. Browse available resources like an app store, then install what you need with a single command.
-
-## Provider Tiers
-
-Resources are built and maintained by providers. We categorize them into three tiers:
-
-| Tier | Description | Status |
-|------|-------------|--------|
-| **First-party** | Built and maintained by Pragmatiks. Guaranteed to work and fully supported. | Available |
-| **Verified Partners** | Certified by Pragmatiks, maintained by partners. | Coming soon |
-| **Community** | Shared by the community. | Coming soon |
+Resources are built and maintained by providers. The catalog lists every provider you can install; install one with a single command and its resource types become available to your organization.
 
 ## Available Resources
 
-All resources below are first-party, built and maintained by Pragmatiks.
+All providers below are built and maintained by Pragmatiks.
 
 ### Agno Provider
 
@@ -115,11 +105,17 @@ Platform-managed resources from the published `pragmatiks/pragma` provider, inst
 
 ## Browsing Resources
 
-The web store is coming with the Pragmatiks dashboard. For now, browse resources via the CLI:
+Browse the catalog, inspect a provider, and install it with the CLI:
 
 ```bash
 pragma providers list
+pragma providers list --query postgres
+pragma providers info pragmatiks/gcp
+pragma providers install pragmatiks/gcp
+pragma providers list --installed
 ```
+
+See [`pragma providers`](/cli/providers) for every option.
 
 ## Building Your Own
 

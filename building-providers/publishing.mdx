@@ -1,6 +1,6 @@
 ---
 title: "Publishing Providers"
-description: "Publish a provider version to the Pragmatiks store from its wheel"
+description: "Publish a provider version to the Pragmatiks catalog from its wheel"
 ---
 
 Once you have built and tested a provider, publish it so organizations can install it.
@@ -22,7 +22,7 @@ Publish reads only the wheel; nothing comes from a separate configuration table.
   ```
 
 - The version comes from the wheel's core metadata, so from `version` in `pyproject.toml`. Published versions are immutable: bump the version before publishing again.
-- The `Summary` (`description` in `pyproject.toml`) and `Keywords` (`keywords`) become the store description and tags.
+- The `Summary` (`description` in `pyproject.toml`) and `Keywords` (`keywords`) become the catalog description and tags.
 
 ### Embedded Providers
 
@@ -91,9 +91,9 @@ pragma providers versions myorg/mydb
 
 See [Publish failures](/troubleshooting/common-issues#publish-failures) for failed versions.
 
-## Store Description and Tags
+## Catalog Description and Tags
 
-The first published version seeds the store description from the wheel's `Summary` and the tags from its `Keywords`. Later versions do not change them. Edit them afterwards through the metadata `PATCH /providers/{org}/{name}`, which the SDK exposes as `update_provider`:
+The first published version seeds the catalog description from the wheel's `Summary` and the tags from its `Keywords`. Later versions do not change them. Edit them afterwards through the metadata `PATCH /providers/{org}/{name}`, which the SDK exposes as `update_provider`:
 
 ```python
 from pragma_sdk import PragmaClient
