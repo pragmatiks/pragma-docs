@@ -36,13 +36,13 @@ Configures an Anthropic Claude model.
 ### Example
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: models/anthropic
 name: claude
 config:
   id: claude-sonnet-4-20250514
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.ANTHROPIC_API_KEY
@@ -84,13 +84,13 @@ Configures an OpenAI model.
 ### Example
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: models/openai
 name: gpt4
 config:
   id: gpt-4o
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: openai-key
     field: outputs.OPENAI_API_KEY

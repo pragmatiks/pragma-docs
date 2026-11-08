@@ -25,7 +25,7 @@ Create a file called `pipeline.yaml` with all three resources:
 
 ```yaml
 # Layer 1: Secret stores the API key
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: anthropic-key
 config:
@@ -33,25 +33,25 @@ config:
     api_key: "sk-ant-your-key-here"
 ---
 # Layer 2: Model references the secret's output
-provider: agno
-resource: anthropic-model
+provider: pragmatiks/agno
+resource: models/anthropic
 name: claude
 config:
   model_id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.api_key
 ---
 # Layer 3: Agent depends on the model
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: assistant
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
   instructions: "You are a helpful coding assistant."
 ```
@@ -74,19 +74,19 @@ pragma resources list
 ```
 
 ```text
-Provider           Resource         Name           State       Updated
-pragmatiks/pragma  secret           anthropic-key  ready       2026-03-02 09:12:44
-pragmatiks/agno    anthropic-model  claude         processing  2026-03-02 09:13:30
-pragmatiks/agno    agent            assistant      waiting     2026-03-02 09:13:31
+Provider           Resource          Name           State       Updated
+pragmatiks/pragma  secret            anthropic-key  ready       2026-03-02 09:12:44
+pragmatiks/agno    models/anthropic  claude         processing  2026-03-02 09:13:30
+pragmatiks/agno    agent             assistant      waiting     2026-03-02 09:13:31
 ```
 
 After a few moments:
 
 ```text
-Provider           Resource         Name           State  Updated
-pragmatiks/pragma  secret           anthropic-key  ready  2026-03-02 09:12:44
-pragmatiks/agno    anthropic-model  claude         ready  2026-03-02 09:14:02
-pragmatiks/agno    agent            assistant      ready  2026-03-02 09:14:40
+Provider           Resource          Name           State  Updated
+pragmatiks/pragma  secret            anthropic-key  ready  2026-03-02 09:12:44
+pragmatiks/agno    models/anthropic  claude         ready  2026-03-02 09:14:02
+pragmatiks/agno    agent             assistant      ready  2026-03-02 09:14:40
 ```
 
 ## Step 3: Trigger a Change
@@ -94,13 +94,13 @@ pragmatiks/agno    agent            assistant      ready  2026-03-02 09:14:40
 Now swap the model. Update `pipeline.yaml` to use a different model ID:
 
 ```yaml
-provider: agno
-resource: anthropic-model
+provider: pragmatiks/agno
+resource: models/anthropic
 name: claude
 config:
   model_id: claude-opus-4-6
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.api_key
@@ -140,7 +140,7 @@ Reference a specific output field:
 ```yaml
 config:
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: my-secret
     field: outputs.api_key
@@ -151,20 +151,20 @@ config:
 A single resource can reference multiple dependencies:
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: multi-tool-agent
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
   tools:
-    - provider: agno
-      resource: mcp-tool
+    - provider: pragmatiks/agno
+      resource: tools/mcp
       name: code-tool
-    - provider: agno
-      resource: websearch-tool
+    - provider: pragmatiks/agno
+      resource: tools/websearch
       name: search
   instructions: "You have access to coding and search tools."
 ```

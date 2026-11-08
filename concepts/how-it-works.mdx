@@ -36,13 +36,13 @@ graph LR
 A resource is an infrastructure component — an AI agent, a language model, a secret, a storage bucket. You declare resources in YAML:
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: assistant
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
   instructions: "You are a helpful assistant."
 ```
@@ -90,13 +90,13 @@ You never interact with providers directly. You declare resources, and Pragmatik
 Infrastructure components depend on each other — an AI agent needs a language model, which needs an API key secret. Pragmatiks tracks these dependencies and propagates changes automatically.
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: assistant
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
 ```
 

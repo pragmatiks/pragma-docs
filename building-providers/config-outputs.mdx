@@ -158,7 +158,7 @@ class AppConfig(Config):
 Users can provide a direct value:
 
 ```yaml
-provider: mycompany
+provider: <org>/mycompany
 resource: app
 name: my-app
 config:
@@ -169,13 +169,13 @@ config:
 Or reference another resource's output:
 
 ```yaml
-provider: mycompany
+provider: <org>/mycompany
 resource: app
 name: my-app
 config:
   name: my-app
   database_url:
-    provider: mycompany
+    provider: <org>/mycompany
     resource: database
     name: shared-db
     field: outputs.connection_url
@@ -235,13 +235,13 @@ A dependency's config is read with unknown top-level fields ignored. When the de
 Users specify whole-resource dependencies without a `field` key:
 
 ```yaml
-provider: mycompany
+provider: <org>/mycompany
 resource: app
 name: my-app
 config:
   name: my-app
   database:
-    provider: mycompany
+    provider: <org>/mycompany
     resource: database
     name: shared-db
 ```
@@ -277,7 +277,7 @@ The field reference includes a `field` key and yields a single value:
 
 ```yaml
 database_url:
-  provider: mycompany
+  provider: <org>/mycompany
   resource: database
   name: shared-db
   field: outputs.connection_url
@@ -287,7 +287,7 @@ The dependency omits it and yields the full resource:
 
 ```yaml
 database:
-  provider: mycompany
+  provider: <org>/mycompany
   resource: database
   name: shared-db
 ```

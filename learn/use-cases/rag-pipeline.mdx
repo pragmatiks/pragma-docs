@@ -65,36 +65,89 @@ Find the providers you need with `pragma providers list`. Vector storage, embedd
 ### Step 2: Define Your Pipeline
 
 ```yaml
-# storage.yaml - Your document storage
-provider: gcp
-resource: storage
+# documents.yaml - Your document storage
+provider: pragmatiks/pragma
+resource: file
 name: documents
 config:
-  location: EU
-  storage_class: STANDARD
+  content: "@./data/documents.jsonl"
+  content_type: "application/jsonl"
+```
+
+```yaml
+# secrets.yaml - Credentials for Qdrant and the embedding model
+provider: pragmatiks/pragma
+resource: secret
+name: qdrant-key
+config:
+  data:
+    QDRANT_API_KEY: "your-qdrant-api-key"
+---
+provider: pragmatiks/pragma
+resource: secret
+name: openai-key
+config:
+  data:
+    OPENAI_API_KEY: "your-openai-api-key"
 ```
 
 ```yaml
 # embeddings.yaml - Your vector storage
-provider: gcp
-resource: bigquery-dataset
+provider: pragmatiks/qdrant
+resource: collection
 name: embeddings
-depends_on:
-  - gcp/storage/documents
 config:
-  location: EU
+  url: "https://your-instance.cloud.qdrant.io:6333"
+  api_key:
+    provider: pragmatiks/pragma
+    resource: secret
+    name: qdrant-key
+    field: outputs.QDRANT_API_KEY
+  name: embeddings
+  vectors:
+    size: 1536
+    distance: Cosine
 ```
 
 ```yaml
-# retrieval.yaml - Your query API (coming soon)
-provider: gcp
-resource: cloud-run
-name: retrieval-api
-depends_on:
-  - gcp/bigquery-dataset/embeddings
+# embedder.yaml - Your embedding model
+provider: pragmatiks/agno
+resource: knowledge/embedder/openai
+name: embedder
 config:
-  region: europe-west4
+  id: text-embedding-3-small
+  api_key:
+    provider: pragmatiks/pragma
+    resource: secret
+    name: openai-key
+    field: outputs.OPENAI_API_KEY
 ```
+
+```yaml
+# retrieval.yaml - Your retrieval layer, searching the collection
+provider: pragmatiks/agno
+resource: vectordb/qdrant
+name: retrieval
+config:
+  url: "https://your-instance.cloud.qdrant.io:6333"
+  collection:
+    provider: pragmatiks/qdrant
+    resource: collection
+    name: embeddings
+    field: outputs.name
+  api_key:
+    provider: pragmatiks/pragma
+    resource: secret
+    name: qdrant-key
+    field: outputs.QDRANT_API_KEY
+  search_type: vector
+  embedder:
+    provider: pragmatiks/agno
+    resource: knowledge/embedder/openai
+    name: embedder
+```
+
+The retrieval layer references a collection and an embedder, so Pragmatiks applies them first. See [Knowledge](/providers/agno/knowledge) for the embedder and the knowledge base on top.
 
 ### Step 3: Apply and Watch
 
@@ -121,11 +174,11 @@ Your RAG pipeline stays current with your data, not stuck in the state it was wh
 
 ## What's Coming
 
-The examples above show the vision. Today, Pragmatiks provides the foundational GCP resources (Cloud Storage, BigQuery, Cloud Run) that serve as building blocks.
+The examples above show the vision. Today, Pragmatiks provides building blocks for this pipeline: file storage, Qdrant vector collections and Agno knowledge bases.
 
 **Full RAG-specific resources are our next priority:**
 
-- Vector database resources (Pinecone, Weaviate integrations)
+- Further vector database integrations beyond Qdrant
 - Embedding pipeline resources with model selection
 - Pre-built retrieval patterns with best practices baked in
 

@@ -17,7 +17,7 @@ Output shows lifecycle states for all resources:
 
 ```text
 Provider         Resource  Name       State    Updated
-pragmatiks/gcp   storage   data-lake  ready    2026-03-02 09:12:44
+pragmatiks/pragma  secret    api-key    ready    2026-03-02 09:12:44
 pragmatiks/agno  agent     assistant  failed   2026-03-02 09:14:03
 pragmatiks/agno  team      my-team    waiting  2026-03-02 09:14:05
 ```
@@ -76,7 +76,7 @@ A resource can fail or wait if its dependencies aren't satisfied:
 
 ```bash
 # Check dependency status
-pragma resources describe pragmatiks/agno/anthropic-model/claude
+pragma resources describe pragmatiks/agno/models/anthropic/claude
 
 # If dependency is failed, fix and re-apply
 pragma resources apply model.yaml

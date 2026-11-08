@@ -5,7 +5,7 @@ description: "Core terminology and concepts in Pragmatiks"
 
 ## Resource
 
-The fundamental unit in Pragmatiks. A resource represents a single infrastructure component that can be provisioned, configured, and managed. Each resource has a unique identifier composed of `provider/resource/name` (e.g., `gcp/storage/data-lake`).
+The fundamental unit in Pragmatiks. A resource represents a single infrastructure component that can be provisioned, configured, and managed. Each resource has a unique identifier composed of `organization/provider/resource/name` (e.g., `pragmatiks/pragma/file/data-lake`).
 
 Resources are declarative: you specify the desired state, and Pragmatiks ensures the actual state matches.
 
@@ -42,17 +42,21 @@ Declares explicit dependencies between resources. When resource A depends on res
 
 ```yaml
 depends_on:
-  - gcp/storage/data-lake
-  - gcp/bigquery-dataset/source
+  - pragmatiks/pragma/file/data-lake
+  - pragmatiks/qdrant/collection/source
 ```
 
 ## FieldReference
 
-A dynamic value reference using the syntax `${provider/resource/name.outputs.field}`. Field references resolve at runtime to the actual output values from dependency resources.
+A dynamic value that points at a field of another resource: its `provider`, `resource`, `name` and the `field` to read. Field references resolve at runtime to the actual output values from dependency resources.
 
 ```yaml
 config:
-  source_bucket: "${gcp/storage/data-lake.outputs.bucket_url}"
+  collection_name:
+    provider: pragmatiks/qdrant
+    resource: collection
+    name: source
+    field: outputs.name
 ```
 
 When the referenced resource updates, the field reference automatically resolves to the new value.

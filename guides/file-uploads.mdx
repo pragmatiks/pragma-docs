@@ -16,7 +16,7 @@ The `pragmatiks/pragma` provider, installed in every organization, provides a `p
 The simplest way to upload a file is using the `@path` syntax in your YAML config:
 
 ```yaml
-provider: pragma
+provider: pragmatiks/pragma
 resource: file
 name: training-data
 config:
@@ -88,7 +88,7 @@ File outputs can be referenced by other resources using FieldReferences. For exa
 
 ```yaml
 # Upload the document
-provider: pragma
+provider: pragmatiks/pragma
 resource: file
 name: product-docs
 config:
@@ -96,12 +96,12 @@ config:
   content_type: "application/pdf"
 ---
 # Knowledge base references the file's URL
-provider: agno
+provider: pragmatiks/agno
 resource: knowledge
 name: product-knowledge
 config:
   source_url:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: file
     name: product-docs
     field: outputs.public_url

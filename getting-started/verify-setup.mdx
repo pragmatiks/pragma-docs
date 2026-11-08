@@ -16,10 +16,10 @@ pragma resources list
 After completing the quickstart, you should see output like:
 
 ```
-gcp/storage/my-first-bucket [READY]
+pragmatiks/pragma/secret/my-first-secret [READY]
 ```
 
-The `[READY]` status indicates your bucket was provisioned successfully.
+The `[READY]` status indicates your secret was provisioned successfully.
 
 ## Understanding Lifecycle States
 
@@ -42,33 +42,17 @@ A resource in PENDING state is normal immediately after applying. It should tran
 View detailed information about a specific resource:
 
 ```bash
-pragma resources get pragmatiks/gcp/storage/my-first-bucket
+pragma resources get pragmatiks/pragma/secret/my-first-secret
 ```
 
 This shows:
 
 - Current lifecycle state
 - Configuration values
-- Output values (like the bucket URL)
+- Output values (a secret outputs the keys of its `data`)
 - Any error messages if the resource failed
 
-For a successful bucket, you'll see outputs like:
-
-```yaml
-outputs:
-  bucket_url: "gs://my-first-bucket-abc123"
-  self_link: "https://www.googleapis.com/storage/v1/b/my-first-bucket-abc123"
-```
-
-## Verify in GCP Console
-
-You can also confirm the resource exists in your GCP project:
-
-1. Open the [Google Cloud Console](https://console.cloud.google.com)
-2. Navigate to **Cloud Storage > Buckets**
-3. Find your bucket by name (it will have a unique suffix like `my-first-bucket-abc123`)
-
-The bucket should be visible with the location you specified (`EU` in the quickstart example).
+For a successful secret, the outputs list the keys you stored in `data`.
 
 ## Troubleshooting Verification Failures
 
@@ -89,14 +73,14 @@ gcloud auth application-default login
 A failed resource means something went wrong during provisioning. Check the error details:
 
 ```bash
-pragma resources get pragmatiks/gcp/storage/my-first-bucket
+pragma resources get pragmatiks/pragma/secret/my-first-secret
 ```
 
 Common failure causes:
 
 | Error | Solution |
 |-------|----------|
-| Permission denied | Ensure your GCP account has Storage Admin role |
+| Permission denied | Ensure your account has the role the provider needs, for example Secret Manager Admin for `gcp/secret` |
 | Quota exceeded | Check your project quotas in GCP Console |
 | Invalid configuration | Review your YAML for typos or invalid values |
 
@@ -104,7 +88,7 @@ Common failure causes:
 
 If `pragma resources list` shows nothing:
 
-- Verify you applied the resource with `pragma resources apply bucket.yaml`
+- Verify you applied the resource with `pragma resources apply secret.yaml`
 - Check you're authenticated: `pragma auth whoami`
 - Ensure the YAML file has valid syntax
 
@@ -117,7 +101,7 @@ If your resource is in FAILED state:
 3. Re-apply the resource:
 
 ```bash
-pragma resources apply bucket.yaml
+pragma resources apply secret.yaml
 ```
 
 For more complex recovery scenarios, see the [Error Recovery guide](/guides/error-recovery).

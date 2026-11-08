@@ -24,13 +24,13 @@ Every resource has a consistent structure:
 Here's an Agno AI model resource:
 
 ```yaml
-provider: agno
-resource: anthropic-model
+provider: pragmatiks/agno
+resource: models/anthropic
 name: claude
 config:
   model_id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.api_key
@@ -184,7 +184,7 @@ A provider can create resources that its own resource owns. Deleting the owner d
 Tags are key-value labels for organizing and filtering resources:
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: my-agent
 config:

@@ -41,16 +41,16 @@ description: "Enable persistent memory for agents across conversations"
 ## Example
 
 ```yaml
-provider: agno
+provider: pragmatiks/agno
 resource: memory/manager
 name: agent-memory
 config:
   db:
-    provider: agno
+    provider: pragmatiks/agno
     resource: db/postgres
     name: agent-db
   model:
-    provider: agno
+    provider: pragmatiks/agno
     resource: models/openai
     name: gpt4
   add_memories: true

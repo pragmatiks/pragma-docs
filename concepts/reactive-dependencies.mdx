@@ -22,7 +22,7 @@ Use field references to connect a resource's config field to another resource's 
 
 ```yaml
 # Secret holds the API key
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: anthropic-key
 config:
@@ -30,13 +30,13 @@ config:
     api_key: "sk-ant-..."
 ---
 # Model references the secret's output
-provider: agno
-resource: anthropic-model
+provider: pragmatiks/agno
+resource: models/anthropic
 name: claude
 config:
   model_id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: anthropic-key
     field: outputs.api_key
@@ -59,13 +59,13 @@ For provider authors, `Dependency[T]` declares a whole-resource dependency. Inst
 
 ```yaml
 # Agent depends on a model resource
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: my-agent
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
   instructions: "You are a helpful assistant."
 ```
@@ -101,31 +101,31 @@ pragma resources apply agent.yaml
 This means you can define an entire stack in a single YAML file and apply it at once. `pragma resources apply` applies the documents in file order, so list each dependency before the resources that reference it:
 
 ```yaml
-provider: pragma
+provider: pragmatiks/pragma
 resource: secret
 name: api-key
 config:
   data:
     api_key: "sk-ant-..."
 ---
-provider: agno
-resource: anthropic-model
+provider: pragmatiks/agno
+resource: models/anthropic
 name: claude
 config:
   model_id: claude-sonnet-4-5-20250929
   api_key:
-    provider: pragma
+    provider: pragmatiks/pragma
     resource: secret
     name: api-key
     field: outputs.api_key
 ---
-provider: agno
+provider: pragmatiks/agno
 resource: agent
 name: assistant
 config:
   model:
-    provider: agno
-    resource: anthropic-model
+    provider: pragmatiks/agno
+    resource: models/anthropic
     name: claude
   instructions: "You are a helpful assistant."
 ```
