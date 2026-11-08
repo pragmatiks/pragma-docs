@@ -128,6 +128,8 @@ Each entry in `blockers` and `degraded_by` names the resource, the reason, and t
 }
 ```
 
+A resource it owns that failed stays among its `blockers` with the reason `<id> failed. Apply this resource again to retry it.` Applying the owner again retries the failed resource.
+
 A `degraded_by` entry reads `Dependency <id> failed its last operation.` A degraded resource stays `ready` with its last configuration. Once the failed dependency is ready again, Pragmatiks resolves the resource's config again and updates it if the result changed.
 
 ## Config vs Resolved Config
@@ -178,6 +180,19 @@ pragma resources delete --dry-run pragmatiks/pragma/secret/api-key
 ### Cascade Delete (Owned Resources)
 
 A provider can create resources that its own resource owns. Deleting the owner deletes everything it owns, and an owned resource is deleted before its owner. Owned resources have no meaning without their owner. You do not declare ownership in YAML: the owner's provider sets it when it creates the resource.
+
+Every read of an owned resource carries its `owner`: the provider, resource type and name of the resource that owns it, and the command that shows it. `pragma resources describe` shows it under `Owned by:`, and the resource's card on the map shows it the same way. A resource no other resource owns has no `owner`.
+
+```json
+{
+  "owner": {
+    "provider": "pragmatiks/qdrant",
+    "resource": "database",
+    "name": "vectors",
+    "command": "pragma --project my-project resources describe pragmatiks/qdrant/database/vectors"
+  }
+}
+```
 
 ## Resource Tags
 

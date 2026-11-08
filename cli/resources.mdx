@@ -131,6 +131,14 @@ Blocked by:
 
 See [Health](/concepts/resources#health) for what each value means.
 
+A resource that another resource applied shows that resource under `Owned by:`, with the command that shows it. Deleting the owner deletes it:
+
+```text
+Owned by:
+  pragmatiks/qdrant/database/vectors
+    pragma --project my-project resources describe pragmatiks/qdrant/database/vectors
+```
+
 Output as JSON to inspect `resolved_config` for dependency debugging:
 
 ```bash
