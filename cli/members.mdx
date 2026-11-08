@@ -71,6 +71,8 @@ pragma organizations members delete user_123 --yes
 
 Your stored credentials are kept after you leave. Run `pragma auth login` to choose another organization.
 
+API keys you generated in the organization stop working as soon as you leave it, or as soon as you are no longer an admin of it. Ask an organization admin to generate a new key for anything that used one of them.
+
 ## Delete your account
 
 ```bash
@@ -82,6 +84,8 @@ Deleting your account removes you from every organization you belong to and cann
 ```bash
 pragma accounts delete --yes
 ```
+
+API keys you generated stop working in every organization once your account is deleted. Ask an organization admin to generate new keys for anything that used them.
 
 On success the command prints `Account deleted.` and clears the stored credentials of the current context. A token passed with `--token` or `PRAGMA_AUTH_TOKEN` is not cleared, and neither are the credentials of other contexts.
 
@@ -112,3 +116,4 @@ To get past a refusal, promote another member to admin with `pragma organization
 | A permission error | You are not an organization admin, or you are using an API key |
 | A not found error naming the user ID | No member with that user ID belongs to your organization |
 | `Membership details are temporarily unavailable. Please try again in a moment.` | Run the command again shortly |
+| `This API key no longer works because the person who created it is no longer an admin of the organization. Ask an organization admin to generate a new key.` | The person who generated the API key left the organization, deleted their account or is no longer an admin. Ask an organization admin to generate a new key |
