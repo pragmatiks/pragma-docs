@@ -68,6 +68,7 @@ See [`pragma providers publish`](/cli/providers#publish) for every option and ex
 |--------|---------|
 | `422` | The declaration is refused. A wheel not renamed to your organization's distribution name answers "The wheel's `{part}` is `{found}`, not `{expected}`. Publish it with 'pragma providers publish'.", where `{part}` is `filename`, `.dist-info directory` or `METADATA Name`. Publish with the CLI or the SDK, which rename it. |
 | `503` `staging_unavailable` | The version is recorded, but its upload address could not be prepared. Run publish again later for a fresh address. |
+| `409` | Your organization already has as many provider versions being published at once as Pragmatiks allows, or their declared wheels would hold more than the size Pragmatiks allows at once. The message names the limit; `limit_name` is `unsettled_versions` or `staged_bytes`, with its `unit`, `limit` and `held`. Publish again once a version is published or failed, or once a version whose upload was left unfinished stops counting when its upload address expires; or delete a provider you no longer publish with `pragma providers delete`. |
 
 ## Version Statuses
 

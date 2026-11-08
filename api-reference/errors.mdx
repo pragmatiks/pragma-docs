@@ -113,6 +113,26 @@ The messages you can meet:
 
 **Solution**: Run the command the message names. A resource that is not a draft leaves service through `deactivate`, which returns it to `draft`; a failed resource with nothing provisioned leaves the project through `delete`.
 
+#### Publish Limit
+
+A provider version declaration (`POST /providers/publish`) that would pass how much your organization may have being published at once. A version counts from its declaration until it is published or failed; one whose upload was left unfinished stops counting when its upload address expires. The `detail` object names the limit:
+
+```json
+{
+  "detail": {
+    "message": "Your organization already has 10 provider versions being published, and Pragmatiks allows 10 at once. ...",
+    "limit_name": "unsettled_versions",
+    "unit": "versions",
+    "limit": 10,
+    "held": 10
+  }
+}
+```
+
+`limit_name` is `unsettled_versions` (counted in `versions`) or `staged_bytes` (the declared wheel sizes, counted in `bytes`); `held` is what your other versions being published already hold.
+
+**Solution**: Publish again once one of those versions is published or failed, or once an unfinished upload stops counting, or delete a provider you no longer publish with `pragma providers delete`.
+
 #### Write Contention
 
 A change that conflicted with other changes saved at the same time and was not saved. The `detail` object carries the message and a machine-readable `reason`:

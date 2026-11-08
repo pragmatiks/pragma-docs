@@ -68,6 +68,8 @@ Progress goes to stderr; only the `Published` line goes to stdout. With `-o json
 | `2` | Invalid usage, a missing project directory, a failed build, or a wheel that cannot be read |
 | `3` | The wheel was uploaded or already received, then the watch ended with the version unsettled or could not read it; run the printed [`pragma providers wait`](#wait) command to keep waiting |
 
+A declaration is also refused when your organization already has as many provider versions being published at once as Pragmatiks allows, or as many declared wheel bytes in them; publish prints the message, which names the limit and how to free it, and exits 1. See [Publish Limit](/api-reference/errors#publish-limit).
+
 ## Wait
 
 Keep waiting for a version a publish declared, after publish exits 3:
