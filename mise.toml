@@ -2,6 +2,7 @@ min_version = "2026.10.17"
 
 [tools]
 node = "26"
+yq = "4.54.1"
 
 [settings]
 locked = true
