@@ -290,7 +290,7 @@ These methods back the `pragma providers` commands; see the [CLI reference](/cli
 | `get_provider(name)` | Get a catalog entry |
 | `list_provider_versions(name)` | List the published versions of a provider |
 | `get_provider_version(provider_name, version)` | Get one version in any status, to follow a publish from `awaiting_wheel` to `published` or `failed`; returns the `ProviderVersion` |
-| `update_provider(provider_name, metadata)` | Edit a provider's store description and tags (`PATCH /providers/{org}/{name}`); returns the `Provider` |
+| `update_provider(provider_name, metadata)` | Edit a provider's catalog description and tags (`PATCH /providers/{org}/{name}`); returns the `Provider` |
 | `declare_provider_version(declaration)` | Declare a renamed wheel's version; returns a `DeclaredProviderVersion` whose `wheel_upload` (a `WheelUploadAddress`: `url`, `headers` to send unchanged, `expires_at`) is set while the version is `awaiting_wheel`, fresh on each identical declaration, and `None` once the wheel is received |
 | `upload_provider_wheel(wheel_upload, wheel_path)` | Upload the wheel in one `PUT` to the signed address, before `expires_at`, with no Pragmatiks credentials; returns a `WheelUploadOutcome` (`STORED`, or `ALREADY_STORED` when storage already holds it) |
 | `publish_provider_version(wheel_path, *, changelog=None)` | Rename a copy of the wheel to your organization's distribution name, declare it, and upload it while the version awaits it; returns the `ProviderVersion` as declared, so poll `get_provider_version` for its status |
