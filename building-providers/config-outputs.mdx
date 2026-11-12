@@ -189,6 +189,18 @@ When the runtime processes a resource, it resolves all `FieldReference` values b
 You don't need to handle `FieldReference` resolution in your code. The runtime resolves all references to their actual values before invoking lifecycle methods.
 </Note>
 
+### Reading Resolved Values
+
+A field declared as `Field[str]` is typed as either a string or a `FieldReference`. In `on_create`, `on_update` and `on_delete`, read it through `self.resolved(...)` to get it typed as the resolved value, without a `cast`:
+
+```python
+async def on_create(self) -> DatabaseOutputs:
+    database_url: str = self.resolved(self.config.database_url)
+    ...
+```
+
+`resolved()` raises `UnresolvedReferenceError` if the value is still a reference. It checks only the value you pass it, so a `list[Field[str]]` keeps its element type. Do not use it on the configuration of a child returned by `read()`, which holds references unresolved.
+
 ## Dependency for Whole-Resource Access
 
 When you need access to an entire resource (its config, outputs, and methods) rather than just a single field, use `Dependency[T]`:
