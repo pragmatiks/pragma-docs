@@ -625,6 +625,40 @@ class App(Resource[AppConfig, AppOutputs]):
         """Nothing to delete: the platform deletes owned children."""
 ```
 
+### Testing Subresources
+
+`ProviderHarness` runs `apply()` and `read()` in `on_create`, `on_update` and `on_delete` the way the platform does. A new or changed child starts pending; you decide when it becomes ready with `set_child_state`, then run the resource's next pass with `resume`:
+
+```python
+from pragma_sdk import LifecycleState
+from pragma_sdk.provider import ProviderHarness
+
+
+async def test_app_waits_for_its_database():
+    harness = ProviderHarness()
+    config = AppConfig(database_size_gb=10)
+
+    first = await harness.invoke_create(App, name="shop", config=config)
+    assert first.children_pending
+
+    [database] = harness.children(harness.build_identity(App, "shop"))
+    harness.set_child_state(
+        database,
+        LifecycleState.READY,
+        outputs={"database_id": "db-1", "connection_url": "postgres://db.example.com/shop-db", "host": "db.example.com"},
+    )
+
+    second = await harness.resume(App, name="shop", config=config)
+    assert second.outputs.database_name == "shop-db"
+```
+
+- `children(owner)` lists the children a resource owns, keyed by identity, with their state and the configuration as applied. `build_identity(App, "shop")` gives the owner's identity.
+- `resume()` runs the pass the platform runs: `on_update` for a computed resource; for any other, `on_observe` first, then `on_update` when it reports the object, or `on_create` when it does not.
+- Applying a child with a changed configuration sets it back to pending.
+- Returning `ChildrenPending()` when every child is already ready and unchanged fails the pass with the platform's message.
+- `seed_resource()` records a resource that exists before the test, such as one another resource owns; reading or applying it is refused with a `CallbackRefusedError`.
+- A failed child is something your test asserts on: the harness does not fail its owner.
+
 ### When to Use Subresources
 
 | Use Case | Approach |
