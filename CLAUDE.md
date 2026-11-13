@@ -27,7 +27,7 @@ Use mise tasks (`mise tasks` lists them all):
 | `mise run check` | Validate the Mintlify docs build |
 | `mise run lock:toolchain` | Re-lock the toolchain after editing `mise.toml` (needs mise at the `min_version` in `mise.toml`) |
 | `mise run check:mise-pins` | Fail when a `jdx/mise-action` step's `version:` or `sha256:` differs from `min_version` and its runner's mise binary checksum |
-| `mise run check:toolchain-scripts` | Fail when a shared toolchain script under `scripts/tasks/` differs from the public repositories' copies (same-named branch, else `main`) |
+| `mise run check:toolchain-scripts` | Fail when a shared toolchain script under `scripts/tasks/` or the git hook `scripts/git_hooks/hook.sh` differs from the public repositories' copies (same-named branch, else `main`) |
 
 This repository normally has no Node or Python dependency manifest; adding one is a new-dependency proposal that also argues why a Mintlify-hosted repository needs it.
 
