@@ -6,7 +6,7 @@
 
 ## Shared rules
 
-Delivery lives in pragma-kit `project-instructions.md`. Evidence-based development, the solution preference order, the new-dependency proposal, the 13 engineering principles and the reviewer and developer protocols live in the pragma-kit plugin's `pragma-kit:engineering-principles` skill: load it before planning, writing or reviewing a change here. This file holds only what is specific to this repository.
+Delivery lives in pragma-kit `project-instructions.md`. Evidence-based development, the solution preference order, the 13 engineering principles and the reviewer and developer protocols live in the pragma-kit plugin's `pragma-kit:engineering-principles` skill: load it before planning, writing or reviewing a change here. This file holds only what is specific to this repository.
 
 ## Deployment
 
@@ -29,7 +29,7 @@ Use mise tasks (`mise tasks` lists them all):
 | `mise run check:mise-pins` | Fail when a `jdx/mise-action` step's `version:` or `sha256:` differs from `min_version` and its runner's mise binary checksum |
 | `mise run check:toolchain-scripts` | Fail when a shared toolchain script under `scripts/tasks/` or the git hook `scripts/git_hooks/hook.sh` differs from the public repositories' copies (same-named branch, else `main`) |
 
-This repository normally has no Node or Python dependency manifest; adding one is a new-dependency proposal that also argues why a Mintlify-hosted repository needs it.
+This repository normally has no Node or Python dependency manifest.
 
 ---
 
