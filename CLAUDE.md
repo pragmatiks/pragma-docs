@@ -16,7 +16,7 @@ Deployed via **Mintlify** — every merge to `main` auto-deploys. `main` changes
 
 ## Development
 
-mise is the only toolchain source: `mise.toml` pins node, and `mise.lock` locks it for macOS arm64 and Linux x64. On a fresh clone run `mise trust`, then `mise run install`.
+mise is the only toolchain source: `mise.toml` pins node and yq, and `mise.lock` locks them for macOS arm64 and Linux x64. On a fresh clone run `mise trust`, then `mise run install`.
 
 Use mise tasks (`mise tasks` lists them all):
 
@@ -27,7 +27,7 @@ Use mise tasks (`mise tasks` lists them all):
 | `mise run check` | Validate the Mintlify docs build |
 | `mise run lock:toolchain` | Re-lock the toolchain after editing `mise.toml` (needs mise at the `min_version` in `mise.toml`) |
 | `mise run check:mise-pins` | Fail when a `jdx/mise-action` step's `version:` or `sha256:` differs from `min_version` and its runner's mise binary checksum |
-| `mise run check:toolchain-scripts` | Fail when a shared toolchain script under `scripts/tasks/` or the git hook `scripts/git_hooks/hook.sh` differs from the public repositories' copies (same-named branch, else `main`) |
+| `mise run check:toolchain-scripts` | Fail when a shared toolchain script under `scripts/tasks/` differs from the public repositories' copies (same-named branch, else `main`) |
 
 This repository normally has no Node or Python dependency manifest.
 
@@ -68,7 +68,7 @@ If unsure whether something is confidential, ASK before including it.
 
 - **Format**: MDX files with YAML frontmatter (every page).
 - **Frontmatter required**: `title` (clear page title), `description` (concise SEO/navigation summary).
-- **Internal links**: relative paths only — never absolute URLs.
+- **Internal links**: root-relative paths without the file extension (`/concepts/resources`) — never absolute URLs.
 - **Code blocks**: every block must declare a language tag (Mintlify rendering depends on it).
 - **Images**: must include alt text.
 - **Components**: use Mintlify components where applicable.
