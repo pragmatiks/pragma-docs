@@ -1,0 +1,71 @@
+---
+title: "API keys"
+description: "Create, list, and revoke API keys for your organization"
+---
+
+API keys let scripts and automation call Pragmatiks without a browser sign-in. Listing keys works for any member of the organization, and for an API key. Creating and revoking keys is for organization admins signed in as a user: an API key, or a member who is not an admin, is refused. Run `pragma auth login` first.
+
+## Create a key
+
+```bash
+pragma api-keys create ci-deploy
+```
+
+The command prints the secret on stdout, so a script can capture it:
+
+```bash
+SECRET=$(pragma api-keys create ci-deploy)
+```
+
+A confirmation line and a reminder go to stderr:
+
+```text
+Created API key ci-deploy (key_123) in context 'default'
+Store this secret now: Pragmatiks never shows it again.
+```
+
+<Warning>
+The secret is shown once. No command prints it again, so store it before you close the terminal.
+</Warning>
+
+A name your organization uses, or once used, is refused, even after the key is revoked. Use `-o json` or `-o yaml` to print one record with `id`, `name`, `created_at`, and `secret`.
+
+## List keys
+
+```bash
+pragma api-keys list
+```
+
+The table has the columns ID, Name, Created, and Last used. Last used shows a dash for a key that was never used. Secrets are never listed. Use `-o json` or `-o yaml` for records with `id`, `name`, `created_at`, and `last_used_at`:
+
+```bash
+pragma api-keys list -o json
+```
+
+## Revoke a key
+
+```bash
+pragma api-keys revoke key_123
+```
+
+The command asks for confirmation. Pass `--yes` (or `-y`) to skip the prompt:
+
+```bash
+pragma api-keys revoke key_123 --yes
+```
+
+```text
+Revoked key_123.
+```
+
+A revoked key no longer authenticates. Its name stays taken.
+
+## Use a key
+
+Pass the secret to any command with the `--token` flag or the `PRAGMA_AUTH_TOKEN` environment variable:
+
+```bash
+PRAGMA_AUTH_TOKEN=$SECRET pragma resources list
+```
+
+The CLI never saves an API key.

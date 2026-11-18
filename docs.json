@@ -114,6 +114,7 @@
               "cli/installation",
               "cli/authentication",
               "cli/members",
+              "cli/api-keys",
               "cli/resources",
               "cli/providers"
             ]
