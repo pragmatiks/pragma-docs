@@ -20,7 +20,7 @@ SECRET=$(pragma api-keys create ci-deploy)
 A confirmation line and a reminder go to stderr:
 
 ```text
-Created API key ci-deploy (key_123) in context 'default'
+Created API key ci-deploy (ak_123) in context 'default'
 Store this secret now: Pragmatiks never shows it again.
 ```
 
@@ -45,17 +45,17 @@ pragma api-keys list -o json
 ## Revoke a key
 
 ```bash
-pragma api-keys revoke key_123
+pragma api-keys revoke ak_123
 ```
 
 The command asks for confirmation. Pass `--yes` (or `-y`) to skip the prompt:
 
 ```bash
-pragma api-keys revoke key_123 --yes
+pragma api-keys revoke ak_123 --yes
 ```
 
 ```text
-Revoked key_123.
+Revoked ak_123.
 ```
 
 A revoked key no longer authenticates. Its name stays taken.
