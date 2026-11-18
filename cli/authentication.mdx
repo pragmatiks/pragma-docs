@@ -11,6 +11,18 @@ pragma auth login
 
 Opens your browser for authentication.
 
+### Log in without a browser
+
+For automation where no browser is available, pipe a session token to `--with-token`:
+
+```bash
+echo "$SESSION_TOKEN" | pragma auth login --with-token
+```
+
+The command reads one session token from stdin, never from an argument, checks it against the API, and saves it for the context. It cannot be combined with `--org`, since the token already identifies its organization. Nothing is saved when stdin is a terminal, empty, or holds more than one value, or when the token is expired or refused.
+
+An API key is not a session token. Pass an API key per command with `--token` or the `PRAGMA_AUTH_TOKEN` environment variable instead. See [API keys](/cli/api-keys).
+
 ## Check Status
 
 ```bash
