@@ -25,7 +25,7 @@ Get a token by running `pragma auth login` or through the web dashboard. See [Au
 ## Request Format
 
 - Use `Content-Type: application/json` for JSON request bodies
-- Use `multipart/form-data` for file uploads (e.g., provider code)
+- A file upload is a JSON declaration followed by a `PUT` of the bytes to the address the response returns, not `multipart/form-data`
 - All timestamps use ISO 8601 format in UTC
 
 ## Response Format

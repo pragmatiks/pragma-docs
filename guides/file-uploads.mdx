@@ -3,7 +3,7 @@ title: "File Uploads"
 description: "Upload and manage files with Pragmatiks"
 ---
 
-The `pragmatiks/pragma` provider, installed in every organization, provides a `pragma/file` resource for uploading and managing files. Files are stored in platform storage, belong to a project, and expose download URLs that other resources can reference.
+The `pragmatiks/pragma` provider, installed in every organization, provides a `pragma/file` resource for uploading and managing files. Files are stored in platform storage, belong to a project, and expose outputs that other resources can reference.
 
 ## Prerequisites
 
@@ -30,8 +30,21 @@ pragma resources apply training-data.yaml
 
 The CLI:
 1. Reads the file from the local path (relative to the YAML file's directory)
-2. Uploads the file content into the project the command applies to
-3. Creates the `pragma/file` resource to track it
+2. Uploads the file straight to storage, into the project the command applies to, and waits until it is stored
+3. Applies the `pragma/file` resource to track it
+
+The CLI uploads every `@path` file before it applies anything, so a resource that reads the file never runs before its bytes exist.
+
+### Upload limits
+
+- A file can be up to about 5 GiB.
+- The whole file must reach storage before the upload address expires: one hour plus about 34 minutes per GiB (assuming 4 Mbit/s). Larger files take a little while to be stored after the upload ends, and the CLI waits for that.
+- An interrupted upload starts again from the beginning.
+- Uploading the same file again does not send it again.
+
+### File names
+
+A file name cannot be empty, `.` or `..`, or longer than 255 bytes. It cannot contain a path separator or a control character. A `pragma://files/<name>` reference must name a valid file, and one resource config can hold at most 32 distinct references. Otherwise the apply is refused with `422`.
 
 ### Project scope
 
@@ -44,10 +57,10 @@ After the file resource reaches `ready` state, it exposes these outputs:
 | Output | Description |
 |--------|-------------|
 | `url` | Internal storage URL |
-| `public_url` | Public download URL |
+| `public_url` | Permanent download address. It needs Pragmatiks credentials (see [Downloading a file](#downloading-a-file)) |
 | `size` | File size in bytes |
 | `content_type` | MIME type |
-| `checksum` | Content checksum for integrity verification |
+| `checksum` | MD5 of the content, as hex, verified by storage when the file is uploaded |
 | `uploaded_at` | Upload timestamp |
 
 View the outputs:
@@ -56,6 +69,26 @@ View the outputs:
 pragma resources describe pragmatiks/pragma/file/training-data
 ```
 
+## Downloading a file
+
+Downloading is available through the API only: neither the SDK nor the CLI has a download command.
+
+`public_url` needs Pragmatiks credentials. It answers with a redirect (`307`) to a short-lived download address, so your client must follow redirects. Your credentials go to Pragmatiks only; the download address carries its own signature and needs none.
+
+```bash
+curl -L -H "Authorization: Bearer $(pragma auth token)" "<public_url>" -o training-data.jsonl
+```
+
+In Python with httpx, pass `follow_redirects=True`. Without credentials the request is refused with `401`.
+
+To get a short-lived download address that needs no credentials, call `GET /projects/{project_id}/files/{name}/url`. The response holds the address and its expiry. Anyone who has the address can download the file until it expires, so treat it like a secret.
+
+When an address cannot be prepared, these requests answer `503` with `file_url_unavailable` and a `Retry-After` header. See [Errors](/api-reference/errors#retry-later-503).
+
+<Note>
+Despite its name, `public_url` is not open to the public. Do not pass it to a service that sends no credentials. Use a `pragma://files/<name>` reference instead (see below).
+</Note>
+
 ## Using the SDK
 
 ### Upload programmatically
@@ -63,30 +96,31 @@ pragma resources describe pragmatiks/pragma/file/training-data
 Upload through the project handle so the file lands in that project.
 
 ```python
+from pathlib import Path
+
 from pragma_sdk import PragmaClient
 
 with PragmaClient() as client:
-    # Upload the file content
-    with open("training-data.jsonl", "rb") as f:
-        result = client.project("my-project").upload_file(
-            name="training-data",
-            content=f.read(),
-            content_type="application/jsonl",
-        )
+    project = client.project("my-project")
+    file = project.upload_file(
+        name="training-data",
+        source=Path("training-data.jsonl"),
+        content_type="application/jsonl",
+    )
 
-    print(f"Uploaded: {result['public_url']}")
+    print(f"Uploaded: {file.public_url}")
 
     # Create the file resource to track it
-    client.apply_resource({
+    project.apply_resource({
         "provider": "pragma",
         "resource": "file",
         "name": "training-data",
         "lifecycle_state": "pending",
-        "config": {
-            "content_type": "application/jsonl",
-        },
+        "config": {},
     })
 ```
+
+The upload goes straight to storage and returns once the file is stored. An interrupted upload starts again from the beginning.
 
 ## Referencing Files from Other Resources
 
@@ -101,19 +135,15 @@ config:
   content: "@./docs/product-manual.pdf"
   content_type: "application/pdf"
 ---
-# Knowledge base references the file's URL
+# Knowledge base references the file by name
 provider: pragmatiks/agno
 resource: knowledge
 name: product-knowledge
 config:
-  source_url:
-    provider: pragmatiks/pragma
-    resource: file
-    name: product-docs
-    field: outputs.public_url
+  source_url: "pragma://files/product-docs"
 ```
 
-When the file is updated (re-uploaded with new content), the knowledge base automatically receives the new URL and can re-ingest the document.
+A `pragma://files/<name>` reference resolves to the file in the referencing resource's project, and Pragmatiks supplies a short-lived download address when the resource runs. Do not use `outputs.public_url` here: it needs credentials, which a knowledge source does not send.
 
 ## Supported Content Types
 

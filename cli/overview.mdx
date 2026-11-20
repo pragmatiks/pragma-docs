@@ -74,9 +74,9 @@ Every `pragma` command shares these exit codes; `pragma --help` lists them too:
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | Failure: the API refused or could not complete the request, or the command could not finish, including a wheel upload that storage refused or whose address expired |
+| `1` | Failure: the API refused or could not complete the request, or the command could not finish, including a wheel or file upload that storage refused or whose address expired, and a file upload that ended without the file stored |
 | `2` | Invalid usage, or a local file or config error, including an unknown context |
-| `3` | `pragma providers publish` and `pragma providers wait` only: the watch ended with the version unsettled or could not read the version (for publish, after the wheel was uploaded or already received) |
+| `3` | Command-specific. `pragma providers publish` and `pragma providers wait`: the watch ended with the version unsettled or could not read the version (for publish, after the wheel was uploaded or already received). `pragma resources apply`: a file upload reached Pragmatiks and is not stored yet, so no resource was applied; running the same apply again keeps waiting without sending the file again |
 | `4` | Not found: the API answered 404 because the target does not exist, is not installed, or is not visible to you |
 
 ## Getting Started

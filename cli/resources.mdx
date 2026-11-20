@@ -51,7 +51,9 @@ config:
   content_type: "application/jsonl"
 ```
 
-The file is uploaded into the project you apply to, and the resource outputs include a URL for downloading it. Files belong to a project: the same file name in two projects is two separate files, and a `pragma://files/<name>` reference resolves within the referencing resource's project.
+The CLI uploads every `@path` file straight to storage, into the project you apply to, before it applies anything, and waits until the file is stored. A file can be up to about 5 GiB, and an interrupted upload starts again from the beginning.
+
+When an upload fails, no resource is applied, and the CLI prints why and the command to run next, `To apply again, run: pragma resources apply ...`. It exits `1`, or `2` when the local file is the problem: missing, unreadable, outside the manifest directory, or replaced after the apply checked it. When an upload reached Pragmatiks but showed no progress for three minutes, the CLI exits `3` and prints `To keep waiting for it, run: pragma resources apply ...`: the upload may still complete, and running that command waits for it without sending the file again. The messages name the upload operation, which support can use to trace the upload. The resource outputs include a `public_url` for downloading it, which needs Pragmatiks credentials; see [File Uploads](/guides/file-uploads#downloading-a-file). Files belong to a project: the same file name in two projects is two separate files, and a `pragma://files/<name>` reference resolves within the referencing resource's project.
 
 ## List
 
