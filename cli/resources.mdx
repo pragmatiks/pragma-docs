@@ -151,6 +151,27 @@ Output as JSON to inspect `resolved_config` for dependency debugging:
 pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
+## Logs
+
+Show a resource's logs from its provider, oldest first, one `<timestamp> <level> <message>` line per entry:
+
+```bash
+pragma resources logs pragmatiks/kubernetes/deployment/my-app
+```
+
+| Option | Description |
+|--------|-------------|
+| `--tail <1-10000>` | Number of most recent entries to show (default 100) |
+| `--since <ISO 8601>` | Only entries at or after this timestamp; a timestamp without an offset is read as UTC |
+| `--follow` | Keep the command open and print each new entry as it is written |
+| `-o json\|yaml` | Output the entries as structured data |
+
+With `--follow`, the most recent entries print first, then new ones as they arrive, until you press Ctrl-C or the log stream ends. Delivery is at most once, so an entry written while the connection is down is not replayed. Order is kept within one log source but not across sources. With `-o json`, each entry prints as one JSON object per line; `--follow -o yaml` is not supported.
+
+When the provider restarts, the stream ends and the command prints the last entry's timestamp. Run it again with `--follow --since <timestamp>` to continue; entries at that timestamp print again.
+
+A resource type whose provider does not support logs cannot be followed, and the command reports it.
+
 ## Tags
 
 Manage tags on existing resources:
