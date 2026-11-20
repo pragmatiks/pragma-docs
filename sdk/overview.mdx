@@ -291,8 +291,8 @@ These methods back the `pragma providers` commands; see the [CLI reference](/cli
 | `list_provider_versions(name)` | List the published versions of a provider |
 | `get_provider_version(provider_name, version)` | Get one version in any status, to follow a publish from `awaiting_wheel` to `published` or `failed`; returns the `ProviderVersion` |
 | `update_provider(provider_name, metadata)` | Edit a provider's catalog description and tags (`PATCH /providers/{org}/{name}`); returns the `Provider` |
-| `declare_provider_version(declaration)` | Declare a renamed wheel's version; returns a `DeclaredProviderVersion` whose `wheel_upload` (a `WheelUploadAddress`: `url`, `headers` to send unchanged, `expires_at`) is set while the version is `awaiting_wheel`, fresh on each identical declaration, and `None` once the wheel is received |
-| `upload_provider_wheel(wheel_upload, wheel_path)` | Upload the wheel in one `PUT` to the signed address, before `expires_at`, with no Pragmatiks credentials; returns a `WheelUploadOutcome` (`STORED`, or `ALREADY_STORED` when storage already holds it) |
+| `declare_provider_version(declaration)` | Declare a renamed wheel's version; returns a `DeclaredProviderVersion` whose `wheel_upload` (an `UploadAddress`: `url`, `headers` to send unchanged, `expires_at`) is set while the version is `awaiting_wheel`, fresh on each identical declaration, and `None` once the wheel is received |
+| `upload_provider_wheel(wheel_upload, wheel_path)` | Upload the wheel in one `PUT` to the signed address, before `expires_at`, with no Pragmatiks credentials; returns an `UploadOutcome` (`STORED`, or `ALREADY_STORED` when storage already holds it) |
 | `publish_provider_version(wheel_path, *, changelog=None)` | Rename a copy of the wheel to your organization's distribution name, declare it, and upload it while the version awaits it; returns the `ProviderVersion` as declared, so poll `get_provider_version` for its status |
 | `install_provider(provider_name, version=None, config=None)` | Install a provider in your organization; returns the `ProviderInstallation` |
 | `list_installations()` | List installed providers; returns `list[ProviderInstallation]` |
@@ -305,8 +305,8 @@ These methods back the `pragma providers` commands; see the [CLI reference](/cli
 
 | Exception | Raised when |
 |-----------|-------------|
-| `WheelUploadExpiredError` | The upload address expired before storage received the whole wheel; publish again for a fresh address |
-| `WheelUploadError` | Storage refused the upload otherwise; carries `status_code`, `storage_error_code` and `storage_request_id`, never the address |
+| `UploadExpiredError` | The upload address expired before storage received the whole wheel; publish again for a fresh address |
+| `UploadError` | Storage refused the upload otherwise; carries `status_code`, `storage_error_code` and `storage_request_id`, never the address |
 | `RenamedWheelWriteError` | The renamed copy cannot be written: "Could not write the renamed copy of the wheel: {reason}." |
 | `WheelExpansionLimitError` | The wheel's members decompress past the size limit |
 
@@ -468,20 +468,39 @@ with PragmaClient(timeout=60.0) as client:
 Upload files into a project's file storage through the project handle:
 
 ```python
-with open("training-data.jsonl", "rb") as file:
-    result = client.project("my-project").upload_file(
-        name="training-data",
-        content=file.read(),
-        content_type="application/jsonl",
-    )
+from pathlib import Path
 
-print(result["url"])
-print(result["public_url"])
-print(result["size"])
-print(result["checksum"])
+file = client.project("my-project").upload_file(
+    name="training-data",
+    source=Path("training-data.jsonl"),
+    content_type="application/jsonl",
+)
+
+print(file.url)
+print(file.public_url)
+print(file.size)
+print(file.checksum)
 ```
 
-**Returns:** A dictionary with `url`, `public_url`, `size`, `content_type`, `checksum`, and `uploaded_at`.
+The upload goes straight to storage, up to about 5 GiB, and returns once the file is stored. An interrupted upload starts again from the beginning.
+
+**Returns:** The file's metadata with `url`, `public_url`, `size`, `content_type`, `checksum` (the MD5 that storage verified, as hex) and `uploaded_at`.
+
+`source` is `bytes`, a `Path`, or a regular file opened for binary reading; memory holds one chunk at a time, whatever the size. Uploading the same content again sends no bytes, and while an upload of other content for the name is being stored, `upload_file` waits for it for up to three minutes.
+
+| Method | Description |
+|--------|-------------|
+| `upload_file(name, source, content_type)` | Hash, declare, upload and wait until the file is stored; returns its `FileMetadata`. The one call most code needs |
+| `declare_file_upload(name, declaration)` | Declare an upload from a `FileUploadDeclaration` (`size`, `content_type`, base64 `md5`); returns a `DeclaredFileUpload` with the `operation_id` and, while its bytes have not reached storage, an `UploadAddress` to `PUT` them to |
+| `get_file_upload(name)` | Read where the latest upload of the file stands; returns a `FileUploadProgress` with the `operation_id`, the `outcome` (`pending`, `stored`, `failed`, `expired`, `deleted`), the file's metadata once stored, and an `error_message` for `failed` and `expired` |
+
+| Exception | Raised when |
+|-----------|-------------|
+| `FileUploadNotStoredError` | The upload ended without the file stored. Its `reason` is `changed` (the content changed while it was uploaded), `superseded` (an upload of other content replaced it), `failed`, `expired` (the whole file did not reach storage before the address expired), `deleted` (the file was deleted or replaced after it was stored) or `busy` (another upload of the name was still being stored after three minutes). It carries the `operation_id` once the upload was declared; upload the file again |
+| `FileUploadPendingError` | The upload reached Pragmatiks and showed no progress for three minutes. It may still complete: call `upload_file` again with the same content to keep waiting, without sending the bytes again. Carries the `operation_id` |
+| `UploadError` | Storage refused the upload otherwise; carries `status_code`, `storage_error_code` and `storage_request_id`, never the address |
+
+`public_url` needs Pragmatiks credentials and redirects to a short-lived download address, so a client must follow the redirect (`follow_redirects=True` in httpx). The SDK has no download method. `GET /projects/{project_id}/files/{name}/url` returns a short-lived address that needs no credentials. See [File Uploads](/guides/file-uploads#downloading-a-file).
 
 ---
 

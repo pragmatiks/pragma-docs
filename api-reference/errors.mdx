@@ -19,6 +19,7 @@ The API uses standard HTTP status codes and returns detailed error information i
 | `404` | Not Found | Resource does not exist |
 | `409` | Conflict | Invalid state transition or concurrent modification |
 | `410` | Gone | Your organization is being deactivated or has been deleted |
+| `413` | Content Too Large | A file upload declares a size above the maximum file size |
 | `422` | Validation Error | Request body failed validation |
 | `500` | Server Error | Internal server error |
 | `503` | Service Unavailable | Your organization is not ready yet; retry later |
@@ -148,6 +149,38 @@ A change that conflicted with other changes saved at the same time and was not s
 
 **Solution**: Send the request again.
 
+#### File Upload In Progress
+
+An upload of different content for the same file name is still being stored. The `detail` object carries the code `file_upload_in_progress`, the message and `retry_after`, and the `Retry-After` header carries the same delay:
+
+```json
+{
+  "detail": {
+    "error": "file_upload_in_progress",
+    "message": "An upload of report.pdf is being stored. Upload it again in a few seconds.",
+    "retry_after": 5
+  }
+}
+```
+
+**Solution**: Wait `retry_after` seconds, then declare the upload again. `pragma resources apply` and the SDK's `upload_file` wait for you, for up to three minutes.
+
+### File Too Large (413)
+
+A file upload declares a size above the maximum file size of 5 GiB. The `detail` object carries the code `file_too_large`, the message and `maximum_size_gib`:
+
+```json
+{
+  "detail": {
+    "error": "file_too_large",
+    "message": "dataset.bin is 6442450944 bytes, more than the maximum file size of 5 GiB (5368709120 bytes).",
+    "maximum_size_gib": 5
+  }
+}
+```
+
+**Solution**: Split the file into parts no larger than 5 GiB, and upload each under its own name.
+
 ### Validation Errors (422)
 
 #### Missing Required Fields
@@ -231,6 +264,17 @@ A request your organization's state refuses carries its code in `detail.error`:
 | `409` | `organization_last_admin` | Your organization must keep at least one admin. Promote another member first. |
 | `409` | `account_last_admin` | You are the last admin of the organizations the message names. Promote another member, or delete the organization first. |
 
+### File Errors
+
+A refused file upload or download carries its code in `detail.error`:
+
+| Status | `error` | Meaning |
+|--------|---------|---------|
+| `409` | `file_upload_in_progress` | An upload of different content for the name is being stored. Declare again after `retry_after` seconds ([File Upload In Progress](#file-upload-in-progress)). |
+| `413` | `file_too_large` | The declared size is above the maximum file size ([File Too Large](#file-too-large-413)). |
+| `503` | `file_upload_unavailable` | The upload address could not be prepared. The upload stays declared: declare it again after `retry_after` seconds for an address for the same upload. |
+| `503` | `file_url_unavailable` | A download address could not be prepared. Request it again after `retry_after` seconds. |
+
 ### Retry Later (503)
 
 A `503` you can retry carries the code, the message and `retry_after`, the number of seconds to wait, inside `detail`. The `Retry-After` header carries the same delay:
@@ -244,6 +288,8 @@ A `503` you can retry carries the code, the message and `retry_after`, the numbe
   }
 }
 ```
+
+File requests answer `file_url_unavailable` when a download address cannot be prepared (`GET /projects/{project_id}/files/{name}/url`, `/download` and the log and vitals downloads), and `file_upload_unavailable` when an upload address cannot be prepared ([File Errors](#file-errors)).
 
 **Solution**: Wait `retry_after` seconds, then send the request again. `organization_bootstrap_failed` carries no `retry_after`: retrying does not help.
 
