@@ -111,3 +111,4 @@ config:
 - The `config`, `namespace`, and `selector` fields are **immutable** — changing them requires deleting and recreating the resource.
 - Environment variables from Kubernetes Secrets use the format `"secret_name.key"` in `env_from_secret`.
 - Rolling updates use 25% max surge and 25% max unavailable by default.
+- Supports `pragma resources logs --follow`, as does the StatefulSet resource.

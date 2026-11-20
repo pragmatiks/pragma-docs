@@ -186,6 +186,24 @@ async def on_delete(self) -> None:
 
 **Return value:** None. Any return value is ignored.
 
+## Logs
+
+A resource type can expose logs through two optional methods. `logs(since, tail)` returns existing entries for `pragma resources logs`. `follow_logs(since, tail)` also streams new entries as they are written, for `pragma resources logs --follow`.
+
+```python
+async def follow_logs(
+    self, since: datetime | None = None, tail: int = 100
+) -> AsyncIterator[LogEntry]:
+    async for entry in self.client.stream_logs(self.config.name, since=since, tail=tail):
+        yield entry
+```
+
+- Yield the `tail` most recent entries first, then each new entry. `since` is inclusive: entries at exactly that timestamp are included.
+- Write `follow_logs` as an async generator that waits only on cancellation-safe async sources, such as an async HTTP stream. A user stopping the command cancels the generator, and a blocking call run in an executor cannot be cancelled, so it would hold the stream open.
+- Return when there is nothing left to follow.
+- Delivery is at most once, with no replay.
+- A type that does not implement `follow_logs` cannot be followed; users get an error for `--follow`.
+
 ## Idempotency Requirements
 
 <Warning>
