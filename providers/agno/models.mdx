@@ -17,7 +17,7 @@ Configures an Anthropic Claude model.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | `string` | **Yes** | — | Model identifier (e.g., `claude-sonnet-4-20250514`) |
-| `api_key` | `SensitiveField[string]` | **Yes** | — | Anthropic API key (sensitive). Use a FieldReference to inject from a secret |
+| `api_key` | `Field[SecretStr]` | **Yes** | — | Anthropic API key. Takes a FieldReference to a secret; a literal is refused. Shown as `********` |
 | `max_tokens` | `integer` | No | `8192` | Maximum tokens in responses |
 | `temperature` | `float` | No | — | Sampling temperature (0.0–1.0) |
 | `top_p` | `float` | No | — | Nucleus sampling parameter |
@@ -62,7 +62,7 @@ Configures an OpenAI model.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | `string` | **Yes** | — | Model identifier (e.g., `gpt-4o`) |
-| `api_key` | `SensitiveField[string]` | **Yes** | — | OpenAI API key (sensitive). Use a FieldReference to inject from a secret |
+| `api_key` | `Field[SecretStr]` | **Yes** | — | OpenAI API key. Takes a FieldReference to a secret; a literal is refused. Shown as `********` |
 | `max_tokens` | `integer` | No | — | Maximum tokens in responses |
 | `temperature` | `float` | No | — | Sampling temperature (0.0–2.0) |
 | `top_p` | `float` | No | — | Nucleus sampling parameter |
