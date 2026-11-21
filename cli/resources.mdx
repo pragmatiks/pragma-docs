@@ -170,7 +170,9 @@ pragma resources logs pragmatiks/kubernetes/deployment/my-app
 
 With `--follow`, the most recent entries print first, then new ones as they arrive, until you press Ctrl-C or the log stream ends. Delivery is at most once, so an entry written while the connection is down is not replayed. Order is kept within one log source but not across sources. With `-o json`, each entry prints as one JSON object per line; `--follow -o yaml` is not supported.
 
-When the provider restarts, the stream ends and the command prints the last entry's timestamp. Run it again with `--follow --since <timestamp>` to continue; entries at that timestamp print again.
+When the provider or the host it runs on restarts, the stream ends and the command prints the last entry's timestamp. Run it again with `--follow --since <timestamp>` to continue; entries at that timestamp print again.
+
+Each provider keeps a limited number of log streams open at once. When it already holds that many, the command reports that too many log streams are open for this provider; stop one and follow again.
 
 A resource type whose provider does not support logs cannot be followed, and the command reports it.
 
