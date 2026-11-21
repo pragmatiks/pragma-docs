@@ -45,7 +45,7 @@ Configures access to a Qdrant collection that stores embeddings. The collection 
 |-------|------|----------|---------|-------------|
 | `url` | `Field[string]` | **Yes** | — | Qdrant server URL (immutable). Supports FieldReferences |
 | `collection` | `Field[string]` | **Yes** | — | Collection name (immutable). Supports FieldReferences |
-| `api_key` | `Field[string]` | No | — | API key for authentication |
+| `api_key` | `Field[SecretStr]` | No | — | API key for authentication. Takes a FieldReference to a secret; a literal is refused. Shown as `********` |
 | `search_type` | `"vector"` | No | `"vector"` | Search strategy. Only vector search is supported |
 | `embedder` | `Dependency` | No | — | Reference to `agno/knowledge/embedder/openai` |
 
@@ -67,7 +67,7 @@ Configures an OpenAI embedding model for generating vector embeddings.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | `string` | No | `"text-embedding-3-small"` | Embedding model identifier |
-| `api_key` | `Field[string]` | **Yes** | — | OpenAI API key |
+| `api_key` | `Field[SecretStr]` | **Yes** | — | OpenAI API key. Takes a FieldReference to a secret; a literal is refused. Shown as `********` |
 | `dimensions` | `integer` | No | — | Override embedding dimensions (only for `text-embedding-3-*` models) |
 | `encoding_format` | `"float"` \| `"base64"` | No | `"float"` | Response encoding format |
 | `organization` | `string` | No | — | OpenAI organization ID |

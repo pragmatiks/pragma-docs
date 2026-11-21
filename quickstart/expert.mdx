@@ -22,7 +22,11 @@ config:
   events:
     - deployment.created
     - deployment.failed
-  secret: "whsec_abc123"
+  secret:
+    provider: pragmatiks/pragma
+    resource: secret
+    name: webhook-secret
+    field: outputs.WEBHOOK_SECRET
 ```
 
 ## Step 1: Scaffold the project
@@ -58,7 +62,8 @@ import hashlib
 from typing import Any
 
 import httpx
-from pragma_sdk import Config, Field, Outputs, Resource, SensitiveField
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, Outputs, Resource
 
 WEBHOOKS_API_URL = "https://hooks.example.com/v1/endpoints"
 
@@ -75,7 +80,7 @@ class EndpointConfig(Config):
 
     url: Field[str]
     events: Field[list[str]]
-    secret: SensitiveField[str] | None = None
+    secret: Field[SecretStr] | None = None
     active: Field[bool] = True
 
 
@@ -143,7 +148,7 @@ class Endpoint(Resource[EndpointConfig, EndpointOutputs]):
                 json={
                     "url": self.config.url,
                     "events": self.config.events,
-                    "secret": self.config.secret,
+                    "secret": self.config.secret.get_secret_value() if self.config.secret else None,
                     "active": self.config.active,
                 },
             )
@@ -253,7 +258,7 @@ config:
     field: outputs.WEBHOOK_SECRET
 ```
 
-The `secret` field uses a field reference — it pulls the value from a `pragma/secret` resource instead of hardcoding it. Other resources can reference this webhook's outputs:
+The `secret` field is a `Field[SecretStr]`, so it takes a field reference — it pulls the value from a `pragma/secret` resource, and an apply that writes the secret as a literal is refused. `pragma resources describe` shows it as `********`, and your handler reads the real value with `.get_secret_value()`. Other resources can reference this webhook's outputs:
 
 ```yaml
 config:

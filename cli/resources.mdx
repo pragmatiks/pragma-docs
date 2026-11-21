@@ -153,6 +153,14 @@ Output as JSON to inspect `resolved_config` for dependency debugging:
 pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
+Secret values show as `********` in every output format, and in the table each top-level secret config or output field carries a `[secret]` label (an immutable config field carries `[immutable]`). Pass `--reveal` to show the real values; `describe` is the only command that takes it:
+
+```bash
+pragma resources describe pragmatiks/pragma/secret/api-key --reveal
+```
+
+See [Sensitive Values](/concepts/resources#sensitive-values) for what is masked and why a secret field takes only a reference.
+
 ## Logs
 
 Show a resource's logs from its provider, oldest first, one `<timestamp> <level> <message>` line per entry:

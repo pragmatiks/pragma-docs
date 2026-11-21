@@ -577,10 +577,11 @@ from pragma_sdk import (
     Outputs,
     Provider,
     Resource,
-    SensitiveField,
     Vitals,
 )
 ```
+
+A sensitive field uses Pydantic's `SecretStr`: `Field[SecretStr]` in config, `SecretStr` in outputs. See [Sensitive Fields](/building-providers/config-outputs#sensitive-fields).
 
 ### Quick Example
 

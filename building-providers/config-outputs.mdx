@@ -36,7 +36,7 @@ class DatabaseConfig(Config):
 <Warning>
 Two rules are enforced when the class is defined, so a violation fails as soon as the provider package is imported, and `pragma providers publish` fails with it:
 
-- Every config field uses an SDK field type: `Field[T]`, `ImmutableField[T]`, `SensitiveField[T]`, `ImmutableSensitiveField[T]`, `Dependency[T]`, `ImmutableDependency[T]`, `SensitiveDependency[T]`, or a file field. A bare type such as `name: str` raises `TypeError`.
+- Every config field uses an SDK field type: `Field[T]`, `ImmutableField[T]`, `Dependency[T]`, `ImmutableDependency[T]`, or a file field. A bare type such as `name: str` raises `TypeError`. A sensitive field is `Field[SecretStr]`; see [Sensitive Fields](#sensitive-fields).
 - Every `Config` and `Outputs` class that declares fields has a class docstring. A class without one raises `TypeError`. Document each field in an `Attributes:` section; a docstring without one only warns.
 </Warning>
 
@@ -71,7 +71,8 @@ Outputs are returned from `on_observe`, `on_create`, and `on_update`. `on_observ
 Fields without defaults are required:
 
 ```python
-from pragma_sdk import Config, ImmutableField, SensitiveField
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, ImmutableField
 
 
 class SecretConfig(Config):
@@ -80,12 +81,12 @@ class SecretConfig(Config):
     Attributes:
         project_id: Project holding the secret.
         secret_id: Secret name within the project.
-        data: Secret payload.
+        data: Secret payload, a reference to a ``pragma/secret`` resource.
     """
 
     project_id: ImmutableField[str]
     secret_id: ImmutableField[str]
-    data: SensitiveField[str]
+    data: Field[SecretStr]
 ```
 
 ### Optional Fields with Defaults
@@ -133,6 +134,47 @@ class DatabaseConfig(Config):
     description: Field[str] | None = None
     labels: Field[list[str]] | None = None
 ```
+
+### Sensitive Fields
+
+Declare a credential, such as an API key, password or token, with Pydantic's `SecretStr` (or `SecretBytes` for binary data): `Field[SecretStr]` in config, and a plain `SecretStr` in outputs. The published schema marks the field `format: password`, and Pragmatiks then treats it as sensitive:
+
+- A user sets a sensitive config field with a reference to a secret resource. An apply that writes a literal value is refused; see [Sensitive Values](/concepts/resources#sensitive-values).
+- `describe`, `list` and live updates show the field's value as `********`, on your resource and on every resource that references it.
+- Your handlers receive the real value. Read it with `.get_secret_value()` where you pass it to the external API.
+
+```python
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, ImmutableField, Outputs
+
+
+class ApiTokenConfig(Config):
+    """Configuration for an API token.
+
+    Attributes:
+        name: Token name. Locates the token, so it cannot change.
+        admin_key: Admin key that issues tokens, a reference to a secret.
+    """
+
+    name: ImmutableField[str]
+    admin_key: Field[SecretStr]
+
+
+class ApiTokenOutputs(Outputs):
+    """Outputs of an API token.
+
+    Attributes:
+        token_id: Identifier of the token.
+        token: The issued token, masked when read.
+    """
+
+    token_id: str
+    token: SecretStr
+```
+
+<Warning>
+`str()`, an f-string or `model_dump(mode="json")` on a `SecretStr` gives `**********`, not the value, and a type checker does not catch it. Call `.get_secret_value()` on the field each time you hand the value to a client; see [Reveal Secret Values Explicitly](/building-providers/best-practices#reveal-secret-values-explicitly).
+</Warning>
 
 ## FieldReference for Dynamic Values
 

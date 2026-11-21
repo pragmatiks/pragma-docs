@@ -45,7 +45,7 @@ Providers are the bridge between Pragmatiks and external tools. Each provider kn
 
 | Resource | Description |
 |----------|-------------|
-| `pragma/secret` | Platform-managed secrets |
+| `pragma/secret` | Platform-managed secrets, the one place a sensitive value is written as a literal |
 | `pragma/file` | File uploads and storage, owned by a project |
 
 <Note>
@@ -54,7 +54,7 @@ For detailed configuration schemas and examples for each resource type, see the 
 
 ## Provider Configuration
 
-Some providers require credentials or configuration. Use secrets to store sensitive values:
+Some providers require credentials or configuration. A sensitive field, such as an API key or a password, takes a reference to a secret, never a literal value, so store the value in a `pragma/secret` resource and reference it (see [Sensitive Values](/concepts/resources#sensitive-values)):
 
 ```yaml
 provider: pragmatiks/pragma
