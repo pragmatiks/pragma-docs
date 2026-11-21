@@ -31,7 +31,7 @@ pragma resources apply training-data.yaml
 The CLI:
 1. Reads the file from the local path (relative to the YAML file's directory)
 2. Uploads the file straight to storage, into the project the command applies to, and waits until it is stored
-3. Applies the `pragma/file` resource to track it
+3. Applies the `pragma/file` resource with `content` set to the file's reference, `pragma://files/training-data`
 
 The CLI uploads every `@path` file before it applies anything, so a resource that reads the file never runs before its bytes exist.
 
@@ -56,8 +56,7 @@ After the file resource reaches `ready` state, it exposes these outputs:
 
 | Output | Description |
 |--------|-------------|
-| `url` | Internal storage URL |
-| `public_url` | Permanent download address. It needs Pragmatiks credentials (see [Downloading a file](#downloading-a-file)) |
+| `url` | The file's `pragma://files/<name>` reference, which other resources' configs take |
 | `size` | File size in bytes |
 | `content_type` | MIME type |
 | `checksum` | MD5 of the content, as hex, verified by storage when the file is uploaded |
@@ -69,11 +68,21 @@ View the outputs:
 pragma resources describe pragmatiks/pragma/file/training-data
 ```
 
+The outputs are read when the resource is first applied. Applying the resource again does not refresh them yet, so they can lag behind new content uploaded under the same name.
+
+### Deactivating and deleting a file resource
+
+A `pragma/file` resource reads only its own file, the one uploaded under the resource's name, so its `content` is always `pragma://files/<resource name>`.
+
+- Deactivating the resource keeps the uploaded file. Applying it again finds the stored file; when its `content` is `"@<path>"`, `pragma resources apply` uploads the file again.
+- Deleting the resource deletes the uploaded file shortly after. Resources that reference the file resource fail, because their dependency is deleted. Until the file is deleted, applying the resource again is refused with `409` (`file_delete_in_progress`); try again shortly and it uploads afresh.
+- Deleting the resource while a new upload of its file is still being stored is refused with `409` (`file_upload_in_progress`). Delete it again once the upload is stored.
+
 ## Downloading a file
 
 Downloading is available through the API only: neither the SDK nor the CLI has a download command.
 
-`public_url` needs Pragmatiks credentials. It answers with a redirect (`307`) to a short-lived download address, so your client must follow redirects. Your credentials go to Pragmatiks only; the download address carries its own signature and needs none.
+The download route, `GET /projects/{project_id}/files/{name}/download`, is the `public_url` that the SDK's `upload_file` returns; the resource's outputs carry no `public_url`, so `upload_file` is its only source. It needs Pragmatiks credentials. It answers with a redirect (`307`) to a short-lived download address, so your client must follow redirects. Your credentials go to Pragmatiks only; the download address carries its own signature and needs none.
 
 ```bash
 curl -L -H "Authorization: Bearer $(pragma auth token)" "<public_url>" -o training-data.jsonl
@@ -86,7 +95,7 @@ To get a short-lived download address that needs no credentials, call `GET /proj
 When an address cannot be prepared, these requests answer `503` with `file_url_unavailable` and a `Retry-After` header. See [Errors](/api-reference/errors#retry-later-503).
 
 <Note>
-Despite its name, `public_url` is not open to the public. Do not pass it to a service that sends no credentials. Use a `pragma://files/<name>` reference instead (see below).
+Despite its name, `public_url` is not open to the public. Do not pass it to a service that sends no credentials. Use a `pragma://files/<name>` reference instead (see [Referencing Files from Other Resources](#referencing-files-from-other-resources)).
 </Note>
 
 ## Using the SDK
@@ -116,7 +125,7 @@ with PragmaClient() as client:
         "resource": "file",
         "name": "training-data",
         "lifecycle_state": "pending",
-        "config": {},
+        "config": {"content": "pragma://files/training-data"},
     })
 ```
 
@@ -124,7 +133,7 @@ The upload goes straight to storage and returns once the file is stored. An inte
 
 ## Referencing Files from Other Resources
 
-File outputs can be referenced by other resources using FieldReferences. For example, to use an uploaded document as a knowledge source for an AI agent:
+Reference a file through its file resource's `url` output, which holds `pragma://files/<name>`. The reference makes the file resource a dependency, so deleting the file resource shows on the resources that read it. For example, to use an uploaded document as a knowledge source for an AI agent:
 
 ```yaml
 # Upload the document
@@ -135,15 +144,19 @@ config:
   content: "@./docs/product-manual.pdf"
   content_type: "application/pdf"
 ---
-# Knowledge base references the file by name
+# Knowledge base references the file resource's url output
 provider: pragmatiks/agno
 resource: knowledge
 name: product-knowledge
 config:
-  source_url: "pragma://files/product-docs"
+  source_url:
+    provider: pragmatiks/pragma
+    resource: file
+    name: product-docs
+    field: outputs.url
 ```
 
-A `pragma://files/<name>` reference resolves to the file in the referencing resource's project, and Pragmatiks supplies a short-lived download address when the resource runs. Do not use `outputs.public_url` here: it needs credentials, which a knowledge source does not send.
+A config can also hold `pragma://files/<name>` directly, but then nothing links it to the file resource: deleting the file resource leaves it unchanged until its next operation, which fails because the file is gone. A `pragma://files/<name>` reference resolves to the file in the referencing resource's project, and Pragmatiks supplies a short-lived download address when the resource runs. Do not use the `public_url` from `upload_file` here: it needs credentials, which a knowledge source does not send.
 
 ## Supported Content Types
 

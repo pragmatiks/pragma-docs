@@ -151,7 +151,7 @@ A change that conflicted with other changes saved at the same time and was not s
 
 #### File Upload In Progress
 
-An upload of different content for the same file name is still being stored. The `detail` object carries the code `file_upload_in_progress`, the message and `retry_after`, and the `Retry-After` header carries the same delay:
+An upload of different content for the same file name is still being stored, or a `pragma/file` resource is deleted while an upload of its file is still being stored. The `detail` object carries the code `file_upload_in_progress`, the message and `retry_after`, and the `Retry-After` header carries the same delay:
 
 ```json
 {
@@ -163,7 +163,23 @@ An upload of different content for the same file name is still being stored. The
 }
 ```
 
-**Solution**: Wait `retry_after` seconds, then declare the upload again. `pragma resources apply` and the SDK's `upload_file` wait for you, for up to three minutes.
+**Solution**: Wait `retry_after` seconds, then declare the upload again. `pragma resources apply` and the SDK's `upload_file` wait for you, for up to three minutes. For a refused delete, delete the resource again once the upload is stored.
+
+#### File Delete In Progress
+
+An upload is declared for a file whose delete, after its `pragma/file` resource was deleted, is still in progress. The `detail` object carries the code `file_delete_in_progress`, the message and `retry_after`, and the `Retry-After` header carries the same delay:
+
+```json
+{
+  "detail": {
+    "error": "file_delete_in_progress",
+    "message": "report.pdf is being deleted. Upload it again in a few seconds, once it is deleted.",
+    "retry_after": 5
+  }
+}
+```
+
+**Solution**: Wait `retry_after` seconds, then declare the upload again; it uploads the file afresh.
 
 ### File Too Large (413)
 
@@ -270,7 +286,8 @@ A refused file upload or download carries its code in `detail.error`:
 
 | Status | `error` | Meaning |
 |--------|---------|---------|
-| `409` | `file_upload_in_progress` | An upload of different content for the name is being stored. Declare again after `retry_after` seconds ([File Upload In Progress](#file-upload-in-progress)). |
+| `409` | `file_upload_in_progress` | An upload of different content for the name is being stored. Declare again after `retry_after` seconds ([File Upload In Progress](#file-upload-in-progress)). Also returned for a delete of a `pragma/file` resource while its upload is being stored. |
+| `409` | `file_delete_in_progress` | The file is still being deleted after its resource was deleted. Declare again after `retry_after` seconds ([File Delete In Progress](#file-delete-in-progress)). |
 | `413` | `file_too_large` | The declared size is above the maximum file size ([File Too Large](#file-too-large-413)). |
 | `503` | `file_upload_unavailable` | The upload address could not be prepared. The upload stays declared: declare it again after `retry_after` seconds for an address for the same upload. |
 | `503` | `file_url_unavailable` | A download address could not be prepared. Request it again after `retry_after` seconds. |
