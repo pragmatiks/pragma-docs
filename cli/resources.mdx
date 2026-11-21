@@ -53,7 +53,7 @@ config:
 
 The CLI uploads every `@path` file straight to storage, into the project you apply to, before it applies anything, and waits until the file is stored. A file can be up to about 5 GiB, and an interrupted upload starts again from the beginning.
 
-When an upload fails, no resource is applied, and the CLI prints why and the command to run next, `To apply again, run: pragma resources apply ...`. It exits `1`, or `2` when the local file is the problem: missing, unreadable, outside the manifest directory, or replaced after the apply checked it. When an upload reached Pragmatiks but showed no progress for three minutes, the CLI exits `3` and prints `To keep waiting for it, run: pragma resources apply ...`: the upload may still complete, and running that command waits for it without sending the file again. The messages name the upload operation, which support can use to trace the upload. The resource outputs include a `public_url` for downloading it, which needs Pragmatiks credentials; see [File Uploads](/guides/file-uploads#downloading-a-file). Files belong to a project: the same file name in two projects is two separate files, and a `pragma://files/<name>` reference resolves within the referencing resource's project.
+When an upload fails, no resource is applied, and the CLI prints why and the command to run next, `To apply again, run: pragma resources apply ...`. It exits `1`, or `2` when the local file is the problem: missing, unreadable, outside the manifest directory, or replaced after the apply checked it. When an upload reached Pragmatiks but showed no progress for three minutes, the CLI exits `3` and prints `To keep waiting for it, run: pragma resources apply ...`: the upload may still complete, and running that command waits for it without sending the file again. The messages name the upload operation, which support can use to trace the upload. The CLI applies the resource with `content` set to the file's reference, `pragma://files/<name>`, and the resource's `url` output is that reference, which other resources' configs take; see [File Uploads](/guides/file-uploads#referencing-files-from-other-resources). Files belong to a project: the same file name in two projects is two separate files, and a `pragma://files/<name>` reference resolves within the referencing resource's project.
 
 ## List
 
@@ -212,6 +212,8 @@ Resources this reaches:
 
 Each dependent moves to `waiting` without a call to its provider, and recovers by itself once the resource is applied again and ready. Add `--wait` to block until the teardown finishes (`--wait-timeout <seconds>`, `0` waits forever), or `-f <file>` to deactivate every resource a YAML file defines.
 
+Deactivating a `pragma/file` resource keeps its uploaded content.
+
 ## Delete
 
 Delete a resource:
@@ -242,6 +244,8 @@ Resources this reaches:
 ```
 
 Each dependent listed as `failed, its dependency is deleted` waits while the delete runs and moves to `failed` once the resource is deleted; apply it again to retry it, or deactivate it to discard it. Add `--wait` to block until the delete finishes (`--wait-timeout <seconds>`, `0` waits forever).
+
+Deleting a `pragma/file` resource also deletes its uploaded content. A delete while a new upload of its file is still being stored is refused with `409` (`file_upload_in_progress`); delete it again once the upload is stored. Until the content is deleted, an upload for that file is refused with `409` (`file_delete_in_progress`). See [Errors](/api-reference/errors#file-errors).
 
 ## Next Steps
 
