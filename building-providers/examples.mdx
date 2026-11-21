@@ -318,14 +318,16 @@ This example shows a different pattern: integrating with an external webhook-bas
 """Slack webhook resource - external API integration pattern."""
 
 import httpx
-from pragma_sdk import Config, Field, Outputs, Resource, SensitiveField, Vitals
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, Outputs, Resource, Vitals
 
 
 class SlackChannelConfig(Config):
     """Configuration for a Slack notification channel.
 
-    ``webhook_url`` is sensitive because users store webhook URLs in
-    ``pragma/secret`` resources and reference them. ``channel`` and
+    ``webhook_url`` is a ``SecretStr`` because a webhook URL grants
+    posting to the channel: users store it in a ``pragma/secret`` resource
+    and reference it. ``channel`` and
     ``icon_emoji`` are optional because Slack webhooks carry their own
     defaults.
 
@@ -336,7 +338,7 @@ class SlackChannelConfig(Config):
         icon_emoji: Emoji shown as the bot's icon.
     """
 
-    webhook_url: SensitiveField[str]
+    webhook_url: Field[SecretStr]
     channel: Field[str] | None = None
     username: Field[str] = "Pragmatiks"
     icon_emoji: Field[str] | None = ":robot:"
@@ -424,7 +426,9 @@ class SlackChannel(Resource[SlackChannelConfig, SlackChannelOutputs]):
         """
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.post(self.config.webhook_url, json=self.build_test_message(), timeout=10.0)
+                response = await client.post(
+                    self.config.webhook_url.get_secret_value(), json=self.build_test_message(), timeout=10.0
+                )
             except httpx.HTTPError as error:
                 return Vitals(status="down", message=f"Webhook unreachable: {type(error).__name__}")
         if response.status_code != 200:

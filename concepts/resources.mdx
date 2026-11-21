@@ -145,6 +145,64 @@ The `resolved_config` is what gets sent to the provider. You can inspect both to
 pragma resources describe pragmatiks/agno/agent/my-agent -o json
 ```
 
+## Sensitive Values
+
+A resource type marks the fields that hold a credential, such as an API key, a password or a token, as sensitive. The provider reference lists them as `Field[SecretStr]`.
+
+### References Only
+
+A sensitive config field takes a [field reference](/concepts/reactive-dependencies#field-references) to a secret, never a literal value. An apply that writes a literal into one is refused, naming the field:
+
+```text
+Field api_key holds a sensitive value. Reference a secret resource instead of a literal value.
+```
+
+The same holds for resources a provider applies on your behalf.
+
+`pragma/secret` is the one resource type that takes literal sensitive values. Store the value in its `data`, then reference it from the field that needs it:
+
+```yaml
+provider: pragmatiks/pragma
+resource: secret
+name: anthropic-key
+config:
+  data:
+    ANTHROPIC_API_KEY: "sk-ant-..."
+---
+provider: pragmatiks/agno
+resource: models/anthropic
+name: claude
+config:
+  model_id: claude-sonnet-4-5-20250929
+  api_key:
+    provider: pragmatiks/pragma
+    resource: secret
+    name: anthropic-key
+    field: outputs.ANTHROPIC_API_KEY
+```
+
+To read a value from a file instead of writing it in the manifest, use the `@path` syntax; see [File References](/cli/resources#file-references).
+
+### Masked When Read
+
+`pragma resources describe`, `pragma resources list`, the web UI and its live updates show every sensitive value as `********`: in `config`, in `resolved_config` and in `outputs`, on the secret and on every resource that references it. The resource that references the secret still receives the real value, so it works as before.
+
+- Every value of a `pragma/secret` is masked, and so is the value any field resolves from one.
+- A field reference in `resolved_config` keeps the reference visible, so you can see where the value comes from; only the resolved value is masked.
+- A `Dependency` in `resolved_config` keeps the identity of the resource it names; its copy of that resource reads `********`. Describe that resource to see its own values, masked the same way.
+- A sensitive field that is not set shows as `null`.
+- When Pragmatiks no longer has the schema of a resource's type, for example after its provider was deleted, every value of that resource is masked. A draft saved before its provider is installed is masked the same way until the provider is installed.
+
+To see the real values, pass `--reveal` to `pragma resources describe`, the only command that takes it:
+
+```bash
+pragma resources describe pragmatiks/pragma/secret/anthropic-key --reveal
+```
+
+<Warning>
+`pragma resources describe -o yaml` writes `********` in place of each sensitive value, so applying its output again is refused. Apply again from your source manifest, or reference a secret in the sensitive field.
+</Warning>
+
 ## Idempotent Apply
 
 Re-applying a resource with identical configuration is a no-op. If the resource is already `ready` and the normalized config matches, Pragmatiks returns the existing resource without re-processing. This makes it safe to run `pragma resources apply` repeatedly in scripts and CI/CD pipelines.

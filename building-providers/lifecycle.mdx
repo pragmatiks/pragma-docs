@@ -144,6 +144,10 @@ async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOut
 **Immutable fields** - Fields that cannot change in place, and every field `on_observe` reads to locate the object, are declared `ImmutableField` or `ImmutableDependency`. The platform refuses a change to them, so a user changes one by deleting and recreating the resource. The handler never checks them:
 
 ```python
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, ImmutableField
+
+
 class SecretConfig(Config):
     """Configuration for a secret.
 
@@ -155,7 +159,7 @@ class SecretConfig(Config):
 
     project_id: ImmutableField[str]
     secret_id: ImmutableField[str]
-    data: SensitiveField[str]
+    data: Field[SecretStr]
 ```
 
 **No-op when unchanged** - Skip work when the live object already matches the configuration:
@@ -163,9 +167,10 @@ class SecretConfig(Config):
 ```python
 async def on_update(self, previous_config: SecretConfig | None) -> SecretOutputs:
     latest = await self.client.get_latest_version(self.config.secret_id)
+    data = self.config.data.get_secret_value()
 
-    if latest.data != self.config.data:
-        latest = await self.client.add_version(data=self.config.data)
+    if latest.data != data:
+        latest = await self.client.add_version(data=data)
 
     return SecretOutputs(version_id=latest.id)
 ```

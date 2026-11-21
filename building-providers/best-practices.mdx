@@ -81,18 +81,21 @@ A generic message such as `"Invalid configuration"` leaves the user guessing.
 Providers should accept credentials as configuration, not rely on ambient credentials:
 
 ```python
+from pydantic import SecretStr
+from pragma_sdk import Config, Field, ImmutableField, Resource
+
+
 class DatabaseConfig(Config):
     """Configuration for a managed database.
 
     Attributes:
         name: Database name. Locates the database, so it cannot change.
-        credentials: Service credentials as a dict or a JSON string, usually a
-            reference to a ``pragma/secret`` resource. Never read from the
-            environment.
+        credentials: Service credentials as a JSON string, a reference to a
+            ``pragma/secret`` resource. Never read from the environment.
     """
 
     name: ImmutableField[str]
-    credentials: SensitiveField[dict[str, Any] | str]
+    credentials: Field[SecretStr]
 
 
 class Database(Resource[DatabaseConfig, DatabaseOutputs]):
@@ -101,16 +104,10 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
     def build_client(self) -> CloudClient:
         """Build a client from the configured credentials.
 
-        Accepts the credentials as a dict or as a JSON string.
-
         Returns:
             Cloud API client.
         """
-        credentials = self.config.credentials
-        if isinstance(credentials, str):
-            credentials = json.loads(credentials)
-
-        return CloudClient(credentials=credentials)
+        return CloudClient(credentials=self.config.credentials.get_secret_value())
 ```
 
 This approach:
@@ -135,6 +132,24 @@ config:
     field: outputs.credentials
 ```
 
+A `Field[SecretStr]` field takes only a reference: an apply that writes the credentials as a literal is refused, and `describe` and `list` show them as `********`. See [Sensitive Values](/concepts/resources#sensitive-values).
+
+### Reveal Secret Values Explicitly
+
+`str()`, an f-string, string concatenation or `model_dump(mode="json")` on a `SecretStr` gives `**********`, not the value. The external API then receives ten asterisks as the key, and a type checker does not catch it, because the call is valid. This header sends `Bearer **********`:
+
+```python
+headers = {"Authorization": f"Bearer {self.config.api_key}"}
+```
+
+Call `.get_secret_value()` each time you hand the value to a client. This header sends the key:
+
+```python
+headers = {"Authorization": f"Bearer {self.config.api_key.get_secret_value()}"}
+```
+
+The same holds for a value read from a dependency's outputs, and for a model you serialize into a string or a JSON document: reveal each secret value before it leaves your handler.
+
 ### Never Log Credentials
 
 Ensure credentials never appear in logs or error messages. The authentication error from a client library can echo the credentials it was given, so raise a message of your own and drop the original with `from None`:
@@ -142,7 +157,7 @@ Ensure credentials never appear in logs or error messages. The authentication er
 ```python
 def build_client(self) -> CloudClient:
     try:
-        return CloudClient(credentials=self.config.credentials)
+        return CloudClient(credentials=self.config.credentials.get_secret_value())
     except AuthenticationError:
         raise RuntimeError("Authentication failed; check the credentials secret") from None
 ```
@@ -165,7 +180,7 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
         Returns:
             Cloud API client.
         """
-        return CloudClient(credentials=self.config.credentials)
+        return CloudClient(credentials=self.config.credentials.get_secret_value())
 
     async def on_create(self) -> DatabaseOutputs:
         """Create and configure the database with a single client.
@@ -206,7 +221,7 @@ Lifecycle methods are `async`. Use async API clients, or run a blocking call wit
 
 ```python
 async def on_create(self) -> DatabaseOutputs:
-    async with AsyncCloudClient(credentials=self.config.credentials) as client:
+    async with AsyncCloudClient(credentials=self.config.credentials.get_secret_value()) as client:
         database = await client.create_database(self.config.name)
         await asyncio.gather(
             client.configure_settings(database.id, self.config.settings),
@@ -255,7 +270,7 @@ class Database(Resource[DatabaseConfig, DatabaseOutputs]):
         Returns:
             Cloud API client.
         """
-        return CloudClient(credentials=self.config.credentials)
+        return CloudClient(credentials=self.config.credentials.get_secret_value())
 
     async def on_update(self, previous_config: DatabaseConfig | None) -> DatabaseOutputs:
         """Converge the database with a client built for this call.
